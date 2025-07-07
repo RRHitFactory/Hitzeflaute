@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
+from src.models.geometry import Point
 from src.models.ids import PlayerId, BusId
 
 
@@ -11,6 +12,10 @@ class Bus(LightDc):
     x: float
     y: float
     player_id: PlayerId = PlayerId.get_npc()
+
+    @property
+    def point(self) -> Point:
+        return Point(x=self.x, y=self.y)
 
     @property
     def is_ice_cream_bus(self) -> bool:
@@ -37,11 +42,9 @@ class BusRepo(LdcRepo[Bus]):
 
     @property
     def ice_cream_buses(self) -> list[Bus]:
-        """Get all buses that are ice cream buses."""
         return [self[b] for b in self.player_bus_ids]
 
     def get_bus_for_player(self, player_id: PlayerId) -> Bus:
-        """Get the bus for a specific player."""
         player_buses = self.filter({"player_id": player_id})
         assert len(player_buses) == 1
         return player_buses.as_objs()[0]
