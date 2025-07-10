@@ -19,6 +19,7 @@ pypsa = "^0.34.1"
 pandas = "^2.2.3"
 numpy = "^2.2.5"
 plotly = "^6.1.2"
+livereload = "^2.7.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^25.1.0"

@@ -1,6 +1,10 @@
+from functools import cached_property
+from pathlib import Path
+
 import plotly.graph_objects as go
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
+from src.app.simple_front_end.plotting.live_html import LiveHtml
 from src.app.simple_front_end.plotting.po_asset import PlotAsset
 from src.app.simple_front_end.plotting.po_bus import PlotBus
 from src.app.simple_front_end.plotting.po_line import PlotTxLine
@@ -11,6 +15,15 @@ from src.models.ids import BusId
 
 
 class GridPlotter:
+    def __init__(self, html_path: Path = None) -> None:
+        self._html_path = html_path
+
+    @cached_property
+    def live_html(self) -> LiveHtml:
+        live_html = LiveHtml(path=self._html_path)
+        live_html.start()
+        return live_html
+
     def plot(self, game_state: GameState) -> None:
         # TODO Use playable map area from game state. Plot a box around the playable area.
         plot_objects = self.get_plot_objects(game_state)
@@ -30,7 +43,7 @@ class GridPlotter:
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             ),
         )
-        fig.show()
+        fig.write_html(self.live_html.path)
 
     @staticmethod
     def get_plot_objects(game_state: GameState) -> list[PlotObject]:
