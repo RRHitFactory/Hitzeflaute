@@ -25,6 +25,6 @@ class LiveHtml:
         server = self.server
         root = str(self.path.parent)
         path = str(self.path)
-        port = 5500
+        port = self.port
         threading.Thread(target=self._run_server, args=(server, root, path, port), daemon=True).start()
         webbrowser.open_new_tab(f"http://localhost:{port}/{filename}")
