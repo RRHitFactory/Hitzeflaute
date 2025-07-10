@@ -11,6 +11,7 @@ from src.models.assets import AssetInfo, AssetType
 from src.models.colors import get_contrasting_color, Color
 from src.models.geometry import Point
 from src.models.player import Player
+from src.tools.money import format_money, format_price
 
 
 @dataclass(frozen=True)
@@ -39,10 +40,14 @@ class PlotAsset(PlotObject):
 
     @property
     def data_dict(self) -> dict[str, str]:
-        return {
+        data_dict = {
             "Owner": self.owner.name,
             "Expected Power": f"{self.asset.power_expected:.0f} MW",
+            "Marginal Cost": format_price(self.asset.marginal_cost),
         }
+        if self.asset.is_for_sale:
+            data_dict["Price"] = format_money(self.asset.minimum_acquisition_price)
+        return data_dict
 
     @cached_property
     def centre(self) -> Point:
