@@ -162,7 +162,7 @@ class Engine:
             )
 
         player_assets = game_state.assets.get_all_for_player(player.id, only_active=True)
-        if FinanceCalculator.validate_bid(player_assets, msg.asset_id, msg.bid_price, player.money):
+        if FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
             return make_failed_response(
                 f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
             )
