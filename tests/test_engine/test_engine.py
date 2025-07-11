@@ -3,8 +3,9 @@ from unittest import TestCase
 
 from src.engine.engine import Engine
 from src.models.colors import Color
-from src.models.ids import PlayerId, AssetId
-from src.models.message import PlayerToGameMessage, BuyAssetRequest, BuyAssetResponse
+from src.models.ids import PlayerId, AssetId, TransmissionId
+from src.models.message import PlayerToGameMessage, BuyAssetRequest, BuyAssetResponse, BuyTransmissionRequest, \
+    BuyTransmissionResponse
 from src.models.player import Player
 from tests.utils.comparisons import assert_game_states_are_equal, assert_game_states_are_not_equal
 from tests.utils.game_state_maker import GameStateMaker
@@ -22,7 +23,7 @@ class TestAssets(TestCase):
         with self.assertRaises(NotImplementedError):
             Engine.handle_message(game_state=game_state, msg=dumb_message)  # noqa
 
-    def test_update_bid_message(self) -> None:
+    def test_buy_asset_message(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()
         rich_player = Player(
             id=PlayerId(100), name="Rich player", color=Color("black"), money=1000000, is_having_turn=True
@@ -59,3 +60,41 @@ class TestAssets(TestCase):
         sold_asset = result_game_state.assets[is_for_sale_ids[0]]
         self.assertEqual(sold_asset.owner_player, rich_player.id)
         self.assertFalse(sold_asset.is_for_sale)
+
+    def test_buy_transmission_message(self) -> None:
+        player_repo = PlayerRepoMaker.make_quick()
+        rich_player = Player(
+            id=PlayerId(100), name="Rich player", color=Color("black"), money=1000000, is_having_turn=True
+        )
+        player_repo += rich_player
+        game_state = GameStateMaker().add_player_repo(player_repo).make()
+
+        is_for_sale_ids = game_state.transmission.filter(condition={"is_for_sale": True}).transmission_ids
+        not_for_sale_ids = game_state.transmission.filter(condition={"is_for_sale": False}).transmission_ids
+
+        def assert_fails_with_message_matching(request: BuyTransmissionRequest, x: Callable[[str], bool]) -> None:
+            new_game_state, msgs = Engine.handle_message(game_state=game_state, msg=request)
+            self.assertEqual(len(msgs), 1)
+            message = msgs[0]
+            self.assertIsInstance(message, BuyTransmissionResponse)
+            self.assertFalse(message.success)
+            self.assertTrue(x(message.message))
+            assert_game_states_are_equal(game_state1=game_state, game_state2=new_game_state)
+
+        msg = BuyTransmissionRequest(player_id=rich_player.id, transmission_id=TransmissionId(-5))
+        assert_fails_with_message_matching(request=msg, x=lambda s: "transmission" in s.lower())
+
+        msg = BuyTransmissionRequest(player_id=rich_player.id, transmission_id=not_for_sale_ids[0])
+        assert_fails_with_message_matching(request=msg, x=lambda s: "for sale" in s.lower())
+
+        msg = BuyTransmissionRequest(player_id=rich_player.id, transmission_id=is_for_sale_ids[0])
+        result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
+        self.assertEqual(len(messages), 1)
+        success_msg = messages[0]
+        self.assertIsInstance(success_msg, BuyTransmissionResponse)
+        self.assertTrue(success_msg.success)
+        assert_game_states_are_not_equal(game_state1=game_state, game_state2=result_game_state)
+
+        sold_transmission = result_game_state.transmission[is_for_sale_ids[0]]
+        self.assertEqual(sold_transmission.owner_player, rich_player.id)
+        self.assertFalse(sold_transmission.is_for_sale)
