@@ -5,8 +5,14 @@ from src.app.game_repo.file_game_repo import FileGameStateRepo
 from src.app.simple_front_end.plotting.grid_plotter import GridPlotter
 from src.engine.engine import Engine
 from src.models.game_state import GameState
-from src.models.ids import GameId, PlayerId, AssetId
-from src.models.message import GameToPlayerMessage, PlayerToGameMessage, BuyAssetRequest, EndTurn
+from src.models.ids import GameId, PlayerId, AssetId, TransmissionId
+from src.models.message import (
+    GameToPlayerMessage,
+    PlayerToGameMessage,
+    BuyAssetRequest,
+    EndTurn,
+    BuyTransmissionRequest,
+)
 from src.tools.random_choice import random_choice
 
 
@@ -82,6 +88,12 @@ class Joystick:
 
     def buy_asset(self, asset_id: int) -> None:
         message = BuyAssetRequest(player_id=self._current_player_id, asset_id=AssetId(asset_id))
+        self._send_message(message)
+
+    def buy_transmission(self, transmission_id: int) -> None:
+        message = BuyTransmissionRequest(
+            player_id=self._current_player_id, transmission_id=TransmissionId(transmission_id)
+        )
         self._send_message(message)
 
     def end_turn(self) -> None:
