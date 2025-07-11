@@ -5,12 +5,12 @@ from src.app.simple_front_end.plotting.base_plot_object import PlotObject
 from src.app.simple_front_end.plotting.po_asset import PlotAsset
 from src.app.simple_front_end.plotting.po_bus import PlotBus
 from src.app.simple_front_end.plotting.po_line import PlotTxLine
-from src.app.simple_front_end.plotting.po_rect import Rect
 from src.app.simple_front_end.plotting.po_table import make_table
 from src.models.colors import Color
 from src.models.game_state import GameState
 from src.models.geometry import Point, Shape
 from src.models.ids import BusId
+from src.models.player import Player
 from src.tools.money import format_money
 
 
@@ -58,25 +58,33 @@ class GridPlotter:
             bus = bus_dict[asset.bus]
             assets.append(PlotAsset(asset=asset, owner=owner, bus=bus))
 
-        # TODO Add playable map area to state and use that to determine legend location
-        legend_location = Point(x=21, y=19)
+        def sort_player(p: Player) -> int:
+            return p.id.as_int()
 
-        players = game_state.players.as_objs()
+        players = sorted(game_state.players.human_players, key=sort_player)
         names = [p.name for p in players]
-        money = [p.money for p in players]
+        money = [format_money(p.money) for p in players]
+        n_ice_creams = [str(game_state.assets.get_ice_cream_count_for_player(p.id)) for p in players]
+
         player_df = pd.DataFrame(index=names, columns=["Name", "Money"])
         player_df["Name"] = names
         player_df["Money"] = money
-        player_df["Money"] = player_df["Money"].apply(format_money)
-        player_df.loc["NPC", "Money"] = ""
+        player_df["Ice Creams"] = n_ice_creams
+
+        top_row = pd.Series({c: c for c in player_df.columns})
+        player_df = pd.concat([top_row.to_frame().T, player_df], axis=0)
 
         color_df = player_df.copy()
+        color_df.iloc[0, :] = Color("gray").to_string()  # Color for the header row
         for p in players:
             color_df.loc[p.name, :] = p.color.to_string()
 
+        y = game_state.game_settings.map_area.max_y
+        x = game_state.game_settings.map_area.max_x
+
         legend_rect = Shape.make_rectangle(
-            bottom_left=Point(x=legend_location.x - 4, y=legend_location.y - 4),
-            top_right=Point(x=legend_location.x + 1, y=legend_location.y + len(players)),
+            bottom_left=Point(x=x, y=y - 2 * len(player_df)),
+            top_right=Point(x=x + 10, y=y),
         )
         player_table = make_table(values=player_df, colors=color_df, rect=legend_rect)
 

@@ -12,7 +12,7 @@ def make_table(values: pd.DataFrame, colors: pd.DataFrame, rect: Shape) -> list[
     assert values.index.equals(colors.index)
 
     x_points = np.linspace(start=rect.min_x, stop=rect.max_x, num=len(values.columns) + 1, endpoint=True)
-    y_points = np.linspace(start=rect.min_y, stop=rect.max_y, num=len(values.index) + 1, endpoint=True)
+    y_points = np.linspace(start=rect.max_y, stop=rect.min_y, num=len(values.index) + 1, endpoint=True)
 
     objects: list[Rect] = []
     for i in range(len(values.index)):

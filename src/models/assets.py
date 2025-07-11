@@ -53,7 +53,12 @@ class AssetRepo(LdcRepo[AssetInfo]):
         else:
             return self.filter({"owner_player": player_id})
 
+    def get_ice_cream_count_for_player(self, player_id: PlayerId) -> int:
+        assets = self.filter({"owner_player": player_id, "is_ice_cream": True})
+        return len(assets)
+
     def get_cashflow_sign(self, asset_id: AssetId) -> int:
+        # TODO This doesn't belong here
         asset = self.df.loc[asset_id]
         return 1 if asset["asset_type"] == AssetType.GENERATOR else -1
 
