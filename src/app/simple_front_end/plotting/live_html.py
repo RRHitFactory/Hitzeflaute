@@ -1,4 +1,6 @@
+import logging
 import threading
+import warnings
 import webbrowser
 from pathlib import Path
 
@@ -13,8 +15,12 @@ class LiveHtml:
 
     @staticmethod
     def _run_server(server: Server, root: str, path: str, port: int) -> None:
-        server.watch(path)
-        server.serve(open_url=False, port=port, root=root)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            logging.disable(logging.CRITICAL)
+            server.watch(path)
+            server.serve(open_url=False, port=port, root=root)
+            logging.disable(logging.NOTSET)
 
     def start(self) -> None:
         filename = self.path.name
