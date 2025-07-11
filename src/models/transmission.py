@@ -4,6 +4,7 @@ from typing import Self
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.ids import TransmissionId, BusId, PlayerId
+from src.tools.serialization import simplify_type
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,13 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         min_bus = min(bus1, bus2)
         max_bus = max(bus1, bus2)
         return self.filter({"bus1": min_bus, "bus2": max_bus})
+
+    # UPDATE
+    def change_owner(self, transmission_id: TransmissionId, new_owner: PlayerId) -> Self:
+        df = self.df.copy()
+        df.loc[transmission_id, "owner_player"] = simplify_type(new_owner)
+        df.loc[transmission_id, "is_for_sale"] = False
+        return self.update_frame(df)
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:

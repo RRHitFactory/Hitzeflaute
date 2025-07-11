@@ -14,6 +14,8 @@ from src.models.message import (
     ToGameMessage,
     FromGameMessage,
     GameUpdate,
+    BuyTransmissionRequest,
+    BuyTransmissionResponse,
 )
 
 
@@ -235,6 +237,7 @@ class Engine:
         asset = game_state.assets[msg.asset_id]
         if not asset.is_for_sale:
             return make_failed_response(f"Asset {asset.id} is not for sale.")
+
         elif player.money < asset.minimum_acquisition_price:
             return make_failed_response(f"Player {player.id} cannot afford asset {asset.id}.")
 
@@ -246,6 +249,52 @@ class Engine:
 
         response = BuyAssetResponse(
             player_id=player.id, game_state=new_game_state, success=True, message=message, asset_id=asset.id
+        )
+        return new_game_state, [response]
+
+    @classmethod
+    def handle_buy_transmission_message(
+        cls,
+        game_state: GameState,
+        msg: BuyTransmissionRequest,
+    ) -> tuple[GameState, list[BuyTransmissionResponse]]:
+        """
+        Handle a buy asset message.
+        :param game_state: The current state of the game
+        :param msg: The triggering message
+        :return: The new game state and a list of messages to be sent to the player interface
+        """
+
+        def make_failed_response(failed_message: str) -> tuple[GameState, list[BuyTransmissionResponse]]:
+            failed_response = BuyTransmissionResponse(
+                player_id=msg.player_id,
+                game_state=game_state,
+                success=False,
+                message=failed_message,
+                transmission_id=msg.transmission_id,
+            )
+            return game_state, [failed_response]
+
+        player = game_state.players[msg.player_id]
+
+        if not msg.transmission_id in game_state.assets.asset_ids:
+            return make_failed_response(f"Transmission line {msg.transmission_id} does not exist.")
+
+        transmission = game_state.transmission[msg.transmission_id]
+        if not transmission.is_for_sale:
+            return make_failed_response(f"Transmission line {transmission.id} is not for sale.")
+
+        elif player.money < transmission.minimum_acquisition_price:
+            return make_failed_response(f"Player {player.id} cannot afford asset {transmission.id}.")
+
+        message = f"Player {player.id} successfully bought asset {transmission.id}."
+        new_players = game_state.players.subtract_money(player_id=player.id, amount=transmission.minimum_acquisition_price)
+        new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=player.id)
+
+        new_game_state = replace(game_state, players=new_players, transmission=new_transmission)
+
+        response = BuyTransmissionResponse(
+            player_id=player.id, game_state=new_game_state, success=True, message=message, transmission_id=transmission.id
         )
         return new_game_state, [response]
 

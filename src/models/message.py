@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Union
 
 from src.models.game_state import GameState, Phase
-from src.models.ids import PlayerId, AssetId
+from src.models.ids import PlayerId, AssetId, TransmissionId
 
 
 @dataclass(frozen=True)
@@ -83,6 +83,18 @@ class BuyAssetResponse(GameToPlayerMessage):
     game_state: GameState
     success: bool
     asset_id: AssetId
+
+
+@dataclass(frozen=True)
+class BuyTransmissionRequest(PlayerToGameMessage):
+    transmission_id: TransmissionId
+
+
+@dataclass(frozen=True)
+class BuyTransmissionResponse(GameToPlayerMessage):
+    game_state: GameState
+    success: bool
+    transmission_id: TransmissionId
 
 
 @dataclass(frozen=True)
