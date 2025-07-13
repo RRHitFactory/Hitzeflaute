@@ -37,7 +37,7 @@ class TestFinanceCalculator(TestCase):
         for asset in asset_repo:
             single_asset_repo = asset_repo.filter({"id": asset.id})
             asset_cashflow = FinanceCalculator.compute_assets_cashflow(single_asset_repo, assets_dispatch, bus_prices)
-            sign = asset_repo.get_cashflow_sign(asset.id)
+            sign = asset.cashflow_sign
             self.assertAlmostEqual(
                 asset_cashflow,
                 sign * (bus_prices[asset.bus] - asset.marginal_cost) * assets_dispatch[asset.id]

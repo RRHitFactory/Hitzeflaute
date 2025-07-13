@@ -22,7 +22,7 @@ class FinanceCalculator:
         market_cashflow = 0.0
 
         for asset in assets:
-            sign = assets.get_cashflow_sign(asset.id)
+            sign = asset.cashflow_sign
             dispatched_volume = assets_dispatch[asset.id]
             operative_cashflow += -sign * abs(dispatched_volume) * asset.marginal_cost - asset.fixed_operating_cost
             market_cashflow += sign * abs(dispatched_volume) * bus_prices[asset.bus]
@@ -81,7 +81,7 @@ class FinanceCalculator:
         for asset in player_assets:
             expected_volume = asset.power_expected
             bid_price = asset.bid_price if asset.id != asset_id_to_validate else bid_to_validate
-            sign = player_assets.get_cashflow_sign(asset_id_to_validate)
+            sign = asset.cashflow_sign
 
             # Players must at least be capable of covering the market cashflow of their assets. Operative cashflow is not considered here.
             expected_market_cashflow += sign * bid_price * expected_volume
