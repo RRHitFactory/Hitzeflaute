@@ -9,7 +9,7 @@ from src.models.game_state import GameState
 
 class Referee:
     """
-    The Referee class is responsible for observing the game state and enforcing the rules of the game.
+    The Referee class is responsible for enforcing some of the game rules.
     It validates players requests, checks for win conditions, or determines when penalties should be applied
     (e.g., losing ice creams, losing lives of transmission lines, or eliminate players from the game).
     """
