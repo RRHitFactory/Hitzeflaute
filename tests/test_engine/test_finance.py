@@ -4,11 +4,13 @@ from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker
 from tests.utils.game_state_maker import GameStateMaker
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.engine.finance import FinanceCalculator
+from src.models.game_state import GameState
+from src.models.market_coupling_result import MarketCouplingResult
 
 
 class TestFinanceCalculator(TestCase):
     @staticmethod
-    def create_game_state_and_market_coupling_result():
+    def create_game_state_and_market_coupling_result() -> tuple[GameState, MarketCouplingResult]:
         game_maker = GameStateMaker()
 
         buses = BusRepoMaker.make_quick(n_npc_buses=0)
