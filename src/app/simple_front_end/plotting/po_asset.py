@@ -31,7 +31,7 @@ class PlotAsset(PlotObject):
             raise ValueError(f"Unknown asset type: {self.asset.asset_type}")
         title = f"{a_type}{self.asset.id}"
         if self.asset.is_freezer:
-            title += " (Ice Cream)"
+            title += " (Freezer)"
         return title
 
     @property

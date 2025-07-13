@@ -321,11 +321,9 @@ class DefaultGameInitializer(BaseGameInitializer):
         return BusRepo(buses)
 
     def _create_asset_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> AssetRepo:
-        assets = []
+        assets: list[AssetInfo] = []
 
-        # Create one ice cream load for each player
-
-        def asset_id_iterator(start: int = 1):
+        def asset_id_iterator(start: int = 1) -> Generator[AssetId, None, None]:
             for i in count(start):
                 yield AssetId(i)
 
