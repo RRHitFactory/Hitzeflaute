@@ -9,9 +9,8 @@ from src.models.ids import GameId, PlayerId, AssetId, TransmissionId
 from src.models.message import (
     GameToPlayerMessage,
     PlayerToGameMessage,
-    BuyAssetRequest,
+    BuyRequest,
     EndTurn,
-    BuyTransmissionRequest,
 )
 from src.tools.random_choice import random_choice
 
@@ -87,12 +86,12 @@ class Joystick:
         print(f"Now it is {self.current_player}'s turn")
 
     def buy_asset(self, asset_id: int) -> None:
-        message = BuyAssetRequest(player_id=self._current_player_id, asset_id=AssetId(asset_id))
+        message = BuyRequest(player_id=self._current_player_id, purchase_id=AssetId(asset_id))
         self._send_message(message)
 
     def buy_transmission(self, transmission_id: int) -> None:
-        message = BuyTransmissionRequest(
-            player_id=self._current_player_id, transmission_id=TransmissionId(transmission_id)
+        message = BuyRequest(
+            player_id=self._current_player_id, purchase_id=TransmissionId(transmission_id)
         )
         self._send_message(message)
 

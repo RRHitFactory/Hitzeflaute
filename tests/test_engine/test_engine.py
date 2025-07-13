@@ -4,8 +4,7 @@ from unittest import TestCase
 from src.engine.engine import Engine
 from src.models.colors import Color
 from src.models.ids import PlayerId, AssetId, TransmissionId
-from src.models.message import PlayerToGameMessage, BuyAssetRequest, BuyAssetResponse, BuyTransmissionRequest, \
-    BuyTransmissionResponse
+from src.models.message import PlayerToGameMessage, BuyRequest, BuyResponse
 from src.models.player import Player
 from tests.utils.comparisons import assert_game_states_are_equal, assert_game_states_are_not_equal
 from tests.utils.game_state_maker import GameStateMaker
@@ -34,26 +33,26 @@ class TestAssets(TestCase):
         is_for_sale_ids = game_state.assets.filter(condition={"is_for_sale": True}).asset_ids
         not_for_sale_ids = game_state.assets.filter(condition={"is_for_sale": False}).asset_ids
 
-        def assert_fails_with_message_matching(request: BuyAssetRequest, x: Callable[[str], bool]) -> None:
+        def assert_fails_with_message_matching(request: BuyRequest, x: Callable[[str], bool]) -> None:
             new_game_state, msgs = Engine.handle_message(game_state=game_state, msg=request)
             self.assertEqual(len(msgs), 1)
             message = msgs[0]
-            self.assertIsInstance(message, BuyAssetResponse)
+            self.assertIsInstance(message, BuyResponse)
             self.assertFalse(message.success)
             self.assertTrue(x(message.message))
             assert_game_states_are_equal(game_state1=game_state, game_state2=new_game_state)
 
-        msg = BuyAssetRequest(player_id=rich_player.id, asset_id=AssetId(-5))
+        msg = BuyRequest(player_id=rich_player.id, purchase_id=AssetId(-5))
         assert_fails_with_message_matching(request=msg, x=lambda s: "asset" in s.lower())
 
-        msg = BuyAssetRequest(player_id=rich_player.id, asset_id=not_for_sale_ids[0])
+        msg = BuyRequest(player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
         assert_fails_with_message_matching(request=msg, x=lambda s: "for sale" in s.lower())
 
-        msg = BuyAssetRequest(player_id=rich_player.id, asset_id=is_for_sale_ids[0])
+        msg = BuyRequest(player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
         self.assertEqual(len(messages), 1)
         success_msg = messages[0]
-        self.assertIsInstance(success_msg, BuyAssetResponse)
+        self.assertIsInstance(success_msg, BuyResponse)
         self.assertTrue(success_msg.success)
         assert_game_states_are_not_equal(game_state1=game_state, game_state2=result_game_state)
 
@@ -72,26 +71,26 @@ class TestAssets(TestCase):
         is_for_sale_ids = game_state.transmission.filter(condition={"is_for_sale": True}).transmission_ids
         not_for_sale_ids = game_state.transmission.filter(condition={"is_for_sale": False}).transmission_ids
 
-        def assert_fails_with_message_matching(request: BuyTransmissionRequest, x: Callable[[str], bool]) -> None:
+        def assert_fails_with_message_matching(request: BuyRequest, x: Callable[[str], bool]) -> None:
             new_game_state, msgs = Engine.handle_message(game_state=game_state, msg=request)
             self.assertEqual(len(msgs), 1)
             message = msgs[0]
-            self.assertIsInstance(message, BuyTransmissionResponse)
+            self.assertIsInstance(message, BuyResponse)
             self.assertFalse(message.success)
             self.assertTrue(x(message.message))
             assert_game_states_are_equal(game_state1=game_state, game_state2=new_game_state)
 
-        msg = BuyTransmissionRequest(player_id=rich_player.id, transmission_id=TransmissionId(-5))
+        msg = BuyRequest(player_id=rich_player.id, purchase_id=TransmissionId(-5))
         assert_fails_with_message_matching(request=msg, x=lambda s: "transmission" in s.lower())
 
-        msg = BuyTransmissionRequest(player_id=rich_player.id, transmission_id=not_for_sale_ids[0])
+        msg = BuyRequest(player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
         assert_fails_with_message_matching(request=msg, x=lambda s: "for sale" in s.lower())
 
-        msg = BuyTransmissionRequest(player_id=rich_player.id, transmission_id=is_for_sale_ids[0])
+        msg = BuyRequest(player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
         self.assertEqual(len(messages), 1)
         success_msg = messages[0]
-        self.assertIsInstance(success_msg, BuyTransmissionResponse)
+        self.assertIsInstance(success_msg, BuyResponse)
         self.assertTrue(success_msg.success)
         assert_game_states_are_not_equal(game_state1=game_state, game_state2=result_game_state)
 

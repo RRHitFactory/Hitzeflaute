@@ -1,5 +1,4 @@
 from dataclasses import replace
-from typing import overload, TypeVar
 
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.game_state import GameState, Phase
@@ -7,19 +6,16 @@ from src.models.ids import AssetId, TransmissionId, BusId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
     UpdateBidRequest,
-    BuyAssetRequest,
     EndTurn,
     UpdateBidResponse,
-    BuyAssetResponse,
     ConcludePhase,
     ToGameMessage,
     FromGameMessage,
     GameUpdate,
-    BuyTransmissionRequest,
-    BuyTransmissionResponse,
+    BuyRequest,
+    BuyResponse
 )
 
-BuyResponse = TypeVar("BuyResponse", bound=BuyAssetResponse | BuyTransmissionResponse)
 
 
 class Engine:
@@ -39,10 +35,13 @@ class Engine:
             return cls.handle_new_phase_message(game_state, msg)
         elif isinstance(msg, UpdateBidRequest):
             return cls.handle_update_bid_message(game_state, msg)
-        elif isinstance(msg, BuyAssetRequest):
-            return cls.handle_buy_asset_message(game_state, msg)
-        elif isinstance(msg, BuyTransmissionRequest):
-            return cls.handle_buy_transmission_message(game_state, msg)
+        elif isinstance(msg, BuyRequest):
+            if isinstance(msg.purchase_id, AssetId):
+                return cls.handle_buy_asset_message(game_state, msg)
+            elif isinstance(msg.purchase_id, TransmissionId):
+                return cls.handle_buy_transmission_message(game_state, msg)
+            else:
+                raise NotImplementedError(f"You cannot buy objects of type <{type(msg.purchase_id)}>.")
         elif isinstance(msg, EndTurn):
             return cls.handle_end_turn_message(game_state, msg)
         else:
@@ -211,58 +210,43 @@ class Engine:
 
         return new_game_state, [response]
 
-    @overload
     @classmethod
-    def _check_if_purchase_is_invalid(cls, gs: GameState, msg: BuyAssetRequest) -> list[BuyAssetResponse]: ...
+    def _check_if_purchase_is_invalid(cls, gs: GameState, msg: BuyRequest) -> list[BuyResponse]:
 
-    @overload
-    @classmethod
-    def _check_if_purchase_is_invalid(
-        cls, gs: GameState, msg: BuyTransmissionRequest
-    ) -> list[BuyTransmissionResponse]: ...
-
-    @classmethod
-    def _check_if_purchase_is_invalid(cls, gs: GameState, msg) -> list[BuyResponse]:
-
-        if isinstance(msg, BuyAssetRequest):
-            purchase_id = msg.asset_id
-            id_arg = {"asset_id": purchase_id}
+        if isinstance(msg.purchase_id, AssetId):
             purchase_type = "asset"
-            response_cls = BuyAssetResponse
             purchase_repo = gs.assets
             purchase_repo_ids = purchase_repo.asset_ids
 
-        elif isinstance(msg, BuyTransmissionRequest):
-            purchase_id = msg.transmission_id
-            id_arg = {"transmission_id": purchase_id}
+        elif isinstance(msg.purchase_id, TransmissionId):
             purchase_type = "transmission"
-            response_cls = BuyTransmissionResponse
             purchase_repo = gs.transmission
             purchase_repo_ids = purchase_repo.transmission_ids
 
         else:
             raise NotImplementedError(f"Message type {type(msg)} not implemented for purchase validation.")
 
+        purchase_id = msg.purchase_id
         player = gs.players[msg.player_id]
 
         def make_failed_response(failed_message: str) -> list[BuyResponse]:
-            failed_response = response_cls(
+            failed_response = BuyResponse(
                 player_id=msg.player_id,
                 game_state=gs,
                 success=False,
                 message=failed_message,
-                **id_arg,
+                purchase_id=purchase_id,
             )
             return [failed_response]
 
         if not purchase_id in purchase_repo_ids:
             return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
+        purchase_obj = purchase_repo[purchase_id]
 
-        purchase = purchase_repo[purchase_id]
-        if not purchase.is_for_sale:
+        if not purchase_obj.is_for_sale:
             return make_failed_response(f"Sorry, {purchase_type} {purchase_id} is not for sale.")
 
-        elif player.money < purchase.minimum_acquisition_price:
+        elif player.money < purchase_obj.minimum_acquisition_price:
             return make_failed_response(f"Sorry, player {msg.player_id} cannot afford {purchase_type} {purchase_id}.")
 
         return []
@@ -271,8 +255,8 @@ class Engine:
     def handle_buy_asset_message(
         cls,
         game_state: GameState,
-        msg: BuyAssetRequest,
-    ) -> tuple[GameState, list[BuyAssetResponse]]:
+        msg: BuyRequest,
+    ) -> tuple[GameState, list[BuyResponse]]:
         """
         Handle a buy asset message.
         :param game_state: The current state of the game
@@ -284,7 +268,7 @@ class Engine:
             return game_state, list_failed_response
 
         player = game_state.players[msg.player_id]
-        asset = game_state.assets[msg.asset_id]
+        asset = game_state.assets[msg.purchase_id]
 
         message = f"Player {player.id} successfully bought asset {asset.id}."
         new_players = game_state.players.subtract_money(player_id=player.id, amount=asset.minimum_acquisition_price)
@@ -292,8 +276,8 @@ class Engine:
 
         new_game_state = replace(game_state, players=new_players, assets=new_assets)
 
-        response = BuyAssetResponse(
-            player_id=player.id, game_state=new_game_state, success=True, message=message, asset_id=asset.id
+        response = BuyResponse(
+            player_id=player.id, game_state=new_game_state, success=True, message=message, purchase_id=asset.id
         )
         return new_game_state, [response]
 
@@ -301,8 +285,8 @@ class Engine:
     def handle_buy_transmission_message(
         cls,
         game_state: GameState,
-        msg: BuyTransmissionRequest,
-    ) -> tuple[GameState, list[BuyTransmissionResponse]]:
+        msg: BuyRequest,
+    ) -> tuple[GameState, list[BuyResponse]]:
         """
         Handle a buy asset message.
         :param game_state: The current state of the game
@@ -314,7 +298,7 @@ class Engine:
             return game_state, list_failed_response
 
         player = game_state.players[msg.player_id]
-        transmission = game_state.transmission[msg.transmission_id]
+        transmission = game_state.transmission[msg.purchase_id]
 
         message = f"Player {player.id} successfully bought transmission {transmission.id}."
         new_players = game_state.players.subtract_money(
@@ -324,12 +308,12 @@ class Engine:
 
         new_game_state = replace(game_state, players=new_players, transmission=new_transmission)
 
-        response = BuyTransmissionResponse(
+        response = BuyResponse(
             player_id=player.id,
             game_state=new_game_state,
             success=True,
             message=message,
-            transmission_id=transmission.id,
+            purchase_id=transmission.id,
         )
         return new_game_state, [response]
 
