@@ -6,7 +6,7 @@ from src.app.simple_front_end.plotting.grid_plotter import GridPlotter
 from src.engine.engine import Engine
 from src.models.game_state import GameState
 from src.models.ids import GameId, PlayerId, AssetId
-from src.models.message import GameToPlayerMessage, PlayerToGameMessage, BuyAssetRequest, EndTurn
+from src.models.message import GameToPlayerMessage, PlayerToGameMessage, BuyAssetRequest, EndTurn, UpdateBidRequest
 from src.tools.random_choice import random_choice
 
 
@@ -82,6 +82,10 @@ class Joystick:
 
     def buy_asset(self, asset_id: int) -> None:
         message = BuyAssetRequest(player_id=self._current_player_id, asset_id=AssetId(asset_id))
+        self._send_message(message)
+
+    def update_bid(self, asset_id: int, new_bid: float) -> None:
+        message = UpdateBidRequest(player_id=self._current_player_id, asset_id=AssetId(asset_id), bid_price=new_bid)
         self._send_message(message)
 
     def end_turn(self) -> None:
