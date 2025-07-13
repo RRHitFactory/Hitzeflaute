@@ -124,7 +124,7 @@ class PlotBus(PlotObject):
 
     @cached_property
     def centre(self) -> Point:
-        return Point(x=self.bus.x, y=self.bus.y)
+        return self.bus.point
 
     @cached_property
     def is_horizontal(self) -> bool:

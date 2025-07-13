@@ -1,16 +1,26 @@
+from pathlib import Path
+
 import plotly.graph_objects as go
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
+from src.app.simple_front_end.plotting.live_html import LiveHtml
 from src.app.simple_front_end.plotting.po_asset import PlotAsset
 from src.app.simple_front_end.plotting.po_bus import PlotBus
 from src.app.simple_front_end.plotting.po_line import PlotTxLine
 from src.app.simple_front_end.plotting.po_player_legend import PlayerLegend
+from src.directories import game_cache_dir
 from src.models.game_state import GameState
 from src.models.geometry import Point
 from src.models.ids import BusId
 
 
 class GridPlotter:
+    def __init__(self, html_path: Path = None) -> None:
+        if html_path is None:
+            html_path = game_cache_dir / "plot.html"
+        self._html_path = html_path
+        self._first_time: bool = True
+
     def plot(self, game_state: GameState) -> None:
         # TODO Use playable map area from game state. Plot a box around the playable area.
         plot_objects = self.get_plot_objects(game_state)
@@ -30,7 +40,17 @@ class GridPlotter:
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
             ),
         )
-        fig.show()
+        self._write_fig(fig)
+
+    def _write_fig(self, fig: go.Figure) -> None:
+        if not self._first_time:
+            fig.write_html(self._html_path, include_plotlyjs="cdn", auto_open=False)
+            return
+        self._html_path.parent.mkdir(parents=True, exist_ok=True)
+        fig.write_html(self._html_path, include_plotlyjs="cdn", auto_open=False)
+        live_html = LiveHtml(path=self._html_path)
+        live_html.start()
+        self._first_time = False
 
     @staticmethod
     def get_plot_objects(game_state: GameState) -> list[PlotObject]:
