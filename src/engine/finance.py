@@ -51,6 +51,7 @@ class FinanceCalculator:
         market_coupling_result: MarketCouplingResult,
     ) -> dict[PlayerId, NetCashflow]:
 
+        # TODO: Modify to handle multiple timesteps in the future
         assets_dispatch: dict[AssetId, float] = market_coupling_result.assets_dispatch.loc[0, :].to_dict()
         transmission_flows: dict[TransmissionId, float] = market_coupling_result.transmission_flows.loc[0, :].to_dict()
         bus_prices: dict[BusId, float] = market_coupling_result.bus_prices.loc[0, :].to_dict()
