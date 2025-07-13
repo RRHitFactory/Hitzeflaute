@@ -1,8 +1,7 @@
 from unittest import TestCase
 
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker
-from tests.utils.game_state_maker import GameStateMaker
-from src.engine.market_coupling import MarketCouplingCalculator
+from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
@@ -20,7 +19,12 @@ class TestFinanceCalculator(TestCase):
             asset_maker.add_asset(cat="Generator", power_std=0)
         assets = asset_maker.make()
         game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).make()
-        market_coupling_result = MarketCouplingCalculator.run(game_state)
+        market_coupling_result = MarketResultMaker.make_quick(
+            player_repo=game_state.players,
+            bus_repo=game_state.buses,
+            asset_repo=game_state.assets,
+            transmission_repo=game_state.transmission,
+        )
 
         return game_state, market_coupling_result
 
