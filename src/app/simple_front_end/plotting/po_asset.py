@@ -30,7 +30,7 @@ class PlotAsset(PlotObject):
         else:
             raise ValueError(f"Unknown asset type: {self.asset.asset_type}")
         title = f"{a_type}{self.asset.id}"
-        if self.asset.is_ice_cream:
+        if self.asset.is_freezer:
             title += " (Ice Cream)"
         return title
 
@@ -47,6 +47,10 @@ class PlotAsset(PlotObject):
         }
         if self.asset.is_for_sale:
             data_dict["Price"] = format_money(self.asset.minimum_acquisition_price)
+        if self.asset.is_freezer:
+            data_dict["Ice Creams"] = str(self.asset.health)
+        else:
+            data_dict["Health"] = str(self.asset.health)
         return data_dict
 
     @cached_property
@@ -69,7 +73,7 @@ class PlotAsset(PlotObject):
         if self.asset.asset_type is AssetType.GENERATOR:
             text = "G"
         elif self.asset.asset_type is AssetType.LOAD:
-            text = "I" if self.asset.is_ice_cream else "L"
+            text = "F" if self.asset.is_freezer else "L"
         else:
             raise ValueError(f"Unknown asset type: {self.asset.asset_type}")
 

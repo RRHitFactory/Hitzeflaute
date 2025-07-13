@@ -10,7 +10,6 @@ from src.models.colors import Color
 from src.models.game_state import GameState
 from src.models.geometry import Point, Shape
 from src.models.ids import BusId
-from src.models.player import Player
 from src.tools.money import format_money
 
 
@@ -58,18 +57,16 @@ class GridPlotter:
             bus = bus_dict[asset.bus]
             assets.append(PlotAsset(asset=asset, owner=owner, bus=bus))
 
-        def sort_player(p: Player) -> int:
-            return p.id.as_int()
-
-        players = sorted(game_state.players.human_players, key=sort_player)
+        players = game_state.players.human_players
         names = [p.name for p in players]
         money = [format_money(p.money) for p in players]
-        n_ice_creams = [str(game_state.assets.get_ice_cream_count_for_player(p.id)) for p in players]
+        freezers = [game_state.assets.get_freezer_for_player(player_id=p.id) for p in players]
+        ice_cream_health = [fr.health if fr else 0 for fr in freezers]
 
         player_df = pd.DataFrame(index=names, columns=["Name", "Money"])
         player_df["Name"] = names
         player_df["Money"] = money
-        player_df["Ice Creams"] = n_ice_creams
+        player_df["Ice Creams"] = ice_cream_health
 
         top_row = pd.Series({c: c for c in player_df.columns})
         player_df = pd.concat([top_row.to_frame().T, player_df], axis=0)

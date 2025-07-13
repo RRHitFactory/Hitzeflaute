@@ -244,7 +244,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             fixed_operating_cost=float(np.random.rand() * 100),
             marginal_cost=marginal_cost,
             bid_price=bid_price,
-            is_ice_cream=is_icecream,
+            is_freezer=is_icecream,
             is_active=np.random.rand() > 0.2,
         )
 
@@ -252,7 +252,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         return AssetRepo
 
     def _pre_make_hook(self) -> None:
-        for bus in self._bus_repo.ice_cream_buses:
+        for bus in self._bus_repo.freezer_buses:
             self.dcs.append(self._make_dc(cat="IceCream", bus=bus.id, owner=bus.player_id))
 
 
