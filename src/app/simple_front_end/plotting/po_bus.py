@@ -3,13 +3,11 @@ from functools import cached_property
 from typing import Literal, Optional
 
 import numpy as np
-import plotly.graph_objects as go
-from plotly.graph_objs import Scatter
 
-from src.app.simple_front_end.plotting.base_plot_object import PlotObject
+from src.app.simple_front_end.plotting.po_rect import RectBase
 from src.models.buses import Bus
 from src.models.colors import Color
-from src.models.geometry import Point
+from src.models.geometry import Point, Shape
 from src.models.player import Player
 
 SocketSide = Literal["tr", "bl"]  # Top Right or Bottom Left
@@ -71,11 +69,15 @@ class SocketProvider:
 
 
 @dataclass(frozen=True)
-class PlotBus(PlotObject):
+class PlotBus(RectBase):
     bus: Bus
     owner: Player
     width: float = 1.0
     length: float = 5.0
+
+    @property
+    def centre_text(self) -> Optional[str]:
+        return None
 
     @property
     def title(self) -> str:
@@ -86,23 +88,18 @@ class PlotBus(PlotObject):
         return self.owner.color
 
     @property
+    def hover_text_locations(self) -> list[Point]:
+        points = [self.centre]
+        if self.is_horizontal:
+            points += [Point(x=self.shape.min_x, y=self.centre.y), Point(x=self.shape.max_x, y=self.centre.y)]
+            return points
+        else:
+            points += [Point(x=self.centre.x, y=self.shape.max_y), Point(x=self.centre.x, y=self.shape.min_y)]
+            return points
+
+    @property
     def data_dict(self) -> dict[str, str]:
         return {"Owner": self.owner.name}
-
-    def render_shape(self) -> Scatter:
-        corner_points = [*self.corners, self.corners[0]]
-        points = [p for p in corner_points]
-
-        scatter = go.Scatter(
-            x=[p.x for p in points],
-            y=[p.y for p in points],
-            fill="toself",
-            fillcolor=self.color.rgb_hex_str,
-            line=dict(color="black", width=1),
-            mode="lines",
-            hoverinfo="skip",
-        )
-        return scatter
 
     def get_socket(self, preferred_side: Optional[SocketSide] = None) -> Point:
         return self._socket_provider.get_socket(preferred_side=preferred_side)
@@ -122,7 +119,7 @@ class PlotBus(PlotObject):
 
         return SocketProvider(tr_sockets=tr_sockets, bl_sockets=bl_sockets)
 
-    @cached_property
+    @property
     def centre(self) -> Point:
         return self.bus.point
 
@@ -131,15 +128,12 @@ class PlotBus(PlotObject):
         return abs(self.centre.y) > abs(self.centre.x)
 
     @cached_property
-    def corners(self) -> list[Point]:
+    def shape(self) -> Shape:
         right = Point(x=self.length / 2, y=0) if self.is_horizontal else Point(x=self.width / 2, y=0)
         up = Point(x=0, y=self.width / 2) if self.is_horizontal else Point(x=0, y=self.length / 2)
         left = right * -1
         down = up * -1
 
         dl = self.centre + down + left
-        dr = self.centre + down + right
         ur = self.centre + up + right
-        ul = self.centre + up + left
-
-        return [dl, dr, ur, ul]
+        return Shape.make_rectangle(bottom_left=dl, top_right=ur, closed=True)

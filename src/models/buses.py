@@ -17,10 +17,6 @@ class Bus(LightDc):
     def point(self) -> Point:
         return Point(x=self.x, y=self.y)
 
-    @property
-    def is_ice_cream_bus(self) -> bool:
-        return self.player_id != PlayerId.get_npc()
-
 
 class BusRepo(LdcRepo[Bus]):
     @classmethod
@@ -41,7 +37,7 @@ class BusRepo(LdcRepo[Bus]):
         return self.filter(operator="not", condition={"player_id": PlayerId.get_npc()}).bus_ids
 
     @property
-    def ice_cream_buses(self) -> list[Bus]:
+    def freezer_buses(self) -> list[Bus]:
         return [self[b] for b in self.player_bus_ids]
 
     def get_bus_for_player(self, player_id: PlayerId) -> Bus:

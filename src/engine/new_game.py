@@ -281,7 +281,7 @@ class BaseGameInitializer(ABC):
         Create an initial AssetRepo.
         :return: A new AssetRepo instance.
         """
-        # there must be at least one ice_cream load per player
+        # there must be at least one freezer per player
         raise NotImplementedError("Initial asset configuration not implemented.")
 
     @abstractmethod
@@ -321,16 +321,15 @@ class DefaultGameInitializer(BaseGameInitializer):
         return BusRepo(buses)
 
     def _create_asset_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> AssetRepo:
-        assets = []
+        assets: list[AssetInfo] = []
 
-        # Create one ice cream load for each player
-
-        def asset_id_iterator(start: int = 1):
+        def asset_id_iterator(start: int = 1) -> Generator[AssetId, None, None]:
             for i in count(start):
                 yield AssetId(i)
 
         asset_ids = asset_id_iterator(start=1)
 
+        # Create one freezer load for each player
         for player_id in player_repo.player_ids:
             if player_id == PlayerId.get_npc():
                 continue
@@ -347,10 +346,11 @@ class DefaultGameInitializer(BaseGameInitializer):
                     fixed_operating_cost=self.settings.initial_funds / 20,
                     marginal_cost=0.0,
                     bid_price=self.settings.initial_funds / 2,
-                    is_ice_cream=True,
+                    is_freezer=True,
                 )
             )
-        # Create the rest of the assets as npc generators
+
+        # Create the rest of the assets for NPC
         for _ in range(self.settings.n_init_assets):
             assets.append(
                 AssetInfo(
@@ -365,7 +365,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                     fixed_operating_cost=self.settings.initial_funds / 20,
                     marginal_cost=self.settings.initial_funds / 20,
                     bid_price=np.random.uniform(self.settings.initial_funds / 20, self.settings.initial_funds / 2),
-                    is_ice_cream=False,
+                    is_freezer=False,
                 )
             )
         return AssetRepo(assets)
