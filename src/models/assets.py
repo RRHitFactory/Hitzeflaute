@@ -72,10 +72,12 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return self.update_frame(df)
 
     def melt_ice_cream(self, asset_id: AssetId) -> Self:
-        df = self.df.copy()
-        if df.loc[asset_id, "health"] > 0:
+        if self.df.loc[asset_id, "health"] > 0:
+            df = self.df.copy()
             df.loc[asset_id, "health"] -= 1
-        return self.update_frame(df)
+            return self.update_frame(df)
+        else:
+            return self
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:
