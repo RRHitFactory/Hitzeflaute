@@ -48,7 +48,7 @@ class Engine:
     ) -> GameState:
 
         player_repo = game_state.players
-        cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(game_state, market_coupling_result)
+        cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=market_coupling_result)
 
         for player_id, net_cashflow in cashflows.items():
             player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
