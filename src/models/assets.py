@@ -27,11 +27,13 @@ class AssetInfo(LightDc):
     marginal_cost: float = 0.0
     bid_price: float = 0.0
     is_ice_cream: bool = False  # This is a special type of load
+    n_ice_cream: int = 0
     is_active: bool = True
 
     def __post_init__(self) -> None:
         if self.is_ice_cream:
             assert self.asset_type == AssetType.LOAD, "Ice cream asset must be of type LOAD"
+            assert self.n_ice_cream > 0, "Ice cream asset must have a positive number of ice creams"
 
 
 class AssetRepo(LdcRepo[AssetInfo]):
@@ -67,6 +69,12 @@ class AssetRepo(LdcRepo[AssetInfo]):
     def update_bid_price(self, asset_id: AssetId, bid_price: float) -> Self:
         df = self.df.copy()
         df.loc[asset_id, "bid_price"] = bid_price
+        return self.update_frame(df)
+
+    def melt_ice_cream(self, asset_id: AssetId) -> Self:
+        df = self.df.copy()
+        if df.loc[asset_id, "n_ice_cream"] > 0:
+            df.loc[asset_id, "n_ice_cream"] -= 1
         return self.update_frame(df)
 
     # DELETE

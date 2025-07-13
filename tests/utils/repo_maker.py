@@ -224,6 +224,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             "IceCream": AssetType.LOAD,  # Ice cream is a special type of load
         }[cat]
         is_icecream = cat == "IceCream"
+        n_ice_creams = 5 if is_icecream else 0
         offset = {"Generator": 0, "Load": 200, "IceCream": 500}[cat]
 
         marginal_cost = float(np.random.rand() * 50) + offset
@@ -245,6 +246,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             marginal_cost=marginal_cost,
             bid_price=bid_price,
             is_ice_cream=is_icecream,
+            n_ice_cream=n_ice_creams,
             is_active=np.random.rand() > 0.2,
         )
 

@@ -348,6 +348,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                     marginal_cost=0.0,
                     bid_price=self.settings.initial_funds / 2,
                     is_ice_cream=True,
+                    n_ice_cream=self.settings.n_init_ice_cream
                 )
             )
         # Create the rest of the assets as npc generators
