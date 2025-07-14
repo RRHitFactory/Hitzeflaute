@@ -13,7 +13,8 @@ from src.models.message import (
     FromGameMessage,
     GameUpdate,
     BuyRequest,
-    BuyResponse
+    BuyResponse,
+    T_Id,
 )
 
 
@@ -211,7 +212,7 @@ class Engine:
         return new_game_state, [response]
 
     @classmethod
-    def _check_if_purchase_is_invalid(cls, gs: GameState, msg: BuyRequest) -> list[BuyResponse]:
+    def _check_if_purchase_is_invalid(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
 
         if isinstance(msg.purchase_id, AssetId):
             purchase_type = "asset"
@@ -229,7 +230,7 @@ class Engine:
         purchase_id = msg.purchase_id
         player = gs.players[msg.player_id]
 
-        def make_failed_response(failed_message: str) -> list[BuyResponse]:
+        def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
             failed_response = BuyResponse(
                 player_id=msg.player_id,
                 game_state=gs,
@@ -255,8 +256,8 @@ class Engine:
     def handle_buy_asset_message(
         cls,
         game_state: GameState,
-        msg: BuyRequest,
-    ) -> tuple[GameState, list[BuyResponse]]:
+        msg: BuyRequest[AssetId],
+    ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
         """
         Handle a buy asset message.
         :param game_state: The current state of the game
@@ -285,8 +286,8 @@ class Engine:
     def handle_buy_transmission_message(
         cls,
         game_state: GameState,
-        msg: BuyRequest,
-    ) -> tuple[GameState, list[BuyResponse]]:
+        msg: BuyRequest[TransmissionId],
+    ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
         """
         Handle a buy asset message.
         :param game_state: The current state of the game
