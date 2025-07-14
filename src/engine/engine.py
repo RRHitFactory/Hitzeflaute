@@ -1,4 +1,5 @@
 from dataclasses import replace
+from typing import Literal
 
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.game_state import GameState, Phase
@@ -13,7 +14,7 @@ from src.models.message import (
     ConcludePhase,
     ToGameMessage,
     FromGameMessage,
-    GameUpdate,
+    GameUpdate, OperateLineRequest, OperateLineResponse,
 )
 
 
@@ -34,6 +35,8 @@ class Engine:
             return cls.handle_new_phase_message(game_state, msg)
         elif isinstance(msg, UpdateBidRequest):
             return cls.handle_update_bid_message(game_state, msg)
+        elif isinstance(msg, OperateLineRequest):
+            return cls.handle_operate_line_message(game_state, msg)
         elif isinstance(msg, BuyAssetRequest):
             return cls.handle_buy_asset_message(game_state, msg)
         elif isinstance(msg, EndTurn):
@@ -43,8 +46,8 @@ class Engine:
 
     @staticmethod
     def update_game_state_with_market_coupling_result(
-        game_state: GameState,
-        market_coupling_result: MarketCouplingResult,
+            game_state: GameState,
+            market_coupling_result: MarketCouplingResult,
     ) -> GameState:
         new_game_state = replace(game_state)
 
@@ -80,9 +83,9 @@ class Engine:
 
     @classmethod
     def handle_new_phase_message(
-        cls,
-        game_state: GameState,
-        msg: ConcludePhase,
+            cls,
+            game_state: GameState,
+            msg: ConcludePhase,
     ) -> tuple[GameState, list[GameUpdate]]:
         """
         Handle a new phase message.
@@ -142,9 +145,9 @@ class Engine:
 
     @classmethod
     def handle_update_bid_message(
-        cls,
-        game_state: GameState,
-        msg: UpdateBidRequest,
+            cls,
+            game_state: GameState,
+            msg: UpdateBidRequest,
     ) -> tuple[GameState, list[UpdateBidResponse]]:
         """
         Handle an update bid message.
@@ -206,9 +209,9 @@ class Engine:
 
     @classmethod
     def handle_buy_asset_message(
-        cls,
-        game_state: GameState,
-        msg: BuyAssetRequest,
+            cls,
+            game_state: GameState,
+            msg: BuyAssetRequest,
     ) -> tuple[GameState, list[BuyAssetResponse]]:
         """
         Handle a buy asset message.
@@ -250,10 +253,41 @@ class Engine:
         return new_game_state, [response]
 
     @classmethod
+    def handle_operate_line_message(
+            cls,
+            game_state: GameState,
+            msg: OperateLineRequest,
+    ) -> tuple[GameState, list[OperateLineResponse]]:
+
+        def make_response(result: Literal["success", "no_change", "failure"]) -> tuple[
+            GameState, list[OperateLineResponse]]:
+            fail_message = OperateLineResponse(game_state=game_state, player_id=msg.player_id, request=msg,
+                                               result=result)
+            return game_state, [fail_message]
+
+        if msg.transmission_id not in game_state.transmission.transmission_ids:
+            return make_response("failure")
+
+        line = game_state.transmission[msg.transmission_id]
+        if line.owner_player != msg.player_id:
+            return make_response("failure")
+
+        if msg.action == "open":
+            if line.is_open:
+                return make_response("no_change")
+            game_state = replace(game_state, transmission=game_state.transmission.open_line(line.id))
+            return make_response("success")
+
+        if line.is_closed:
+            return make_response("no_change")
+        game_state = replace(game_state, transmission=game_state.transmission.close_line(line.id))
+        return make_response("success")
+
+    @classmethod
     def handle_end_turn_message(
-        cls,
-        game_state: GameState,
-        msg: EndTurn,
+            cls,
+            game_state: GameState,
+            msg: EndTurn,
     ) -> tuple[GameState, list[ConcludePhase]]:
         """
         Handle an end turn message.

@@ -1,9 +1,9 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Literal
 
 from src.models.game_state import GameState, Phase
-from src.models.ids import PlayerId, AssetId
+from src.models.ids import PlayerId, AssetId, TransmissionId
 
 
 @dataclass(frozen=True)
@@ -84,6 +84,17 @@ class BuyAssetResponse(GameToPlayerMessage):
     success: bool
     asset_id: AssetId
 
+
+@dataclass(frozen=True)
+class OperateLineRequest(PlayerToGameMessage):
+    transmission_id: TransmissionId
+    action: Literal["open", "close"]
+
+
+@dataclass(frozen=True)
+class OperateLineResponse(GameToPlayerMessage):
+    request: OperateLineRequest
+    result: Literal["success", "no_change", "failure"]
 
 @dataclass(frozen=True)
 class EndTurn(PlayerToGameMessage):

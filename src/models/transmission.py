@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import cached_property
 from typing import Self
 
 from src.models.data.ldc_repo import LdcRepo
@@ -20,6 +21,14 @@ class TransmissionInfo(LightDc):
     minimum_acquisition_price: float = 0.0  # 0 = Not for sale
     is_active: bool = True
 
+    @property
+    def is_open(self) -> bool:
+        return not self.is_active
+
+    @property
+    def is_closed(self) -> bool:
+        return self.is_active
+
     def __post_init__(self) -> None:
         assert self.bus2 > self.bus1, f"bus2 must be greater than bus1. Got {self.bus2} and {self.bus1}"
         assert self.reactance > 0, f"Reactance must be positive. Got {self.reactance}"
@@ -35,6 +44,10 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
     def transmission_ids(self) -> list[TransmissionId]:
         return [TransmissionId(x) for x in self.df.index.tolist()]
 
+    @cached_property
+    def only_closed(self) -> Self:
+        return self.filter({"is_active": True})
+
     def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> Self:
         if only_active:
             return self.filter({"owner_player": player_id, "is_active": True})
@@ -49,6 +62,17 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         min_bus = min(bus1, bus2)
         max_bus = max(bus1, bus2)
         return self.filter({"bus1": min_bus, "bus2": max_bus})
+
+    # UPDATE
+    def open_line(self, transmission_id: TransmissionId) -> Self:
+        df = self.df
+        df.loc[transmission_id, "is_active"] = False
+        return self.update_frame(df)
+
+    def close_line(self, transmission_id: TransmissionId) -> Self:
+        df = self.df
+        df.loc[transmission_id, "is_active"] = True
+        return self.update_frame(df)
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:
