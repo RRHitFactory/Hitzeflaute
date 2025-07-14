@@ -9,6 +9,13 @@ from src.directories import game_cache_dir
 from src.engine.engine import Engine
 from src.models.game_state import GameState
 from src.models.ids import GameId, PlayerId, AssetId, TransmissionId
+from src.models.message import (
+    GameToPlayerMessage,
+    PlayerToGameMessage,
+    BuyRequest,
+    EndTurn,
+)
+from src.models.ids import GameId, PlayerId, AssetId, TransmissionId
 from src.models.message import GameToPlayerMessage, PlayerToGameMessage, BuyAssetRequest, EndTurn, OperateLineRequest
 from src.tools.random_choice import random_choice
 
@@ -91,7 +98,13 @@ class Joystick:
         print(f"Now it is {self.current_player}'s turn")
 
     def buy_asset(self, asset_id: int) -> None:
-        message = BuyAssetRequest(player_id=self._current_player_id, asset_id=AssetId(asset_id))
+        message = BuyRequest(player_id=self._current_player_id, purchase_id=AssetId(asset_id))
+        self._send_message(message)
+
+    def buy_transmission(self, transmission_id: int) -> None:
+        message = BuyRequest(
+            player_id=self._current_player_id, purchase_id=TransmissionId(transmission_id)
+        )
         self._send_message(message)
 
     def open_line(self, transmission_id: int) -> None:

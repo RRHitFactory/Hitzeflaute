@@ -1,21 +1,25 @@
 from dataclasses import replace
 from typing import Literal
 
+from src.engine.finance import FinanceCalculator
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, TransmissionId, BusId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
     UpdateBidRequest,
-    BuyAssetRequest,
     EndTurn,
     UpdateBidResponse,
-    BuyAssetResponse,
     ConcludePhase,
     ToGameMessage,
     FromGameMessage,
-    GameUpdate, OperateLineRequest, OperateLineResponse,
+    BuyRequest,
+    BuyResponse,
+    T_Id,
+    GameUpdate,
+    OperateLineRequest,
+    OperateLineResponse,
 )
+from src.models.ids import AssetId, TransmissionId
 
 
 class Engine:
@@ -37,8 +41,13 @@ class Engine:
             return cls.handle_update_bid_message(game_state, msg)
         elif isinstance(msg, OperateLineRequest):
             return cls.handle_operate_line_message(game_state, msg)
-        elif isinstance(msg, BuyAssetRequest):
-            return cls.handle_buy_asset_message(game_state, msg)
+        elif isinstance(msg, BuyRequest):
+            if isinstance(msg.purchase_id, AssetId):
+                return cls.handle_buy_asset_message(game_state, msg)
+            elif isinstance(msg.purchase_id, TransmissionId):
+                return cls.handle_buy_transmission_message(game_state, msg)
+            else:
+                raise NotImplementedError(f"You cannot buy objects of type <{type(msg.purchase_id)}>.")
         elif isinstance(msg, EndTurn):
             return cls.handle_end_turn_message(game_state, msg)
         else:
@@ -49,34 +58,16 @@ class Engine:
             game_state: GameState,
             market_coupling_result: MarketCouplingResult,
     ) -> GameState:
-        new_game_state = replace(game_state)
 
-        # Only take first timestep
-        # TODO This typing is technically a lie because the keys are ints
-        assets_dispatch: dict[AssetId, float] = market_coupling_result.assets_dispatch.loc[0, :].to_dict()
-        transmission_flows: dict[TransmissionId, float] = market_coupling_result.transmission_flows.loc[0, :].to_dict()
-        bus_prices: dict[BusId, float] = market_coupling_result.bus_prices.loc[0, :].to_dict()
+        player_repo = game_state.players
+        cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=market_coupling_result)
 
-        for player in game_state.players:
-            operating_cost = 0.0
-            market_cashflow = 0.0
-            congestion_payments = 0.0
-            for asset in game_state.assets.get_all_for_player(player.id, only_active=True):
-                dispatched_volume = assets_dispatch[asset.id]
-                operating_cost += abs(dispatched_volume) * asset.marginal_cost + asset.fixed_operating_cost
-                market_cashflow += dispatched_volume * asset.bid_price
-            for line in game_state.transmission.get_all_for_player(player.id, only_active=True):
-                volume = transmission_flows[line.id]
-                price_spread = bus_prices[line.bus1] - bus_prices[line.bus2]
-                congestion_payments += volume * price_spread
-            delta_money = market_cashflow + congestion_payments - operating_cost
-            new_game_state = replace(
-                new_game_state,
-                players=game_state.players.add_money(player_id=player.id, amount=delta_money),
-            )
+        for player_id, net_cashflow in cashflows.items():
+            player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
 
         new_game_state = replace(
-            new_game_state,
+            game_state,
+            players=player_repo,
             market_coupling_result=market_coupling_result,
         )
         return new_game_state
@@ -182,14 +173,8 @@ class Engine:
                 f"Bid price {msg.bid_price} is not within the allowed range " f"[{min_bid}, {max_bid}]."
             )
 
-        reliability_coefficient = 5  # 5 sigma covers ~99.9999% of the normal distribution
-        safe_expected_market_cashflow = 0
-        for asset in game_state.assets.get_all_for_player(player.id, only_active=True):
-            max_expected_volume = asset.power_expected + reliability_coefficient * asset.power_std
-            bid_price = asset.bid_price if asset.id != msg.asset_id else msg.bid_price
-            sign = game_state.assets.get_cashflow_sign(asset.id)
-            safe_expected_market_cashflow += bid_price * sign * max_expected_volume
-        if player.money - safe_expected_market_cashflow < 0:
+        player_assets = game_state.assets.get_all_for_player(player.id, only_active=True)
+        if FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
             return make_failed_response(
                 f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
             )
@@ -208,38 +193,64 @@ class Engine:
         return new_game_state, [response]
 
     @classmethod
+    def _check_if_purchase_is_invalid(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
+
+        if isinstance(msg.purchase_id, AssetId):
+            purchase_type = "asset"
+            purchase_repo = gs.assets
+            purchase_repo_ids = purchase_repo.asset_ids
+
+        elif isinstance(msg.purchase_id, TransmissionId):
+            purchase_type = "transmission"
+            purchase_repo = gs.transmission
+            purchase_repo_ids = purchase_repo.transmission_ids
+
+        else:
+            raise NotImplementedError(f"Message type {type(msg)} not implemented for purchase validation.")
+
+        purchase_id = msg.purchase_id
+        player = gs.players[msg.player_id]
+
+        def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
+            failed_response = BuyResponse(
+                player_id=msg.player_id,
+                game_state=gs,
+                success=False,
+                message=failed_message,
+                purchase_id=purchase_id,
+            )
+            return [failed_response]
+
+        if not purchase_id in purchase_repo_ids:
+            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
+        purchase_obj = purchase_repo[purchase_id]
+
+        if not purchase_obj.is_for_sale:
+            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} is not for sale.")
+
+        elif player.money < purchase_obj.minimum_acquisition_price:
+            return make_failed_response(f"Sorry, player {msg.player_id} cannot afford {purchase_type} {purchase_id}.")
+
+        return []
+
+    @classmethod
     def handle_buy_asset_message(
-            cls,
-            game_state: GameState,
-            msg: BuyAssetRequest,
-    ) -> tuple[GameState, list[BuyAssetResponse]]:
+        cls,
+        game_state: GameState,
+        msg: BuyRequest[AssetId],
+    ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
         """
         Handle a buy asset message.
         :param game_state: The current state of the game
         :param msg: The triggering message
         :return: The new game state and a list of messages to be sent to the player interface
         """
-
-        def make_failed_response(failed_message: str) -> tuple[GameState, list[BuyAssetResponse]]:
-            failed_response = BuyAssetResponse(
-                player_id=msg.player_id,
-                game_state=game_state,
-                success=False,
-                message=failed_message,
-                asset_id=msg.asset_id,
-            )
-            return game_state, [failed_response]
+        list_failed_response = cls._check_if_purchase_is_invalid(gs=game_state, msg=msg)
+        if list_failed_response:
+            return game_state, list_failed_response
 
         player = game_state.players[msg.player_id]
-
-        if not msg.asset_id in game_state.assets.asset_ids:
-            return make_failed_response(f"Asset {msg.asset_id} does not exist.")
-
-        asset = game_state.assets[msg.asset_id]
-        if not asset.is_for_sale:
-            return make_failed_response(f"Asset {asset.id} is not for sale.")
-        elif player.money < asset.minimum_acquisition_price:
-            return make_failed_response(f"Player {player.id} cannot afford asset {asset.id}.")
+        asset = game_state.assets[msg.purchase_id]
 
         message = f"Player {player.id} successfully bought asset {asset.id}."
         new_players = game_state.players.subtract_money(player_id=player.id, amount=asset.minimum_acquisition_price)
@@ -247,8 +258,44 @@ class Engine:
 
         new_game_state = replace(game_state, players=new_players, assets=new_assets)
 
-        response = BuyAssetResponse(
-            player_id=player.id, game_state=new_game_state, success=True, message=message, asset_id=asset.id
+        response = BuyResponse(
+            player_id=player.id, game_state=new_game_state, success=True, message=message, purchase_id=asset.id
+        )
+        return new_game_state, [response]
+
+    @classmethod
+    def handle_buy_transmission_message(
+        cls,
+        game_state: GameState,
+        msg: BuyRequest[TransmissionId],
+    ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
+        """
+        Handle a buy asset message.
+        :param game_state: The current state of the game
+        :param msg: The triggering message
+        :return: The new game state and a list of messages to be sent to the player interface
+        """
+        list_failed_response = cls._check_if_purchase_is_invalid(gs=game_state, msg=msg)
+        if list_failed_response:
+            return game_state, list_failed_response
+
+        player = game_state.players[msg.player_id]
+        transmission = game_state.transmission[msg.purchase_id]
+
+        message = f"Player {player.id} successfully bought transmission {transmission.id}."
+        new_players = game_state.players.subtract_money(
+            player_id=player.id, amount=transmission.minimum_acquisition_price
+        )
+        new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=player.id)
+
+        new_game_state = replace(game_state, players=new_players, transmission=new_transmission)
+
+        response = BuyResponse(
+            player_id=player.id,
+            game_state=new_game_state,
+            success=True,
+            message=message,
+            purchase_id=transmission.id,
         )
         return new_game_state, [response]
 

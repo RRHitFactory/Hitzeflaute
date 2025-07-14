@@ -5,6 +5,7 @@ from typing import Self
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.ids import TransmissionId, BusId, PlayerId
+from src.tools.serialization import simplify_type
 
 
 @dataclass(frozen=True)
@@ -72,6 +73,12 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
     def close_line(self, transmission_id: TransmissionId) -> Self:
         df = self.df
         df.loc[transmission_id, "is_active"] = True
+        return self.update_frame(df)
+
+    def change_owner(self, transmission_id: TransmissionId, new_owner: PlayerId) -> Self:
+        df = self.df.copy()
+        df.loc[transmission_id, "owner_player"] = simplify_type(new_owner)
+        df.loc[transmission_id, "is_for_sale"] = False
         return self.update_frame(df)
 
     # DELETE
