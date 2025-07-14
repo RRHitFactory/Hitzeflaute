@@ -44,17 +44,17 @@ class Referee:
             return GameUpdate(
                 player_id=gs.assets[asset_id].owner_player,
                 game_state=new_gs,
-                message=f"An ice cream melted for Load {asset_id}."
+                message=f"An ice cream melted for Freezer {asset_id}."
             )
 
         asset_repo = gs.assets
-        ice_cream_loads = asset_repo.filter({"is_ice_cream": True})
+        ice_cream_loads = asset_repo.filter({"is_freezer": True})
         assets_dispatch: dict[AssetId, float] = gs.market_coupling_result.assets_dispatch.loc[0, :].to_dict()
         melted_ids = []
 
         for load in ice_cream_loads:
             if assets_dispatch[load.id] < load.power_expected:
-                asset_repo.melt_ice_cream(load.id)
+                asset_repo = asset_repo.melt_ice_cream(load.id)
                 melted_ids.append(load.id)
 
         new_gs = replace(gs, assets=asset_repo)
@@ -63,6 +63,10 @@ class Referee:
 
     @staticmethod
     def wear_overloaded_transmission(gs: GameState) -> tuple[GameState, list[GameUpdate]]:
+        raise NotImplementedError()
+
+    @staticmethod
+    def wear_non_freezer_assets(gs: GameState) -> tuple[GameState, list[GameUpdate]]:
         raise NotImplementedError()
 
     @staticmethod

@@ -77,13 +77,24 @@ class AssetRepo(LdcRepo[AssetInfo]):
         df.loc[asset_id, "bid_price"] = bid_price
         return self.update_frame(df)
 
-    def melt_ice_cream(self, asset_id: AssetId) -> Self:
-        if self.df.loc[asset_id, "health"] > 0:
+    def _decrease_health(self, asset_id: AssetId) -> Self:
+        if self.df.loc[asset_id, "health"] > 1:
             df = self.df.copy()
             df.loc[asset_id, "health"] -= 1
             return self.update_frame(df)
         else:
-            return self
+            df = self.df.copy()
+            df.loc[asset_id, "health"] = 0
+            df.loc[asset_id, "is_active"] = False
+            return self.update_frame(df)
+
+    def melt_ice_cream(self, asset_id: AssetId) -> Self:
+        assert self.df.loc[asset_id, "is_freezer"], "Only freezer assets can melt ice cream"
+        return self._decrease_health(asset_id)
+
+    def wear_asset(self, asset_id: AssetId) -> Self:
+        assert not self.df.loc[asset_id, "is_freezer"], "Only non-freezer assets can wear out"
+        return self._decrease_health(asset_id)
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:
