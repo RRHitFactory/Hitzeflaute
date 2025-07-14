@@ -1,8 +1,7 @@
 from unittest import TestCase
 
 from src.engine.new_game import DefaultGameInitializer
-
-from src.models.assets import AssetRepo
+from src.models.assets import AssetRepo, AssetInfo
 from src.models.buses import BusRepo, Bus
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
@@ -36,10 +35,11 @@ class TestDefaultGameInitializer(TestCase):
         # check that settings are applied correctly
         self.assertEqual(len(game_state.buses), self.settings.n_buses)
 
-        # check that every player owns an ice cream asset
+        # check that every player owns a freezer
         for player_id in game_state.players.human_player_ids:
-            ice_cream_assets = game_state.assets.get_all_for_player(player_id).filter({"is_ice_cream": True})
-            self.assertEqual(len(ice_cream_assets), 1, f"Player {player_id} should own at least one ice cream asset")
+            freezer = game_state.assets.get_freezer_for_player(player_id=player_id)
+            self.assertIsInstance(freezer, AssetInfo)
+            self.assertTrue(freezer.is_freezer)
 
         # check that all buses are connected
         for bus_id in game_state.buses.bus_ids:

@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Optional
 
 import plotly.graph_objs as go
 from plotly.graph_objs import Scatter
@@ -35,7 +36,11 @@ class PlotObject(ABC):
         pass
 
     @property
-    def text_locations(self) -> list[Point]:
+    def allow_hover_text(self) -> bool:
+        return True
+
+    @property
+    def hover_text_locations(self) -> list[Point]:
         return [self.centre]
 
     @staticmethod
@@ -43,14 +48,17 @@ class PlotObject(ABC):
         h, s, v = c.hsv
         return Color(x=(h, round(s / 2), round(v / 2)), color_model="hsv")
 
-    def render_hover_text(self) -> Scatter:
+    def render_hover_text(self) -> Optional[Scatter]:
+        if not self.allow_hover_text:
+            return None
+
         hover_template = (
             f"<b>{self.title}</b><br><br>"
             f"{"<br>".join([f"<b>{k}</b>: {v}" for k, v in self.data_dict.items()])}<extra></extra>"
         )
         marker = go.Scatter(
-            x=[p.x for p in self.text_locations],
-            y=[p.y for p in self.text_locations],
+            x=[p.x for p in self.hover_text_locations],
+            y=[p.y for p in self.hover_text_locations],
             mode="markers",
             marker={
                 "size": 10,
