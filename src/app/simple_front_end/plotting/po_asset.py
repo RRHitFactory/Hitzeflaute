@@ -11,6 +11,7 @@ from src.models.assets import AssetInfo, AssetType
 from src.models.colors import get_contrasting_color, Color
 from src.models.geometry import Point
 from src.models.player import Player
+from src.tools.money import format_money, format_price
 
 
 @dataclass(frozen=True)
@@ -29,8 +30,8 @@ class PlotAsset(PlotObject):
         else:
             raise ValueError(f"Unknown asset type: {self.asset.asset_type}")
         title = f"{a_type}{self.asset.id}"
-        if self.asset.is_ice_cream:
-            title += " (Ice Cream)"
+        if self.asset.is_freezer:
+            title += " (Freezer)"
         return title
 
     @property
@@ -39,10 +40,18 @@ class PlotAsset(PlotObject):
 
     @property
     def data_dict(self) -> dict[str, str]:
-        return {
+        data_dict = {
             "Owner": self.owner.name,
             "Expected Power": f"{self.asset.power_expected:.0f} MW",
+            "Marginal Cost": format_price(self.asset.marginal_cost),
         }
+        if self.asset.is_for_sale:
+            data_dict["Price"] = format_money(self.asset.minimum_acquisition_price)
+        if self.asset.is_freezer:
+            data_dict["Ice Creams"] = str(self.asset.health)
+        else:
+            data_dict["Health"] = str(self.asset.health)
+        return data_dict
 
     @cached_property
     def centre(self) -> Point:
@@ -64,7 +73,7 @@ class PlotAsset(PlotObject):
         if self.asset.asset_type is AssetType.GENERATOR:
             text = "G"
         elif self.asset.asset_type is AssetType.LOAD:
-            text = "I" if self.asset.is_ice_cream else "L"
+            text = "F" if self.asset.is_freezer else "L"
         else:
             raise ValueError(f"Unknown asset type: {self.asset.asset_type}")
 

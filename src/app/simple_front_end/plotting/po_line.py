@@ -66,7 +66,7 @@ class PlotTxLine(PlotObject):
         return points
 
     @property
-    def text_locations(self) -> list[Point]:
+    def hover_text_locations(self) -> list[Point]:
         return self.vertices
 
     def render_shape(self) -> Scatter:

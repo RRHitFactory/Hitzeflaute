@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
-from typing import Self, Optional
+from typing import Self, Optional, Iterable
 
 import numpy as np
 
@@ -100,23 +100,52 @@ class Shape:
             return False
         return all(self_point == other_point for self_point, other_point in zip(self.points, other.points))
 
+    def __iter__(self) -> Iterable[Point]:
+        return iter(self.points)
+
+    @cached_property
+    def centre(self) -> Point:
+        if not self.is_closed:
+            x = (self.max_x + self.min_x) / 2.0
+            y = (self.max_y + self.min_y) / 2.0
+            return Point(x=x, y=y)
+        return self.open().centre
+
     @cached_property
     def is_closed(self) -> bool:
         return self.points[0] == self.points[-1]
 
     @cached_property
     def width(self) -> float:
-        if not self.points:
-            return 0.0
-        x_values = [point.x for point in self.points]
-        return float(max(x_values) - min(x_values))
+        return self.max_x - self.min_x
 
     @cached_property
     def height(self) -> float:
-        if not self.points:
-            return 0.0
-        y_values = [point.y for point in self.points]
-        return float(max(y_values) - min(y_values))
+        return self.max_y - self.min_y
+
+    @cached_property
+    def min_x(self) -> float:
+        return float(min(point.x for point in self.points))
+
+    @cached_property
+    def min_y(self) -> float:
+        return float(min(point.y for point in self.points))
+
+    @cached_property
+    def max_x(self) -> float:
+        return float(max(point.x for point in self.points))
+
+    @cached_property
+    def max_y(self) -> float:
+        return float(max(point.y for point in self.points))
+
+    def close(self) -> Self:
+        assert not self.is_closed
+        return Shape(points=self.points + [self.points[0]], shape_type=self.shape_type)
+
+    def open(self) -> Self:
+        assert self.is_closed
+        return Shape(points=self.points[:-1], shape_type=self.shape_type)
 
     def to_simple_dict(self) -> dict[str, list[dict[str, float]] | str]:
         return {

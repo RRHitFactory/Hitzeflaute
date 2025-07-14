@@ -22,17 +22,18 @@ class AssetInfo(LightDc):
     bus: BusId
     power_expected: float
     power_std: float
+    health: int = 5
     is_for_sale: bool = False
     minimum_acquisition_price: float = 0.0
     fixed_operating_cost: float = 0.0
     marginal_cost: float = 0.0
     bid_price: float = 0.0
-    is_ice_cream: bool = False  # This is a special type of load
+    is_freezer: bool = False  # This is a special type of load
     is_active: bool = True
 
     def __post_init__(self) -> None:
-        if self.is_ice_cream:
-            assert self.asset_type == AssetType.LOAD, "Ice cream asset must be of type LOAD"
+        if self.is_freezer:
+            assert self.asset_type == AssetType.LOAD, "Freezer asset must be of type LOAD"
 
     @cached_property
     def cashflow_sign(self) -> int:
@@ -57,6 +58,11 @@ class AssetRepo(LdcRepo[AssetInfo]):
             return self.filter({"owner_player": player_id, "is_active": True})
         else:
             return self.filter({"owner_player": player_id})
+
+    def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
+        assets = self.filter({"owner_player": player_id, "is_freezer": True})
+        assert len(assets) == 1, f"Expected exactly one freezer asset for player {player_id}, found {len(assets)}"
+        return assets.as_objs()[0]
 
     # UPDATE
     def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> Self:
