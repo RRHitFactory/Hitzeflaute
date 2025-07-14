@@ -98,6 +98,7 @@ class OperateLineResponse(GameToPlayerMessage):
     request: OperateLineRequest
     result: Literal["success", "no_change", "failure"]
 
+
 @dataclass(frozen=True)
 class EndTurn(PlayerToGameMessage):
     player_id: PlayerId

@@ -55,12 +55,14 @@ class Engine:
 
     @staticmethod
     def update_game_state_with_market_coupling_result(
-            game_state: GameState,
-            market_coupling_result: MarketCouplingResult,
+        game_state: GameState,
+        market_coupling_result: MarketCouplingResult,
     ) -> GameState:
 
         player_repo = game_state.players
-        cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=market_coupling_result)
+        cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(
+            game_state=game_state, market_coupling_result=market_coupling_result
+        )
 
         for player_id, net_cashflow in cashflows.items():
             player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
@@ -74,9 +76,9 @@ class Engine:
 
     @classmethod
     def handle_new_phase_message(
-            cls,
-            game_state: GameState,
-            msg: ConcludePhase,
+        cls,
+        game_state: GameState,
+        msg: ConcludePhase,
     ) -> tuple[GameState, list[GameUpdate]]:
         """
         Handle a new phase message.
@@ -136,9 +138,9 @@ class Engine:
 
     @classmethod
     def handle_update_bid_message(
-            cls,
-            game_state: GameState,
-            msg: UpdateBidRequest,
+        cls,
+        game_state: GameState,
+        msg: UpdateBidRequest,
     ) -> tuple[GameState, list[UpdateBidResponse]]:
         """
         Handle an update bid message.
@@ -301,40 +303,42 @@ class Engine:
 
     @classmethod
     def handle_operate_line_message(
-            cls,
-            game_state: GameState,
-            msg: OperateLineRequest,
+        cls,
+        game_state: GameState,
+        msg: OperateLineRequest,
     ) -> tuple[GameState, list[OperateLineResponse]]:
 
-        def make_response(result: Literal["success", "no_change", "failure"]) -> tuple[
-            GameState, list[OperateLineResponse]]:
-            fail_message = OperateLineResponse(game_state=game_state, player_id=msg.player_id, request=msg,
-                                               result=result)
+        def make_response(
+            result: Literal["success", "no_change", "failure"], text: str
+        ) -> tuple[GameState, list[OperateLineResponse]]:
+            fail_message = OperateLineResponse(
+                game_state=game_state, player_id=msg.player_id, request=msg, result=result, message=text
+            )
             return game_state, [fail_message]
 
         if msg.transmission_id not in game_state.transmission.transmission_ids:
-            return make_response("failure")
+            return make_response(result="failure", text="Transmission does not exist.")
 
         line = game_state.transmission[msg.transmission_id]
         if line.owner_player != msg.player_id:
-            return make_response("failure")
+            return make_response(result="failure", text="Transmission does not belong to this player.")
 
         if msg.action == "open":
             if line.is_open:
-                return make_response("no_change")
+                return make_response(result="no_change", text="Transmission line is already open.")
             game_state = replace(game_state, transmission=game_state.transmission.open_line(line.id))
-            return make_response("success")
+            return make_response(result="success", text="Transmission line opened successfully.")
 
         if line.is_closed:
-            return make_response("no_change")
+            return make_response(result="no_change", text="Transmission line is already closed.")
         game_state = replace(game_state, transmission=game_state.transmission.close_line(line.id))
-        return make_response("success")
+        return make_response(result="success", text="Transmission line closed successfully.")
 
     @classmethod
     def handle_end_turn_message(
-            cls,
-            game_state: GameState,
-            msg: EndTurn,
+        cls,
+        game_state: GameState,
+        msg: EndTurn,
     ) -> tuple[GameState, list[ConcludePhase]]:
         """
         Handle an end turn message.
