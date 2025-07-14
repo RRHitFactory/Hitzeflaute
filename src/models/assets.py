@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import IntEnum
+from functools import cached_property
 from typing import Self
 
 from src.models.data.ldc_repo import LdcRepo
@@ -34,6 +35,10 @@ class AssetInfo(LightDc):
         if self.is_freezer:
             assert self.asset_type == AssetType.LOAD, "Freezer asset must be of type LOAD"
 
+    @cached_property
+    def cashflow_sign(self) -> int:
+        return 1 if self.asset_type == AssetType.GENERATOR else -1
+
 
 class AssetRepo(LdcRepo[AssetInfo]):
     @classmethod
@@ -58,11 +63,6 @@ class AssetRepo(LdcRepo[AssetInfo]):
         assets = self.filter({"owner_player": player_id, "is_freezer": True})
         assert len(assets) == 1, f"Expected exactly one freezer asset for player {player_id}, found {len(assets)}"
         return assets.as_objs()[0]
-
-    def get_cashflow_sign(self, asset_id: AssetId) -> int:
-        # TODO This doesn't belong here
-        asset = self.df.loc[asset_id]
-        return 1 if asset["asset_type"] == AssetType.GENERATOR else -1
 
     # UPDATE
     def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> Self:

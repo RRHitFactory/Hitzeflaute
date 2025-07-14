@@ -1,8 +1,8 @@
 from dataclasses import replace
 
+from src.engine.finance import FinanceCalculator
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, TransmissionId, BusId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
     UpdateBidRequest,
@@ -16,7 +16,7 @@ from src.models.message import (
     BuyResponse,
     T_Id,
 )
-
+from src.models.ids import AssetId, TransmissionId
 
 
 class Engine:
@@ -53,34 +53,16 @@ class Engine:
         game_state: GameState,
         market_coupling_result: MarketCouplingResult,
     ) -> GameState:
-        new_game_state = replace(game_state)
 
-        # Only take first timestep
-        # TODO This typing is technically a lie because the keys are ints
-        assets_dispatch: dict[AssetId, float] = market_coupling_result.assets_dispatch.loc[0, :].to_dict()
-        transmission_flows: dict[TransmissionId, float] = market_coupling_result.transmission_flows.loc[0, :].to_dict()
-        bus_prices: dict[BusId, float] = market_coupling_result.bus_prices.loc[0, :].to_dict()
+        player_repo = game_state.players
+        cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=market_coupling_result)
 
-        for player in game_state.players:
-            operating_cost = 0.0
-            market_cashflow = 0.0
-            congestion_payments = 0.0
-            for asset in game_state.assets.get_all_for_player(player.id, only_active=True):
-                dispatched_volume = assets_dispatch[asset.id]
-                operating_cost += abs(dispatched_volume) * asset.marginal_cost + asset.fixed_operating_cost
-                market_cashflow += dispatched_volume * asset.bid_price
-            for line in game_state.transmission.get_all_for_player(player.id, only_active=True):
-                volume = transmission_flows[line.id]
-                price_spread = bus_prices[line.bus1] - bus_prices[line.bus2]
-                congestion_payments += volume * price_spread
-            delta_money = market_cashflow + congestion_payments - operating_cost
-            new_game_state = replace(
-                new_game_state,
-                players=game_state.players.add_money(player_id=player.id, amount=delta_money),
-            )
+        for player_id, net_cashflow in cashflows.items():
+            player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
 
         new_game_state = replace(
-            new_game_state,
+            game_state,
+            players=player_repo,
             market_coupling_result=market_coupling_result,
         )
         return new_game_state
@@ -186,14 +168,8 @@ class Engine:
                 f"Bid price {msg.bid_price} is not within the allowed range " f"[{min_bid}, {max_bid}]."
             )
 
-        reliability_coefficient = 5  # 5 sigma covers ~99.9999% of the normal distribution
-        safe_expected_market_cashflow = 0
-        for asset in game_state.assets.get_all_for_player(player.id, only_active=True):
-            max_expected_volume = asset.power_expected + reliability_coefficient * asset.power_std
-            bid_price = asset.bid_price if asset.id != msg.asset_id else msg.bid_price
-            sign = game_state.assets.get_cashflow_sign(asset.id)
-            safe_expected_market_cashflow += bid_price * sign * max_expected_volume
-        if player.money - safe_expected_market_cashflow < 0:
+        player_assets = game_state.assets.get_all_for_player(player.id, only_active=True)
+        if FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
             return make_failed_response(
                 f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
             )
