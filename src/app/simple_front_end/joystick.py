@@ -14,6 +14,7 @@ from src.models.message import (
     PlayerToGameMessage,
     BuyRequest,
     EndTurn,
+    UpdateBidRequest
 )
 from src.tools.random_choice import random_choice
 
@@ -103,6 +104,10 @@ class Joystick:
         message = BuyRequest(
             player_id=self._current_player_id, purchase_id=TransmissionId(transmission_id)
         )
+        self._send_message(message)
+
+    def update_bid(self, asset_id: int, new_bid: float) -> None:
+        message = UpdateBidRequest(player_id=self._current_player_id, asset_id=AssetId(asset_id), bid_price=new_bid)
         self._send_message(message)
 
     def end_turn(self) -> None:
