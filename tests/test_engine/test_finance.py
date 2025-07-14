@@ -62,7 +62,7 @@ class TestFinanceCalculator(TestCase):
         game_state, _ = self.create_game_state_and_market_coupling_result()
         asset_repo = game_state.assets
 
-        ice_cream_loads = asset_repo.filter({"is_ice_cream": True})
+        ice_cream_loads = asset_repo.filter({"is_freezer": True})
         load_to_validate = ice_cream_loads.asset_ids[0]
 
         cash = sum(
