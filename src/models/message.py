@@ -1,9 +1,9 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, TypeVar, Generic
 
 from src.models.game_state import GameState, Phase
-from src.models.ids import PlayerId, AssetId
+from src.models.ids import PlayerId, AssetId, TransmissionId
 
 
 @dataclass(frozen=True)
@@ -47,6 +47,7 @@ class GameToPlayerMessage(Message, ABC):
 
 ToGameMessage = Union[PlayerToGameMessage, InternalMessage]
 FromGameMessage = Union[InternalMessage, GameToPlayerMessage]
+T_Id = TypeVar("T_Id", bound=Union[AssetId, TransmissionId])
 
 
 @dataclass(frozen=True)
@@ -74,15 +75,15 @@ class UpdateBidResponse(GameToPlayerMessage):
 
 
 @dataclass(frozen=True)
-class BuyAssetRequest(PlayerToGameMessage):
-    asset_id: AssetId
+class BuyRequest(PlayerToGameMessage, Generic[T_Id]):
+    purchase_id: T_Id
 
 
 @dataclass(frozen=True)
-class BuyAssetResponse(GameToPlayerMessage):
-    game_state: GameState
+class BuyResponse(GameToPlayerMessage, Generic[T_Id]):
+    game_state = GameState
     success: bool
-    asset_id: AssetId
+    purchase_id: T_Id
 
 
 @dataclass(frozen=True)
