@@ -13,7 +13,7 @@ class TestAssets(TestCase):
 
     def test_query_player_assets(self) -> None:
         player_ids = [PlayerId(1), PlayerId(2)]
-        repo = AssetRepoMaker(player_ids=player_ids).add_asset(owner=PlayerId(1)).make()
+        repo = AssetRepoMaker(players=player_ids).add_asset(owner=PlayerId(1)).make()
 
         for p, expected_count in {PlayerId(1): 2, PlayerId(2): 1}.items():
             p_assets = repo.get_all_for_player(p)
@@ -26,7 +26,7 @@ class TestAssets(TestCase):
         bus_repo = BusRepoMaker.make_quick(n_npc_buses=10)
 
         buses = [BusId(1), BusId(2), BusId(2)]
-        repo = AssetRepoMaker(player_ids=player_ids, bus_repo=bus_repo).add_assets_to_buses(buses=buses).make()
+        repo = AssetRepoMaker(players=player_ids, bus_repo=bus_repo).add_assets_to_buses(buses=buses).make()
 
         for b, expected_count in {BusId(1): 1, BusId(2): 2, BusId(3): 0}.items():
             b_assets = repo.get_all_assets_at_bus(b)
@@ -34,7 +34,7 @@ class TestAssets(TestCase):
 
     def test_delete_assets(self) -> None:
         player_ids = [PlayerId(1), PlayerId(2)]
-        repo = AssetRepoMaker.make_quick(n_normal_assets=20, player_ids=player_ids)
+        repo = AssetRepoMaker.make_quick(n_normal_assets=20, players=player_ids)
 
         original_assets_for_p1 = len(repo.get_all_for_player(PlayerId(1)))
         self.assertGreater(original_assets_for_p1, 0)

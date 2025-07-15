@@ -1,14 +1,16 @@
+from dataclasses import replace
 from typing import Callable
 from unittest import TestCase
 
 from src.engine.engine import Engine
 from src.models.colors import Color
 from src.models.ids import PlayerId, AssetId, TransmissionId
-from src.models.message import PlayerToGameMessage, BuyRequest, BuyResponse
+from src.models.message import PlayerToGameMessage, BuyRequest, BuyResponse, OperateLineRequest, OperateLineResponse
 from src.models.player import Player
+from src.models.transmission import TransmissionInfo
 from tests.utils.comparisons import assert_game_states_are_equal, assert_game_states_are_not_equal
 from tests.utils.game_state_maker import GameStateMaker
-from tests.utils.repo_maker import PlayerRepoMaker
+from tests.utils.repo_maker import PlayerRepoMaker, BusRepoMaker, TransmissionRepoMaker
 
 
 class DummyMessage(PlayerToGameMessage):
@@ -97,3 +99,81 @@ class TestAssets(TestCase):
         sold_transmission = result_game_state.transmission[is_for_sale_ids[0]]
         self.assertEqual(sold_transmission.owner_player, rich_player.id)
         self.assertFalse(sold_transmission.is_for_sale)
+
+    def test_operate_line_messages(self) -> None:
+        player_repo = PlayerRepoMaker.make_quick()
+        bus_repo = BusRepoMaker.make_quick(n_npc_buses=5)
+        transmission_repo = TransmissionRepoMaker().make_quick(n=3, players=player_repo, buses=bus_repo)
+
+        player = player_repo.human_players[0]
+        my_line = TransmissionInfo(
+            id=TransmissionId(100),
+            owner_player=player.id,
+            bus1=bus_repo.bus_ids[0],
+            bus2=bus_repo.bus_ids[1],
+            reactance=10.0,
+        )
+        not_my_line = TransmissionInfo(
+            id=TransmissionId(101),
+            owner_player=PlayerId.get_npc(),
+            bus1=bus_repo.bus_ids[2],
+            bus2=bus_repo.bus_ids[3],
+            reactance=10.0,
+        )
+        transmission_repo += my_line
+        transmission_repo += not_my_line
+
+        game_state = (
+            GameStateMaker()
+            .add_player_repo(player_repo)
+            .add_bus_repo(bus_repo)
+            .add_transmission_repo(transmission_repo)
+            .make()
+        )
+
+        # Test operating a line that I own
+        open_request = OperateLineRequest(player_id=player.id, transmission_id=my_line.id, action="open")
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=open_request)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        self.assertIsInstance(response, OperateLineResponse)
+        self.assertEqual(response.result, "success")
+        self.assertEqual(game_state.transmission[my_line.id].is_open, True)
+
+        # Try to open it again
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=open_request)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        self.assertIsInstance(response, OperateLineResponse)
+        self.assertEqual(response.result, "no_change")
+        self.assertEqual(game_state.transmission[my_line.id].is_open, True)
+
+        # Try closing a line that I own
+        close_request = OperateLineRequest(player_id=player.id, transmission_id=my_line.id, action="close")
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=close_request)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        self.assertIsInstance(response, OperateLineResponse)
+        self.assertEqual(response.result, "success")
+        self.assertEqual(game_state.transmission[my_line.id].is_open, False)
+
+        # Try to close it again
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=close_request)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        self.assertIsInstance(response, OperateLineResponse)
+        self.assertEqual(response.result, "no_change")
+        self.assertEqual(game_state.transmission[my_line.id].is_open, False)
+
+        # Try to operate a line that I do not own
+        not_my_open_request = OperateLineRequest(player_id=player.id, transmission_id=not_my_line.id, action="open")
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=not_my_open_request)
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        self.assertIsInstance(response, OperateLineResponse)
+        self.assertEqual(response.result, "failure")
+        self.assertEqual(game_state.transmission[not_my_line.id].is_open, False)

@@ -13,7 +13,7 @@ class TestPlotNetwork(TestCase):
         player_repo = PlayerRepoMaker.make_quick()
         bus_repo = BusRepoMaker.make_quick(n_npc_buses=0)
         transmission_repo = TransmissionRepoMaker.make_quick(
-            player_ids=player_repo.player_ids, bus_ids=bus_repo.bus_ids, n=2
+            players=player_repo.player_ids, buses=bus_repo.bus_ids, n=2
         )
         game_state = (
             GameStateMaker()
