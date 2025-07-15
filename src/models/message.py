@@ -35,7 +35,6 @@ class PlayerToGameMessage(Message, ABC):
 @dataclass(frozen=True)
 class GameToPlayerMessage(Message, ABC):
     player_id: PlayerId
-    game_state: GameState
     message: str
 
     def __str__(self) -> str:
@@ -57,8 +56,7 @@ class ConcludePhase(InternalMessage):
 
 @dataclass(frozen=True)
 class GameUpdate(GameToPlayerMessage):
-    # The basic message that gets sent to a player to let them know the game state has
-    pass
+    game_state: GameState
 
 
 @dataclass(frozen=True)
@@ -69,7 +67,6 @@ class UpdateBidRequest(PlayerToGameMessage):
 
 @dataclass(frozen=True)
 class UpdateBidResponse(GameToPlayerMessage):
-    game_state: GameState
     success: bool
     asset_id: AssetId
 
@@ -81,7 +78,6 @@ class BuyRequest(PlayerToGameMessage, Generic[T_Id]):
 
 @dataclass(frozen=True)
 class BuyResponse(GameToPlayerMessage, Generic[T_Id]):
-    game_state = GameState
     success: bool
     purchase_id: T_Id
 
@@ -89,3 +85,8 @@ class BuyResponse(GameToPlayerMessage, Generic[T_Id]):
 @dataclass(frozen=True)
 class EndTurn(PlayerToGameMessage):
     player_id: PlayerId
+
+
+@dataclass(frozen=True)
+class AuctionClearedMessage(GameToPlayerMessage):
+    pass

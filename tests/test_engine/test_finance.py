@@ -65,12 +65,7 @@ class TestFinanceCalculator(TestCase):
         ice_cream_loads = asset_repo.filter({"is_freezer": True})
         load_to_validate = ice_cream_loads.asset_ids[0]
 
-        cash = sum(
-            [
-                load.bid_price * load.power_expected
-                for load in ice_cream_loads
-            ]
-        )
+        cash = sum([load.bid_price * load.power_expected for load in ice_cream_loads])
 
         asset_obj = ice_cream_loads[load_to_validate]
         bid_min_limit = asset_obj.bid_price
