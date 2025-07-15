@@ -1,8 +1,9 @@
 from unittest import TestCase
+from dataclasses import replace
 
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
-from src.models.game_state import GameState
+from src.models.game_state import GameState, Phase
 from src.models.market_coupling_result import MarketCouplingResult
 from src.engine.referee import Referee
 
@@ -46,3 +47,19 @@ class TestReferee(TestCase):
             else:
                 self.assertFalse(new_game_state.assets[freezer_id].is_active)
                 self.assertEqual(new_game_state.assets[freezer_id].health, 0)
+
+    def test_wear_non_freezer_assets(self):
+        game_state, market_result = self.create_game_state_and_market_coupling_result()
+        wearable_assets = game_state.assets.filter({"is_freezer": False})
+
+        game_state = replace(game_state, phase=Phase.DA_AUCTION)
+        new_game_state, update_msgs = Referee.wear_non_freezer_assets(game_state)
+        self.assertEqual(len(update_msgs), len(wearable_assets))
+
+        for asset in wearable_assets:
+            if asset.health > 1:
+                self.assertLess(new_game_state.assets[asset.id].health, asset.health)
+            else:
+                self.assertFalse(new_game_state.assets[asset.id].is_active)
+                self.assertEqual(new_game_state.assets[asset.id].health, 0)
+
