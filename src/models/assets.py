@@ -51,8 +51,20 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return [AssetId(x) for x in self.df.index.tolist()]
 
     @cached_property
+    def just_active(self) -> Self:
+        return self.filter({"is_active": True})
+
+    @cached_property
     def just_freezers(self) -> Self:
         return self.filter({"is_freezer": True})
+
+    @cached_property
+    def just_loads(self) -> Self:
+        return self.filter({"asset_type": AssetType.LOAD})
+
+    @cached_property
+    def just_generators(self) -> Self:
+        return self.filter({"asset_type": AssetType.GENERATOR})
 
     def get_all_assets_at_bus(self, bus_id: BusId) -> Self:
         return self.filter({"bus": bus_id})
