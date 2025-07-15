@@ -51,8 +51,8 @@ class GameState:
     def add_transmission_line(self, transmission_info: TransmissionInfo) -> Self:
         for bus_id in [transmission_info.bus1, transmission_info.bus2]:
             bus = self.buses[bus_id]
-            n_lines_at_bus = len(self.assets.get_all_assets_at_bus(bus_id=bus_id))
-            if (n_lines_at_bus + 1) > bus.max_assets:
+            n_lines_at_bus = len(self.transmission.get_all_at_bus(bus_id=bus_id))
+            if (n_lines_at_bus + 1) > bus.max_lines:
                 raise BusFullException(f"Cannot add new line {transmission_info.id} to bus {bus_id}")
 
         return replace(self, transmission=self.transmission + transmission_info)
