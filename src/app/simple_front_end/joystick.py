@@ -7,7 +7,14 @@ from src.directories import game_cache_dir
 from src.engine.engine import Engine
 from src.models.game_state import GameState
 from src.models.ids import GameId, PlayerId, AssetId, TransmissionId
-from src.models.message import BuyRequest, GameToPlayerMessage, PlayerToGameMessage, EndTurn, OperateLineRequest
+from src.models.message import (
+    GameToPlayerMessage,
+    PlayerToGameMessage,
+    BuyRequest,
+    EndTurn,
+    UpdateBidRequest,
+    OperateLineRequest,
+)
 from src.tools.random_choice import random_choice
 
 
@@ -104,6 +111,10 @@ class Joystick:
     def close_line(self, transmission_id: int) -> None:
         t_id = TransmissionId(transmission_id)
         message = OperateLineRequest(player_id=self._current_player_id, transmission_id=t_id, action="close")
+        self._send_message(message)
+
+    def update_bid(self, asset_id: int, new_bid: float) -> None:
+        message = UpdateBidRequest(player_id=self._current_player_id, asset_id=AssetId(asset_id), bid_price=new_bid)
         self._send_message(message)
 
     def end_turn(self) -> None:

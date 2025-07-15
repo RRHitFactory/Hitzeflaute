@@ -347,6 +347,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                     marginal_cost=0.0,
                     bid_price=self.settings.initial_funds / 2,
                     is_freezer=True,
+                    health=self.settings.n_init_ice_cream,
                 )
             )
 

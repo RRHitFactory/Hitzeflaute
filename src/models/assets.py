@@ -29,6 +29,7 @@ class AssetInfo(LightDc):
     marginal_cost: float = 0.0
     bid_price: float = 0.0
     is_freezer: bool = False  # This is a special type of load
+    health: int = 0
     is_active: bool = True
 
     def __post_init__(self) -> None:
@@ -75,6 +76,25 @@ class AssetRepo(LdcRepo[AssetInfo]):
         df = self.df.copy()
         df.loc[asset_id, "bid_price"] = bid_price
         return self.update_frame(df)
+
+    def _decrease_health(self, asset_id: AssetId) -> Self:
+        if self.df.loc[asset_id, "health"] > 1:
+            df = self.df.copy()
+            df.loc[asset_id, "health"] -= 1
+            return self.update_frame(df)
+        else:
+            df = self.df.copy()
+            df.loc[asset_id, "health"] = 0
+            df.loc[asset_id, "is_active"] = False
+            return self.update_frame(df)
+
+    def melt_ice_cream(self, asset_id: AssetId) -> Self:
+        assert self.df.loc[asset_id, "is_freezer"], "Only freezer assets can melt ice cream"
+        return self._decrease_health(asset_id)
+
+    def wear_asset(self, asset_id: AssetId) -> Self:
+        assert not self.df.loc[asset_id, "is_freezer"], "Only non-freezer assets can wear out"
+        return self._decrease_health(asset_id)
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:

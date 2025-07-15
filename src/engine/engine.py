@@ -3,6 +3,7 @@ from typing import Literal, Optional
 
 from src.engine.finance import FinanceCalculator
 from src.engine.market_coupling import MarketCouplingCalculator
+from src.engine.referee import Referee
 from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
@@ -113,6 +114,9 @@ class Engine:
                         message=text,
                     )
                 )
+            new_game_state, msgs_melted_icecream = Referee.melt_ice_creams(new_game_state)
+            msgs.extend(msgs_melted_icecream)
+
             return new_game_state, msgs
 
         elif msg.phase == Phase.SNEAKY_TRICKS:
