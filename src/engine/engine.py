@@ -17,7 +17,8 @@ from src.models.message import (
     BuyRequest,
     BuyResponse,
     T_Id,
-    GameUpdate,
+    AuctionClearedMessage,
+    GameToPlayerMessage,
     OperateLineRequest,
     OperateLineResponse,
 )
@@ -37,9 +38,9 @@ class Engine:
         """
         # Handle the message based on its type
         if isinstance(msg, ConcludePhase):
-            return cls.handle_new_phase_message(game_state, msg)
+            return cls.handle_new_phase_message(game_state=game_state, msg=msg)
         elif isinstance(msg, UpdateBidRequest):
-            return cls.handle_update_bid_message(game_state, msg)
+            return cls.handle_update_bid_message(game_state=game_state, msg=msg)
         elif isinstance(msg, OperateLineRequest):
             return cls.handle_operate_line_message(game_state, msg)
         elif isinstance(msg, BuyRequest):
@@ -50,7 +51,7 @@ class Engine:
             else:
                 raise NotImplementedError(f"You cannot buy objects of type <{type(msg.purchase_id)}>.")
         elif isinstance(msg, EndTurn):
-            return cls.handle_end_turn_message(game_state, msg)
+            return cls.handle_end_turn_message(game_state=game_state, msg=msg)
         else:
             raise NotImplementedError(f"message type {type(msg)} not implemented.")
 
@@ -59,7 +60,6 @@ class Engine:
         game_state: GameState,
         market_coupling_result: MarketCouplingResult,
     ) -> GameState:
-
         player_repo = game_state.players
         cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(
             game_state=game_state, market_coupling_result=market_coupling_result
@@ -80,20 +80,13 @@ class Engine:
         cls,
         game_state: GameState,
         msg: ConcludePhase,
-    ) -> tuple[GameState, list[GameUpdate]]:
-        """
-        Handle a new phase message.
-        :param game_state: The current state of the game
-        :param msg: The triggering message
-        :return: The new game state and a list of messages to be sent to the player interface
-        """
-
+    ) -> tuple[GameState, list[GameToPlayerMessage]]:
         def increment_phase_and_start_turns(gs: GameState) -> GameState:
             return replace(gs, phase=msg.phase.get_next(), players=game_state.players.start_all_turns())
 
         if msg.phase == Phase.CONSTRUCTION:
             new_game_state = increment_phase_and_start_turns(game_state)
-            return new_game_state, cls._make_phase_update_messages(new_game_state)
+            return new_game_state, []
 
         elif msg.phase == Phase.DA_AUCTION:
             market_result = MarketCouplingCalculator.run(game_state)
@@ -101,16 +94,15 @@ class Engine:
                 game_state=game_state, market_coupling_result=market_result
             )
             new_game_state = increment_phase_and_start_turns(new_game_state)
-            msgs = cls._make_phase_update_messages(new_game_state)
 
+            msgs: list[GameToPlayerMessage] = []
             for player_id in new_game_state.players.player_ids:
                 old_money = game_state.players[player_id].money
                 new_money = new_game_state.players[player_id].money
                 text = f"Day-ahead market cleared. Your balance was adjusted accordingly from ${old_money} to ${new_money}."
                 msgs.append(
-                    GameUpdate(
+                    AuctionClearedMessage(
                         player_id=player_id,
-                        game_state=new_game_state,
                         message=text,
                     )
                 )
@@ -121,24 +113,11 @@ class Engine:
 
         elif msg.phase == Phase.SNEAKY_TRICKS:
             new_game_state = increment_phase_and_start_turns(game_state)
-            return new_game_state, cls._make_phase_update_messages(new_game_state)
+            return new_game_state, []
 
         # TODO in the new phase, one or all players have turns, so we need to update the game state accordingly
         else:
             raise NotImplementedError(f"Phase {msg.phase} not implemented.")
-
-    @staticmethod
-    def _make_phase_update_messages(game_state: GameState) -> list[GameUpdate]:
-        messages: list[GameUpdate] = []
-        for player_id in game_state.players.player_ids:
-            messages.append(
-                GameUpdate(
-                    player_id=player_id,
-                    game_state=game_state,
-                    message=f"Phase changed to {game_state.phase.name}",
-                )
-            )
-        return messages
 
     @classmethod
     def handle_update_bid_message(
@@ -146,17 +125,9 @@ class Engine:
         game_state: GameState,
         msg: UpdateBidRequest,
     ) -> tuple[GameState, list[UpdateBidResponse]]:
-        """
-        Handle an update bid message.
-        :param game_state: The current state of the game
-        :param msg: The triggering message
-        :return: The new game state and a list of messages to be sent to the player interface
-        """
-
         def make_failed_response(failed_message: str) -> tuple[GameState, list[UpdateBidResponse]]:
             failed_response = UpdateBidResponse(
                 player_id=msg.player_id,
-                game_state=game_state,
                 success=False,
                 message=failed_message,
                 asset_id=msg.asset_id,
@@ -190,7 +161,6 @@ class Engine:
 
         response = UpdateBidResponse(
             player_id=player.id,
-            game_state=new_game_state,
             success=True,
             message=f"Player {player.id} successfully updated bid for asset {asset.id} to {msg.bid_price}.",
             asset_id=msg.asset_id,
@@ -199,7 +169,7 @@ class Engine:
         return new_game_state, [response]
 
     @classmethod
-    def _check_if_purchase_is_invalid(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
+    def _validate_purchase(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
 
         if isinstance(msg.purchase_id, AssetId):
             purchase_type = "asset"
@@ -220,7 +190,6 @@ class Engine:
         def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
             failed_response = BuyResponse(
                 player_id=msg.player_id,
-                game_state=gs,
                 success=False,
                 message=failed_message,
                 purchase_id=purchase_id,
@@ -245,13 +214,7 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[AssetId],
     ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
-        """
-        Handle a buy asset message.
-        :param game_state: The current state of the game
-        :param msg: The triggering message
-        :return: The new game state and a list of messages to be sent to the player interface
-        """
-        list_failed_response = cls._check_if_purchase_is_invalid(gs=game_state, msg=msg)
+        list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
         if list_failed_response:
             return game_state, list_failed_response
 
@@ -264,9 +227,7 @@ class Engine:
 
         new_game_state = replace(game_state, players=new_players, assets=new_assets)
 
-        response = BuyResponse(
-            player_id=player.id, game_state=new_game_state, success=True, message=message, purchase_id=asset.id
-        )
+        response = BuyResponse(player_id=player.id, success=True, message=message, purchase_id=asset.id)
         return new_game_state, [response]
 
     @classmethod
@@ -275,13 +236,7 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[TransmissionId],
     ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
-        """
-        Handle a buy asset message.
-        :param game_state: The current state of the game
-        :param msg: The triggering message
-        :return: The new game state and a list of messages to be sent to the player interface
-        """
-        list_failed_response = cls._check_if_purchase_is_invalid(gs=game_state, msg=msg)
+        list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
         if list_failed_response:
             return game_state, list_failed_response
 
@@ -298,7 +253,6 @@ class Engine:
 
         response = BuyResponse(
             player_id=player.id,
-            game_state=new_game_state,
             success=True,
             message=message,
             purchase_id=transmission.id,
@@ -317,9 +271,7 @@ class Engine:
         ) -> tuple[GameState, list[OperateLineResponse]]:
             if new_game_state is None:
                 new_game_state = game_state
-            response = OperateLineResponse(
-                game_state=new_game_state, player_id=msg.player_id, request=msg, result=result, message=text
-            )
+            response = OperateLineResponse(player_id=msg.player_id, request=msg, result=result, message=text)
             return new_game_state, [response]
 
         if msg.transmission_id not in game_state.transmission.transmission_ids:
@@ -351,12 +303,6 @@ class Engine:
         game_state: GameState,
         msg: EndTurn,
     ) -> tuple[GameState, list[ConcludePhase]]:
-        """
-        Handle an end turn message.
-        :param game_state: The current state of the game
-        :param msg: The triggering message
-        :return: The new game state and a list of messages to be sent to the player interface
-        """
         # TODO If this phase requires players to play one by one (Do we need such a phase?) Then cycle to the next player
         game_state = replace(game_state, players=game_state.players.end_turn(player_id=msg.player_id))
         if game_state.players.are_all_players_finished():

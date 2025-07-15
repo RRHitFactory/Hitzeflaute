@@ -12,36 +12,30 @@ from src.models.message import (
     PlayerToGameMessage,
     BuyRequest,
     EndTurn,
-    UpdateBidRequest,
     OperateLineRequest,
+    UpdateBidRequest,
+    GameUpdate,
 )
 from src.tools.random_choice import random_choice
 
 
 class MessageHandler:
     def __init__(self, joystick: "Joystick") -> None:
-        self._received_msgs: list[GameToPlayerMessage] = []
+        self._last_state: Optional[GameState] = None
         self._joystick = joystick
-
-    @property
-    def last_msg(self) -> Optional[GameToPlayerMessage]:
-        if not self._received_msgs:
-            return None
-        return self._received_msgs[-1]
-
-    @property
-    def last_state_update(self) -> Optional[GameState]:
-        last_msg = self.last_msg
-        if last_msg is None:
-            return None
-        return last_msg.game_state
 
     def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None:
         print(f"Received {len(msgs)} messages")
-        for msg in msgs:
+
+        game_updates = [m for m in msgs if isinstance(m, GameUpdate)]
+        assert len(game_updates) > 0, "At least one GameUpdate message is expected"
+        self._last_state = game_updates[-1].game_state
+
+        other_messages = [m for m in msgs if not isinstance(m, GameUpdate)]
+        for msg in other_messages:
             print(msg)
-            self._received_msgs.append(msg)
-        self._joystick.on_receive_message(latest_state=self.last_state_update)
+
+        self._joystick.on_receive_message(latest_state=self._last_state)
 
 
 class Joystick:
@@ -57,9 +51,12 @@ class Joystick:
         self._plotter.plot(self.latest_game_state)
 
     def __str__(self) -> str:
-        return (
-            f"<Joystick (phase: {self.current_phase}, current_player={self.current_player}, game_id={self._game_id})>"
-        )
+        data_dict = {
+            "phase": self.current_phase,
+            "current_player": self.current_player,
+            "game_id": self._game_id,
+        }
+        return f"<Joystick ({', '.join(f'{k}: {v}' for k, v in data_dict.items())})>"
 
     def __repr__(self) -> str:
         return str(self)
