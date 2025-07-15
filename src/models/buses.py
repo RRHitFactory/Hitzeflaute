@@ -12,6 +12,10 @@ class Bus(LightDc):
     x: float
     y: float
     player_id: PlayerId = PlayerId.get_npc()
+    n_sockets: int = 10
+
+    def __post_init__(self) -> None:
+        assert self.n_sockets > 0, f"Number of sockets must be positive. Got {self.n_sockets}"
 
     @property
     def point(self) -> Point:
