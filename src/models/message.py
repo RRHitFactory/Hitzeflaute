@@ -1,6 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from typing import Union, TypeVar, Generic
+from typing import Union, Literal
 
 from src.models.game_state import GameState, Phase
 from src.models.ids import PlayerId, AssetId, TransmissionId
@@ -84,6 +85,18 @@ class BuyResponse(GameToPlayerMessage, Generic[T_Id]):
     game_state = GameState
     success: bool
     purchase_id: T_Id
+
+
+@dataclass(frozen=True)
+class OperateLineRequest(PlayerToGameMessage):
+    transmission_id: TransmissionId
+    action: Literal["open", "close"]
+
+
+@dataclass(frozen=True)
+class OperateLineResponse(GameToPlayerMessage):
+    request: OperateLineRequest
+    result: Literal["success", "no_change", "failure"]
 
 
 @dataclass(frozen=True)

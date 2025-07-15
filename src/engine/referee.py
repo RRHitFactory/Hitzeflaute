@@ -3,7 +3,9 @@ from dataclasses import replace
 import pandas as pd
 
 from src.models.ids import AssetId
-from src.models.message import GameUpdate #, BuyAssetRequest, BuyAssetResponse, BuyTransmissionRequest, BuyTransmissionResponse, BuyResponse
+from src.models.message import (
+    GameUpdate,
+)  # , BuyAssetRequest, BuyAssetResponse, BuyTransmissionRequest, BuyTransmissionResponse, BuyResponse
 from src.models.game_state import GameState
 
 
@@ -44,7 +46,7 @@ class Referee:
             return GameUpdate(
                 player_id=gs.assets[asset_id].owner_player,
                 game_state=new_gs,
-                message=f"An ice cream melted for Freezer {asset_id}."
+                message=f"An ice cream melted for Freezer {asset_id}.",
             )
 
         asset_repo = gs.assets

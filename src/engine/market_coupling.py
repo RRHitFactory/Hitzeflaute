@@ -10,7 +10,7 @@ from src.models.assets import AssetId, AssetType
 from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
-from src.models.transmission import TransmissionId
+from src.models.transmission import TransmissionId, TransmissionRepo
 
 
 class MarketCouplingCalculator:
@@ -21,7 +21,7 @@ class MarketCouplingCalculator:
 
         return MarketCouplingResult(
             bus_prices=cls.get_bus_prices(network),
-            transmission_flows=cls.get_transmission_flows(network),
+            transmission_flows=cls.get_transmission_flows(network=network, transmission=game_state.transmission),
             assets_dispatch=cls.get_assets_dispatch(network),
         )
 
@@ -38,7 +38,7 @@ class MarketCouplingCalculator:
         network.add(class_name="Carrier", name="AC")
         for bus in game_state.buses:
             network.add(class_name="Bus", name=cls.get_pypsa_name(bus.id), carrier="AC")
-        for line in game_state.transmission:
+        for line in game_state.transmission.only_closed:
             network.add(
                 class_name="Line",
                 name=cls.get_pypsa_name(line.id),
@@ -87,8 +87,13 @@ class MarketCouplingCalculator:
         return cls._tidy_df(df=network.buses_t.marginal_price, column_name="Bus")
 
     @classmethod
-    def get_transmission_flows(cls, network: pypsa.Network) -> pd.DataFrame:
-        return cls._tidy_df(df=network.lines_t.p0, column_name="Line")
+    def get_transmission_flows(cls, network: pypsa.Network, transmission: TransmissionRepo) -> pd.DataFrame:
+        df = cls._tidy_df(df=network.lines_t.p0, column_name="Line")
+        # Add zero flows to open lines
+        open_ids = transmission.only_open.transmission_ids
+        df.loc[:, open_ids] = 0.0
+        df.sort_index(axis=1, inplace=True)  # Sort columns by transmission ID
+        return df
 
     @classmethod
     def get_assets_dispatch(cls, network: pypsa.Network) -> pd.DataFrame:

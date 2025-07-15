@@ -24,11 +24,16 @@ class PlotTxLine(PlotObject):
 
     @property
     def color(self) -> Color:
+        if self.line.is_open:
+            return self.deactivate_color(self.owner.color)
         return self.owner.color
 
     @property
     def data_dict(self) -> dict[str, str]:
-        return {"Owner": self.owner.name, "Health": self.line.health}
+        data_dict = {"Owner": self.owner.name, "Health": self.line.health}
+        if self.line.is_open:
+            data_dict["Status"] = "OPEN"
+        return data_dict
 
     @cached_property
     def centre(self) -> Point:
@@ -72,15 +77,10 @@ class PlotTxLine(PlotObject):
     def render_shape(self) -> Scatter:
         points = self.vertices
 
-        if self.line.is_active:
-            color = self.color
-        else:
-            color = self.deactivate_color(self.color)
-
         scatter = go.Scatter(
             x=[p.x for p in points],
             y=[p.y for p in points],
-            line=dict(color=color.rgb_hex_str, width=3),
+            line=dict(color=self.color.rgb_hex_str, width=3),
             opacity=0.8,
             mode="lines",
             hoverinfo="skip",

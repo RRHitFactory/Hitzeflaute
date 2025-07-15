@@ -1,6 +1,4 @@
-from pathlib import Path
-from time import sleep
-from typing import Optional, Callable
+from typing import Optional
 
 from src.app.game_manager import GameManager
 from src.app.game_repo.file_game_repo import FileGameStateRepo
@@ -14,7 +12,8 @@ from src.models.message import (
     PlayerToGameMessage,
     BuyRequest,
     EndTurn,
-    UpdateBidRequest
+    UpdateBidRequest,
+    OperateLineRequest,
 )
 from src.tools.random_choice import random_choice
 
@@ -101,9 +100,17 @@ class Joystick:
         self._send_message(message)
 
     def buy_transmission(self, transmission_id: int) -> None:
-        message = BuyRequest(
-            player_id=self._current_player_id, purchase_id=TransmissionId(transmission_id)
-        )
+        message = BuyRequest(player_id=self._current_player_id, purchase_id=TransmissionId(transmission_id))
+        self._send_message(message)
+
+    def open_line(self, transmission_id: int) -> None:
+        t_id = TransmissionId(transmission_id)
+        message = OperateLineRequest(player_id=self._current_player_id, transmission_id=t_id, action="open")
+        self._send_message(message)
+
+    def close_line(self, transmission_id: int) -> None:
+        t_id = TransmissionId(transmission_id)
+        message = OperateLineRequest(player_id=self._current_player_id, transmission_id=t_id, action="close")
         self._send_message(message)
 
     def update_bid(self, asset_id: int, new_bid: float) -> None:
