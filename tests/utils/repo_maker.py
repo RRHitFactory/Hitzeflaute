@@ -156,7 +156,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             .make()
         )
 
-    def __init__(self, players: list[PlayerId] | PlayerRepo | None, bus_repo: Optional[BusRepo] = None) -> None:
+    def __init__(self, players: list[PlayerId] | PlayerRepo | None = None, bus_repo: Optional[BusRepo] = None) -> None:
         super().__init__()
         if players is None:
             players = [PlayerId(i) for i in range(3)]
