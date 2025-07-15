@@ -74,7 +74,7 @@ class TestMarketCoupling(TestCase):
         for mtu in market_result.transmission_flows.index:
             for transmission in game_state.transmission:
                 flow = market_result.transmission_flows.loc[mtu, transmission.id]
-                if flow == transmission.capacity:
+                if abs(flow) == abs(transmission.capacity):
                     self.assertGreater(
                         abs(
                             market_result.bus_prices.loc[mtu, transmission.bus1]
