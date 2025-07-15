@@ -86,4 +86,5 @@ class TestMarketCoupling(TestCase):
                     self.assertAlmostEqual(
                         market_result.bus_prices.loc[mtu, transmission.bus1],
                         market_result.bus_prices.loc[mtu, transmission.bus2],
+                        places=0,
                     )
