@@ -27,13 +27,11 @@ class MarketResultMaker:
         market_time_units = pd.Index([k for k in range(n_timesteps)], name="time")
 
         if bus_repo is None:
-            bus_repo = BusRepoMaker.make_quick(player_ids=player_repo.player_ids)
+            bus_repo = BusRepoMaker.make_quick(players=player_repo.player_ids)
         if asset_repo is None:
-            asset_repo = AssetRepoMaker.make_quick(bus_repo=bus_repo, player_ids=player_repo.player_ids)
+            asset_repo = AssetRepoMaker.make_quick(bus_repo=bus_repo, players=player_repo.player_ids)
         if transmission_repo is None:
-            transmission_repo = TransmissionRepoMaker.make_quick(
-                bus_ids=bus_repo.bus_ids, player_ids=player_repo.player_ids
-            )
+            transmission_repo = TransmissionRepoMaker.make_quick(buses=bus_repo.bus_ids, players=player_repo.player_ids)
 
         bus_columns = pd.Index([b.as_int() for b in bus_repo.bus_ids], name="Bus")
         bus_data = np.random.rand(n_timesteps, len(bus_columns))
@@ -101,13 +99,11 @@ class GameStateMaker:
         if self.player_repo is None:
             self.player_repo = PlayerRepoMaker.make_quick()
         if self.bus_repo is None:
-            self.bus_repo = BusRepoMaker.make_quick(player_ids=self.player_repo.player_ids)
+            self.bus_repo = BusRepoMaker.make_quick(players=self.player_repo)
         if self.asset_repo is None:
-            self.asset_repo = AssetRepoMaker.make_quick(player_ids=self.player_repo.player_ids, bus_repo=self.bus_repo)
+            self.asset_repo = AssetRepoMaker.make_quick(players=self.player_repo, bus_repo=self.bus_repo)
         if self.transmission_repo is None:
-            self.transmission_repo = TransmissionRepoMaker.make_quick(
-                player_ids=self.player_repo.player_ids, bus_ids=self.bus_repo.bus_ids
-            )
+            self.transmission_repo = TransmissionRepoMaker.make_quick(players=self.player_repo, buses=self.bus_repo)
         if self.market_coupling_result is None:
             self.market_coupling_result = MarketResultMaker.make_quick(
                 player_repo=self.player_repo,

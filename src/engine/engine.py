@@ -1,9 +1,10 @@
 from dataclasses import replace
-from typing import Literal
+from typing import Literal, Optional
 
 from src.engine.finance import FinanceCalculator
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.game_state import GameState, Phase
+from src.models.ids import AssetId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
     UpdateBidRequest,
@@ -19,7 +20,6 @@ from src.models.message import (
     OperateLineRequest,
     OperateLineResponse,
 )
-from src.models.ids import AssetId, TransmissionId
 
 
 class Engine:
@@ -309,12 +309,14 @@ class Engine:
     ) -> tuple[GameState, list[OperateLineResponse]]:
 
         def make_response(
-            result: Literal["success", "no_change", "failure"], text: str
+            result: Literal["success", "no_change", "failure"], text: str, new_game_state: Optional[GameState] = None
         ) -> tuple[GameState, list[OperateLineResponse]]:
-            fail_message = OperateLineResponse(
-                game_state=game_state, player_id=msg.player_id, request=msg, result=result, message=text
+            if new_game_state is None:
+                new_game_state = game_state
+            response = OperateLineResponse(
+                game_state=new_game_state, player_id=msg.player_id, request=msg, result=result, message=text
             )
-            return game_state, [fail_message]
+            return new_game_state, [response]
 
         if msg.transmission_id not in game_state.transmission.transmission_ids:
             return make_response(result="failure", text="Transmission does not exist.")
@@ -326,13 +328,18 @@ class Engine:
         if msg.action == "open":
             if line.is_open:
                 return make_response(result="no_change", text="Transmission line is already open.")
-            game_state = replace(game_state, transmission=game_state.transmission.open_line(line.id))
-            return make_response(result="success", text="Transmission line opened successfully.")
+            else:
+                new_state = replace(game_state, transmission=game_state.transmission.open_line(line.id))
+                return make_response(
+                    result="success", text="Transmission line opened successfully.", new_game_state=new_state
+                )
 
+        assert msg.action == "close"
         if line.is_closed:
             return make_response(result="no_change", text="Transmission line is already closed.")
-        game_state = replace(game_state, transmission=game_state.transmission.close_line(line.id))
-        return make_response(result="success", text="Transmission line closed successfully.")
+
+        new_state = replace(game_state, transmission=game_state.transmission.close_line(line.id))
+        return make_response(result="success", text="Transmission line closed successfully.", new_game_state=new_state)
 
     @classmethod
     def handle_end_turn_message(

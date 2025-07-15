@@ -14,7 +14,6 @@ from src.models.player import PlayerRepo, Player
 from src.models.transmission import TransmissionRepo, TransmissionInfo
 from src.tools.random_choice import random_choice, random_choice_multi
 
-
 T_RepoMaker = TypeVar("T_RepoMaker", bound="RepoMaker")
 
 
@@ -53,14 +52,16 @@ class RepoMaker(Generic[T_LdcRepo, T_LightDc]):
 
 class BusRepoMaker(RepoMaker[BusRepo, Bus]):
     @classmethod
-    def make_quick(cls, n_npc_buses: int = 10, player_ids: Optional[list[PlayerId]] = None) -> BusRepo:
-        return cls(player_ids=player_ids).add_n_random(n_npc_buses).make()
+    def make_quick(cls, n_npc_buses: int = 10, players: list[PlayerId] | PlayerRepo | None = None) -> BusRepo:
+        return cls(players=players).add_n_random(n_npc_buses).make()
 
-    def __init__(self, player_ids: Optional[list[PlayerId]] = None) -> None:
+    def __init__(self, players: list[PlayerId] | PlayerRepo | None = None) -> None:
         super().__init__()
-        if player_ids is None:
-            player_ids = [PlayerId(i) for i in range(3)]
-        self.player_ids = player_ids
+        if players is None:
+            players = [PlayerId(i) for i in range(3)]
+        elif isinstance(players, PlayerRepo):
+            players = players.player_ids
+        self.player_ids = players
 
     def add_bus(self, player_id: PlayerId = PlayerId.get_npc()) -> Self:
         """Add a bus for a specific player."""
@@ -143,23 +144,28 @@ class PlayerRepoMaker(RepoMaker[PlayerRepo, Player]):
 class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
     @classmethod
     def make_quick(
-        cls, n_normal_assets: int = 3, player_ids: Optional[list[PlayerId]] = None, bus_repo: Optional[BusRepo] = None
+        cls,
+        n_normal_assets: int = 3,
+        players: list[PlayerId] | PlayerRepo | None = None,
+        bus_repo: Optional[BusRepo] = None,
     ) -> AssetRepo:
         return (
-            cls(player_ids=player_ids, bus_repo=bus_repo)
+            cls(players=players, bus_repo=bus_repo)
             .add_n_random(n_normal_assets)
             .add_asset(owner=PlayerId.get_npc(), is_for_sale=True)
             .make()
         )
 
-    def __init__(self, player_ids: Optional[list[PlayerId]] = None, bus_repo: Optional[BusRepo] = None) -> None:
+    def __init__(self, players: list[PlayerId] | PlayerRepo | None, bus_repo: Optional[BusRepo] = None) -> None:
         super().__init__()
-        if player_ids is None:
-            player_ids = [PlayerId(i) for i in range(3)]
+        if players is None:
+            players = [PlayerId(i) for i in range(3)]
+        elif isinstance(players, PlayerRepo):
+            players = players.player_ids
 
         if bus_repo is None:
-            bus_repo = BusRepoMaker.make_quick(player_ids=player_ids)
-        self.player_ids = player_ids
+            bus_repo = BusRepoMaker.make_quick(players=players)
+        self.player_ids = players
         self._bus_repo = bus_repo
 
     def add_assets_to_buses(self, buses: list[BusId]) -> Self:
@@ -259,19 +265,27 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
 class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
     @classmethod
     def make_quick(
-        cls, n: int = 10, player_ids: Optional[list[PlayerId]] = None, bus_ids: Optional[list[BusId]] = None
+        cls, n: int = 10, players: list[PlayerId] | PlayerRepo | None = None, buses: list[BusId] | BusRepo | None = None
     ) -> TransmissionRepo:
-        maker = cls(player_ids=player_ids, bus_ids=bus_ids)
+        maker = cls(players=players, buses=buses)
         return maker.add_n_random(n).make()
 
-    def __init__(self, player_ids: Optional[list[PlayerId]] = None, bus_ids: Optional[list[BusId]] = None) -> None:
+    def __init__(
+        self, players: list[PlayerId] | PlayerRepo | None = None, buses: list[BusId] | BusRepo | None = None
+    ) -> None:
         super().__init__()
-        if player_ids is None:
-            player_ids = [PlayerId(i) for i in range(3)]
-        if bus_ids is None:
-            bus_ids = [BusId(i) for i in range(5)]
-        self.player_ids = player_ids
-        self.bus_ids = bus_ids
+        if players is None:
+            players = [PlayerId(i) for i in range(3)]
+        elif isinstance(players, PlayerRepo):
+            players = players.player_ids
+
+        if buses is None:
+            buses = [BusId(i) for i in range(5)]
+        elif isinstance(buses, BusRepo):
+            buses = buses.bus_ids
+
+        self.player_ids = players
+        self.bus_ids = buses
 
     def _get_random_player_id(self) -> PlayerId:
         return random_choice(self.player_ids) if random_choice([True, False]) else PlayerId.get_npc()

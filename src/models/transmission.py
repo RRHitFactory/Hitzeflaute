@@ -14,7 +14,7 @@ class TransmissionInfo(LightDc):
     owner_player: PlayerId
     bus1: BusId
     bus2: BusId
-    reactance: float = 0.0
+    reactance: float
     capacity: float = 100.0
     health: int = 5
     fixed_operating_cost: float = 0.0
