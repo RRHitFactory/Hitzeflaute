@@ -29,7 +29,6 @@ class AssetInfo(LightDc):
     marginal_cost: float = 0.0
     bid_price: float = 0.0
     is_freezer: bool = False  # This is a special type of load
-    health: int = 0
     is_active: bool = True
 
     def __post_init__(self) -> None:
