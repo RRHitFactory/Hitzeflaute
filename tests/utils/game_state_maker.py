@@ -31,7 +31,7 @@ class MarketResultMaker:
         if asset_repo is None:
             asset_repo = AssetRepoMaker.make_quick(bus_repo=bus_repo, players=player_repo.player_ids)
         if transmission_repo is None:
-            transmission_repo = TransmissionRepoMaker.make_quick(buses=bus_repo.bus_ids, players=player_repo.player_ids)
+            transmission_repo = TransmissionRepoMaker.make_quick(buses=bus_repo, players=player_repo.player_ids)
 
         bus_columns = pd.Index([b.as_int() for b in bus_repo.bus_ids], name="Bus")
         bus_data = np.random.rand(n_timesteps, len(bus_columns))

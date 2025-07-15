@@ -1,21 +1,16 @@
 from dataclasses import dataclass, replace
 from enum import IntEnum
+from functools import cached_property
 from typing import Self, Optional
 
-from src.models.assets import AssetRepo
-from src.models.buses import BusRepo
+from src.models.assets import AssetRepo, AssetInfo
+from src.models.buses import BusRepo, BusFullException
 from src.models.game_settings import GameSettings
-from src.models.ids import (
-    PlayerId,
-    GameId,
-)
+from src.models.ids import PlayerId, GameId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
-from src.models.transmission import TransmissionRepo
-from src.tools.serialization import (
-    simplify_type,
-    un_simplify_type,
-)
+from src.models.transmission import TransmissionRepo, TransmissionInfo
+from src.tools.serialization import simplify_type, un_simplify_type
 
 
 class Phase(IntEnum):
@@ -28,11 +23,9 @@ class Phase(IntEnum):
         return Phase(next_index)
 
 
-@dataclass
+@dataclass(frozen=True)
 class GameState:
-    # A complete description of the current state of the game.
     game_id: GameId
-    # round_counter: int    # TODO: Implement round counter if needed
     game_settings: GameSettings
     phase: Phase
     players: PlayerRepo
@@ -41,9 +34,28 @@ class GameState:
     transmission: TransmissionRepo
     market_coupling_result: Optional[MarketCouplingResult]
 
-    @property
+    @cached_property
     def current_players(self) -> list[PlayerId]:
         return self.players.get_currently_playing().player_ids
+
+    def add_asset(self, asset: AssetInfo) -> Self:
+        bus_id = asset.bus
+        bus = self.buses[bus_id]
+        n_assets_at_bus = len(self.assets.get_all_assets_at_bus(bus_id=bus_id))
+
+        if (n_assets_at_bus + 1) > bus.max_assets:
+            raise BusFullException(f"Cannot add new asset {asset.id} to bus {bus_id}")
+
+        return replace(self, assets=self.assets + asset)
+
+    def add_transmission_line(self, transmission_info: TransmissionInfo) -> Self:
+        for bus_id in [transmission_info.bus1, transmission_info.bus2]:
+            bus = self.buses[bus_id]
+            n_lines_at_bus = len(self.assets.get_all_assets_at_bus(bus_id=bus_id))
+            if (n_lines_at_bus + 1) > bus.max_assets:
+                raise BusFullException(f"Cannot add new line {transmission_info.id} to bus {bus_id}")
+
+        return replace(self, transmission=self.transmission + transmission_info)
 
     def start_all_turns(self) -> Self:
         return replace(self, players=self.players.start_all_turns())

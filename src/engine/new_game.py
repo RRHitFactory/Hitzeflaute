@@ -7,7 +7,7 @@ from typing import Optional, Iterable, Generator
 import numpy as np
 
 from src.models.assets import AssetRepo, AssetInfo, AssetId, AssetType
-from src.models.buses import BusRepo, Bus
+from src.models.buses import BusRepo, Bus, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
@@ -15,6 +15,7 @@ from src.models.geometry import Point, Shape
 from src.models.ids import GameId, PlayerId, BusId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionRepo, TransmissionInfo, TransmissionId
+from src.tools.random_choice import random_choice
 
 
 class BusTopologyMaker:
@@ -329,16 +330,22 @@ class DefaultGameInitializer(BaseGameInitializer):
 
         asset_ids = asset_id_iterator(start=1)
 
+        socket_manager = BusSocketManager(starting_sockets={b.id: b.max_assets for b in bus_repo})
+
         # Create one freezer load for each player
         for player_id in player_repo.player_ids:
             if player_id == PlayerId.get_npc():
                 continue
+
+            bus_id = bus_repo.get_bus_for_player(player_id=player_id).id
+            socket_manager.use_socket(bus_id=bus_id)
+
             assets.append(
                 AssetInfo(
                     id=next(asset_ids),
                     owner_player=player_id,
                     asset_type=AssetType.LOAD,
-                    bus=bus_repo.get_bus_for_player(player_id=player_id).id,
+                    bus=bus_id,
                     power_expected=50.0,
                     power_std=0.0,
                     is_for_sale=False,
@@ -353,12 +360,14 @@ class DefaultGameInitializer(BaseGameInitializer):
 
         # Create the rest of the assets for NPC
         for _ in range(self.settings.n_init_assets):
+            bus_id = socket_manager.get_bus_with_free_socket(use=True)
+
             assets.append(
                 AssetInfo(
                     id=next(asset_ids),
                     owner_player=PlayerId.get_npc(),
                     asset_type=AssetType.GENERATOR,
-                    bus=BusId(np.random.choice(bus_repo.bus_ids)),
+                    bus=bus_id,
                     power_expected=60.0,
                     power_std=0.5,
                     is_for_sale=True,
@@ -375,9 +384,27 @@ class DefaultGameInitializer(BaseGameInitializer):
         topology = TransmissionTopologyMaker.make_spiderweb(
             bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players
         )
-        lines = [
-            TransmissionInfo(
-                id=TransmissionId(i + 1),
+
+        def transmission_id_iterator(start: int = 1) -> Generator[TransmissionId, None, None]:
+            for i in count(start):
+                yield TransmissionId(i)
+
+        t_id_iter = transmission_id_iterator(start=1)
+
+        # TODO This should be considered during topology construction rather than just checking it at the end
+        socket_manager = BusSocketManager(starting_sockets={bus.id: bus.max_lines for bus in bus_repo})
+
+        lines: list[TransmissionInfo] = []
+        for bus_pair in topology:
+            bus1 = bus_pair["bus1"]
+            bus2 = bus_pair["bus2"]
+
+            # Ensure both buses have free sockets
+            socket_manager.use_socket(bus1)
+            socket_manager.use_socket(bus2)
+
+            line = TransmissionInfo(
+                id=next(t_id_iter),
                 owner_player=PlayerId.get_npc(),  # NPC owns all initial transmissions
                 bus1=bus_pair["bus1"],
                 bus2=bus_pair["bus2"],
@@ -388,7 +415,6 @@ class DefaultGameInitializer(BaseGameInitializer):
                 is_for_sale=True,
                 minimum_acquisition_price=np.random.uniform(10, 100),  # Random purchase cost for each transmission
             )
-            for i, bus_pair in enumerate(topology)
-        ]
+            lines.append(line)
 
         return TransmissionRepo(lines)

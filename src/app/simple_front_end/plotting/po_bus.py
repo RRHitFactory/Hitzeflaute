@@ -106,7 +106,9 @@ class PlotBus(RectBase):
 
     @cached_property
     def _socket_provider(self) -> SocketProvider:
-        relative_offsets = np.linspace(start=-0.4, stop=0.4, num=5)
+        total_sockets_required = self.bus.total_sockets
+        half_sockets = np.ceil(total_sockets_required / 2).astype(int)
+        relative_offsets = np.linspace(start=-0.4, stop=0.4, num=half_sockets)
 
         tr_offsets = [Point(x=float(offset) * self.length, y=self.width / 2) for offset in relative_offsets]
         bl_offsets = [Point(x=float(offset) * self.length, y=-1 * self.width / 2) for offset in relative_offsets]

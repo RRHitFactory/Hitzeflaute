@@ -60,21 +60,20 @@ class TestFinanceCalculator(TestCase):
 
     def test_validate_bid_based_on_expected_loads_cost(self):
         game_state, _ = self.create_game_state_and_market_coupling_result()
-        asset_repo = game_state.assets
 
-        ice_cream_loads = asset_repo.filter({"is_freezer": True})
-        load_to_validate = ice_cream_loads.asset_ids[0]
+        freezers = game_state.assets.just_freezers
+        load_to_validate = freezers.asset_ids[0]
 
-        cash = sum([load.bid_price * load.power_expected for load in ice_cream_loads])
+        cash = sum([load.bid_price * load.power_expected for load in freezers])
 
-        asset_obj = ice_cream_loads[load_to_validate]
+        asset_obj = freezers[load_to_validate]
         bid_min_limit = asset_obj.bid_price
         low_bid = bid_min_limit - 100
         high_bid = bid_min_limit + 100
 
         self.assertTrue(
             FinanceCalculator.validate_bid_for_asset(
-                player_assets=ice_cream_loads,
+                player_assets=freezers,
                 asset_id_to_validate=load_to_validate,
                 bid_to_validate=low_bid,
                 player_money=cash,
@@ -82,7 +81,7 @@ class TestFinanceCalculator(TestCase):
         )
         self.assertFalse(
             FinanceCalculator.validate_bid_for_asset(
-                player_assets=ice_cream_loads,
+                player_assets=freezers,
                 asset_id_to_validate=load_to_validate,
                 bid_to_validate=high_bid,
                 player_money=cash,
