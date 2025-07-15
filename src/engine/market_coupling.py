@@ -49,7 +49,7 @@ class MarketCouplingCalculator:
                 s_nom=line.capacity,
                 carrier="AC",
             )
-        for generator in game_state.assets.just_generators:
+        for generator in game_state.assets.only_generators:
             network.add(
                 class_name="Generator",
                 name=cls.get_pypsa_name(generator.id),
@@ -58,7 +58,7 @@ class MarketCouplingCalculator:
                 p_nom=np.random.normal(loc=generator.power_expected, scale=generator.power_std),
                 carrier="AC",
             )
-        for load in game_state.assets.just_loads:
+        for load in game_state.assets.only_loads:
             # Loads are treated as generators with negative power in PyPSA
             network.add(
                 class_name="Generator",

@@ -61,7 +61,7 @@ class TestFinanceCalculator(TestCase):
     def test_validate_bid_based_on_expected_loads_cost(self):
         game_state, _ = self.create_game_state_and_market_coupling_result()
 
-        freezers = game_state.assets.just_freezers
+        freezers = game_state.assets.only_freezers
         load_to_validate = freezers.asset_ids[0]
 
         cash = sum([load.bid_price * load.power_expected for load in freezers])
