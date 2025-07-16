@@ -80,9 +80,6 @@ class Joystick:
         print(f"Current phase: {self.current_phase}")
         print(f"Current player: {self.current_player}")
 
-    def plot_network(self) -> None:
-        GridPlotter().plot(self.latest_game_state)
-
     def change_player(self) -> None:
         active_players = self.latest_game_state.players.get_currently_playing().as_objs()
         player_ids = [p.id for p in active_players if p.id not in [self._current_player_id, PlayerId.get_npc()]]

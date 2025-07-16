@@ -22,7 +22,6 @@ class AssetInfo(LightDc):
     bus: BusId
     power_expected: float
     power_std: float
-    health: int = 5
     is_for_sale: bool = False
     minimum_acquisition_price: float = 0.0
     fixed_operating_cost: float = 0.0
@@ -50,6 +49,22 @@ class AssetRepo(LdcRepo[AssetInfo]):
     @property
     def asset_ids(self) -> list[AssetId]:
         return [AssetId(x) for x in self.df.index.tolist()]
+
+    @cached_property
+    def only_active(self) -> Self:
+        return self.filter({"is_active": True})
+
+    @cached_property
+    def only_freezers(self) -> Self:
+        return self.filter({"is_freezer": True})
+
+    @cached_property
+    def only_loads(self) -> Self:
+        return self.filter({"asset_type": AssetType.LOAD})
+
+    @cached_property
+    def only_generators(self) -> Self:
+        return self.filter({"asset_type": AssetType.GENERATOR})
 
     def get_all_assets_at_bus(self, bus_id: BusId) -> Self:
         return self.filter({"bus": bus_id})

@@ -5,14 +5,14 @@ from typing import Generic, Self, Literal, Optional, TypeVar
 import numpy as np
 
 from src.models.assets import AssetRepo, AssetInfo, AssetType
-from src.models.buses import Bus, BusRepo
+from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color
 from src.models.data.ldc_repo import T_LdcRepo
 from src.models.data.light_dc import T_LightDc
 from src.models.ids import PlayerId, AssetId, BusId, TransmissionId
 from src.models.player import PlayerRepo, Player
 from src.models.transmission import TransmissionRepo, TransmissionInfo
-from src.tools.random_choice import random_choice, random_choice_multi
+from src.tools.random_choice import random_choice
 
 T_RepoMaker = TypeVar("T_RepoMaker", bound="RepoMaker")
 
@@ -42,8 +42,7 @@ class RepoMaker(Generic[T_LdcRepo, T_LightDc]):
 
     def add_n_random(self: T_RepoMaker, n: int) -> T_RepoMaker:
         new_dcs = [self._make_dc() for _ in range(n)]
-        self.dcs.extend(new_dcs)
-        return self
+        return self + new_dcs
 
     def make(self) -> T_LdcRepo:
         self._pre_make_hook()
@@ -64,12 +63,9 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         self.player_ids = players
 
     def add_bus(self, player_id: PlayerId = PlayerId.get_npc()) -> Self:
-        """Add a bus for a specific player."""
-        self.dcs.append(self._make_dc(player_id=player_id))
-        return self
+        return self + self._make_dc(player_id=player_id)
 
     def _make_dc(self, player_id: PlayerId = PlayerId.get_npc()) -> Bus:
-
         map_width: float = 20.0
         half_width = map_width / 2
 
@@ -166,42 +162,63 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         if bus_repo is None:
             bus_repo = BusRepoMaker.make_quick(players=players)
         self.player_ids = players
-        self._bus_repo = bus_repo
+        self.buses = bus_repo
+        self._socket_manager = BusSocketManager({b.id: b.max_assets for b in bus_repo})
+
+        for bus in self.buses.freezer_buses:
+            freezer = self._make_dc(cat="Freezer", bus=bus.id, owner=bus.player_id)
+            self._safe_append(freezer)
+
+    def __add__(self, dc: AssetInfo | list[AssetInfo]) -> Self:
+        if isinstance(dc, list):
+            [self._safe_append(d) for d in dc]
+        else:
+            self._safe_append(dc)
+        return self
+
+    def add_n_random(self, n: int) -> Self:
+        for _ in range(n):
+            random_bus = self._socket_manager.get_bus_with_free_socket()
+            new_asset = self._make_dc(bus=random_bus)
+            self._safe_append(new_asset)
+        return self
 
     def add_assets_to_buses(self, buses: list[BusId]) -> Self:
         """Add assets to specific buses."""
         for bus in buses:
-            self.dcs.append(self._make_dc(bus=bus))
+            asset = self._make_dc(bus=bus)
+            self._safe_append(asset)
         return self
 
     def add_asset(
         self,
         asset: Optional[AssetInfo] = None,
-        cat: Optional[Literal["Generator", "Load", "IceCream"]] = None,
+        cat: Optional[Literal["Generator", "Load", "Freezer"]] = None,
         owner: Optional[PlayerId] = None,
         bus: Optional[BusId] = None,
         power_std: Optional[float] = None,
         is_for_sale: Optional[bool] = None,
     ) -> Self:
-        if asset is not None:
+        if asset is None:
+            asset = self._make_dc(cat=cat, owner=owner, bus=bus, power_std=power_std, is_for_sale=is_for_sale)
+        else:
             for x in [cat, owner, bus]:
                 assert x is None, "Cannot specify asset and any of cat, owner, or bus at the same time"
-            self.dcs.append(asset)
-            return self
 
-        dc = self._make_dc(cat=cat, owner=owner, bus=bus, power_std=power_std, is_for_sale=is_for_sale)
-        self.dcs.append(dc)
+        self._safe_append(asset)
         return self
+
+    def _safe_append(self, asset: AssetInfo) -> None:
+        # Appends and consumes a socket
+        self._socket_manager.use_socket(asset.bus)
+        self.dcs.append(asset)
 
     def _get_random_player_id(self) -> PlayerId:
         return random_choice(self.player_ids) if random_choice([True, False]) else PlayerId.get_npc()
 
-    def _get_random_bus_id(self) -> BusId:
-        return random_choice(self._bus_repo.bus_ids)
-
     def _make_dc(
         self,
-        cat: Optional[Literal["Generator", "Load", "IceCream"]] = None,
+        cat: Optional[Literal["Generator", "Load", "Freezer"]] = None,
         owner: Optional[PlayerId] = None,
         bus: Optional[BusId] = None,
         power_std: Optional[float] = None,
@@ -216,7 +233,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             owner = self._get_random_player_id()
 
         if bus is None:
-            bus = self._get_random_bus_id()
+            bus = self._socket_manager.get_bus_with_free_socket()
 
         if power_std is None:
             power_std = float(np.random.rand() * 10)
@@ -227,11 +244,11 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         asset_type: AssetType = {
             "Generator": AssetType.GENERATOR,
             "Load": AssetType.LOAD,
-            "IceCream": AssetType.LOAD,  # Ice cream is a special type of load
+            "Freezer": AssetType.LOAD,  # Ice cream is a special type of load
         }[cat]
-        is_icecream = cat == "IceCream"
-        health = 5 if is_icecream else 15
-        offset = {"Generator": 0, "Load": 200, "IceCream": 500}[cat]
+        is_freezer = cat == "Freezer"
+        health = 5 if is_freezer else 15
+        offset = {"Generator": 0, "Load": 200, "Freezer": 500}[cat]
 
         marginal_cost = float(np.random.rand() * 50) + offset
         if asset_type == AssetType.GENERATOR:
@@ -251,7 +268,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             fixed_operating_cost=float(np.random.rand() * 100),
             marginal_cost=marginal_cost,
             bid_price=bid_price,
-            is_freezer=is_icecream,
+            is_freezer=is_freezer,
             health=health,
             is_active=np.random.rand() > 0.2,
         )
@@ -259,22 +276,21 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
     def _get_repo_type(self) -> type[AssetRepo]:
         return AssetRepo
 
-    def _pre_make_hook(self) -> None:
-        for bus in self._bus_repo.freezer_buses:
-            self.dcs.append(self._make_dc(cat="IceCream", bus=bus.id, owner=bus.player_id))
-
 
 class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
     @classmethod
     def make_quick(
-        cls, n: int = 10, players: list[PlayerId] | PlayerRepo | None = None, buses: list[BusId] | BusRepo | None = None
+        cls,
+        n: Optional[int] = None,
+        players: list[PlayerId] | PlayerRepo | None = None,
+        buses: Optional[BusRepo] = None,
     ) -> TransmissionRepo:
+        if n is None:
+            n = min(10, round(sum([b.max_lines for b in buses]) * 0.4))
         maker = cls(players=players, buses=buses)
         return maker.add_n_random(n).make()
 
-    def __init__(
-        self, players: list[PlayerId] | PlayerRepo | None = None, buses: list[BusId] | BusRepo | None = None
-    ) -> None:
+    def __init__(self, players: list[PlayerId] | PlayerRepo | None = None, buses: Optional[BusRepo] = None) -> None:
         super().__init__()
         if players is None:
             players = [PlayerId(i) for i in range(3)]
@@ -282,18 +298,39 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
             players = players.player_ids
 
         if buses is None:
-            buses = [BusId(i) for i in range(5)]
-        elif isinstance(buses, BusRepo):
-            buses = buses.bus_ids
+            buses = BusRepoMaker.make_quick(players=players)
 
         self.player_ids = players
-        self.bus_ids = buses
+        self.buses = buses
+        self._socket_manager = BusSocketManager({b.id: b.max_lines for b in buses})
+
+    def __add__(self, dc: TransmissionInfo | list[TransmissionInfo]) -> Self:
+        if isinstance(dc, list):
+            [self._safe_append(d) for d in dc]
+        else:
+            self._safe_append(dc)
+        return self
+
+    def add_n_random(self, n: int) -> Self:
+        for _ in range(n):
+            random_buses = self._get_random_bus_pair()
+            new_line = self._make_dc(buses=random_buses)
+            self._safe_append(new_line)
+        return self
+
+    def _safe_append(self, dc: TransmissionInfo) -> None:
+        # Adds the transmission line to the dcs and consumes the sockets
+        bus1, bus2 = dc.bus1, dc.bus2
+        self._socket_manager.use_socket(bus1)
+        self._socket_manager.use_socket(bus2)
+        self.dcs.append(dc)
 
     def _get_random_player_id(self) -> PlayerId:
         return random_choice(self.player_ids) if random_choice([True, False]) else PlayerId.get_npc()
 
     def _get_random_bus_pair(self) -> tuple[BusId, BusId]:
-        bus1, bus2 = random_choice_multi(x=self.bus_ids, size=2, replace=False)
+        sockets = self._socket_manager.get_buses_with_free_sockets(n=2)
+        bus1, bus2 = sockets
         return min(bus1, bus2), max(bus1, bus2)
 
     def _make_dc(
@@ -304,7 +341,11 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
             owner = self._get_random_player_id()
         if buses is None:
             buses = self._get_random_bus_pair()
+
+        assert len(buses) == 2, "Buses must be a tuple of two BusIds"
         bus1, bus2 = buses
+        assert bus1 != bus2, "Buses must be different"
+
         return TransmissionInfo(
             id=transmission_id,
             owner_player=owner,
@@ -325,10 +366,11 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
     def _pre_make_hook(self) -> None:
         # Connect islands before making the repo
         mentioned_buses = {t.bus1 for t in self.dcs} | {t.bus2 for t in self.dcs}
-        islanded_buses = [bus for bus in self.bus_ids if bus not in mentioned_buses]
+        islanded_buses = [bus for bus in self.buses.bus_ids if bus not in mentioned_buses]
 
         for i_bus in islanded_buses:
-            other_bus = random_choice([b for b in self.bus_ids if b != i_bus])
+            other_bus = self._socket_manager.get_bus_with_free_socket(excluding=i_bus)
             bus1 = min(i_bus, other_bus)
             bus2 = max(i_bus, other_bus)
-            self.dcs.append(self._make_dc(owner=self._get_random_player_id(), buses=(bus1, bus2)))
+            new_line = self._make_dc(owner=self._get_random_player_id(), buses=(bus1, bus2))
+            self._safe_append(new_line)
