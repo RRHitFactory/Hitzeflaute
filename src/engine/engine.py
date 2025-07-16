@@ -82,7 +82,9 @@ class Engine:
         msg: ConcludePhase,
     ) -> tuple[GameState, list[GameToPlayerMessage]]:
         def increment_phase_and_start_turns(gs: GameState) -> GameState:
-            return replace(gs, phase=msg.phase.get_next(), players=game_state.players.start_all_turns())
+            return replace(
+                gs, phase=msg.phase.get_next(), players=game_state.players.start_all_turns(), round=gs.round + 1
+            )
 
         if msg.phase == Phase.CONSTRUCTION:
             new_game_state = increment_phase_and_start_turns(game_state)

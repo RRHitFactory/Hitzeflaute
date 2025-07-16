@@ -124,7 +124,7 @@ class PlayerRepoMaker(RepoMaker[PlayerRepo, Player]):
             name=f"Player {player_id}",
             color=color,
             money=float(np.random.rand() * 100),  # Just an example of money
-            is_having_turn=False,
+            is_having_turn=random_choice([False, True]),
         )
 
     def _get_repo_type(self) -> type[PlayerRepo]:
