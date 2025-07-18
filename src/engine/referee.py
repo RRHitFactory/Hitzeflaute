@@ -44,12 +44,14 @@ class Referee:
         assert gs.market_coupling_result is not None, "Market coupling result must be available to melt ice creams."
         assert gs.phase == Phase.DA_AUCTION, "Ice creams only melt at the end of the DA auction phase."
 
-        def generate_melted_ice_cream_messages(new_gs: GameState, asset_ids: list[AssetId]) -> list[IceCreamMeltedMessage | GameUpdate]:
+        def generate_melted_ice_cream_messages(
+            new_gs: GameState, asset_ids: list[AssetId]
+        ) -> list[IceCreamMeltedMessage | GameUpdate]:
             return [
                 IceCreamMeltedMessage(
-                    player_id=new_gs.assets[asset_ids].owner_player,
+                    player_id=new_gs.assets[asset_id].owner_player,
                     asset_id=asset_id,
-                    message=f"Ice cream melted in Freezer {AssetId} due to insufficient power dispatch."
+                    message=f"Ice cream melted in Freezer {AssetId} due to insufficient power dispatch.",
                 )
                 for asset_id in asset_ids
             ]

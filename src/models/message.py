@@ -104,13 +104,16 @@ class EndTurn(PlayerToGameMessage):
 class AuctionClearedMessage(GameToPlayerMessage):
     pass
 
+
 @dataclass(frozen=True)
 class IceCreamMeltedMessage(GameToPlayerMessage):
     asset_id: AssetId
 
+
 @dataclass(frozen=True)
 class AssetWornMessage(GameToPlayerMessage):
     asset_id: AssetId
+
 
 @dataclass(frozen=True)
 class TransmissionWornMessage(GameToPlayerMessage):

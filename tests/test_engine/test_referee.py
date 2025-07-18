@@ -33,7 +33,8 @@ class TestReferee(TestCase):
 
     def test_melt_ice_creams(self):
         game_state, market_result = self.create_game_state_and_market_coupling_result()
-        freezers = game_state.assets.filter({"is_freezer": True})
+        freezers = game_state.assets.only_freezers
+        game_state = replace(game_state, phase=Phase.DA_AUCTION)
 
         unpowered_freezer_ids = []
         for freezer in freezers:
@@ -64,4 +65,3 @@ class TestReferee(TestCase):
             else:
                 self.assertFalse(new_game_state.assets[asset.id].is_active)
                 self.assertEqual(new_game_state.assets[asset.id].health, 0)
-
