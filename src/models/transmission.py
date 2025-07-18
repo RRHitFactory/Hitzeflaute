@@ -57,9 +57,9 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         repo = self.only_closed if only_active else self
         return repo.filter({"owner_player": player_id})
 
-    def get_all_at_bus(self, bus: BusId, only_active: bool = False) -> Self:
+    def get_all_at_bus(self, bus_id: BusId, only_active: bool = False) -> Self:
         repo = self.only_closed if only_active else self
-        return repo.filter({"bus1": bus}, "or", {"bus2": bus})
+        return repo.filter({"bus1": bus_id}, "or", {"bus2": bus_id})
 
     def get_all_between_buses(self, bus1: BusId, bus2: BusId, only_active: bool = False) -> Self:
         repo = self.only_closed if only_active else self

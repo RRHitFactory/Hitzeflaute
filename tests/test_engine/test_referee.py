@@ -1,7 +1,7 @@
 from unittest import TestCase
 from dataclasses import replace
 
-from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker
+from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from src.models.game_state import GameState, Phase
 from src.models.market_coupling_result import MarketCouplingResult
@@ -13,11 +13,13 @@ class TestReferee(TestCase):
     def create_game_state_and_market_coupling_result() -> tuple[GameState, MarketCouplingResult]:
         game_maker = GameStateMaker()
 
-        buses = BusRepoMaker.make_quick(n_npc_buses=0)
-        asset_maker = AssetRepoMaker(bus_repo=buses)
+        player_repo = PlayerRepoMaker.make_quick(3)
+        buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
+        asset_maker = AssetRepoMaker(bus_repo=buses, players=player_repo)
 
         for _ in range(6):
             asset_maker.add_asset(cat="Generator", power_std=0)
+
         assets = asset_maker.make()
         game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).make()
         market_coupling_result = MarketResultMaker.make_quick(

@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker
+from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
@@ -12,11 +12,13 @@ class TestFinanceCalculator(TestCase):
     def create_game_state_and_market_coupling_result() -> tuple[GameState, MarketCouplingResult]:
         game_maker = GameStateMaker()
 
-        buses = BusRepoMaker.make_quick(n_npc_buses=0)
-        asset_maker = AssetRepoMaker(bus_repo=buses)
+        player_repo = PlayerRepoMaker.make_quick(3)
+        buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
+        asset_maker = AssetRepoMaker(players=player_repo, bus_repo=buses)
 
         for _ in range(6):
             asset_maker.add_asset(cat="Generator", power_std=0)
+
         assets = asset_maker.make()
         game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).make()
         market_coupling_result = MarketResultMaker.make_quick(
@@ -60,21 +62,20 @@ class TestFinanceCalculator(TestCase):
 
     def test_validate_bid_based_on_expected_loads_cost(self):
         game_state, _ = self.create_game_state_and_market_coupling_result()
-        asset_repo = game_state.assets
 
-        ice_cream_loads = asset_repo.filter({"is_freezer": True})
-        load_to_validate = ice_cream_loads.asset_ids[0]
+        freezers = game_state.assets.only_freezers
+        load_to_validate = freezers.asset_ids[0]
 
-        cash = sum([load.bid_price * load.power_expected for load in ice_cream_loads])
+        cash = sum([load.bid_price * load.power_expected for load in freezers])
 
-        asset_obj = ice_cream_loads[load_to_validate]
+        asset_obj = freezers[load_to_validate]
         bid_min_limit = asset_obj.bid_price
         low_bid = bid_min_limit - 100
         high_bid = bid_min_limit + 100
 
         self.assertTrue(
             FinanceCalculator.validate_bid_for_asset(
-                player_assets=ice_cream_loads,
+                player_assets=freezers,
                 asset_id_to_validate=load_to_validate,
                 bid_to_validate=low_bid,
                 player_money=cash,
@@ -82,7 +83,7 @@ class TestFinanceCalculator(TestCase):
         )
         self.assertFalse(
             FinanceCalculator.validate_bid_for_asset(
-                player_assets=ice_cream_loads,
+                player_assets=freezers,
                 asset_id_to_validate=load_to_validate,
                 bid_to_validate=high_bid,
                 player_money=cash,
