@@ -1,12 +1,12 @@
 from dataclasses import replace
 
-import pandas as pd
-
-from src.models.ids import AssetId
+from src.models.ids import AssetId, TransmissionId
 from src.models.message import (
     GameUpdate,
+    IceCreamMeltedMessage,
+    AssetWornMessage,
 )  # , BuyAssetRequest, BuyAssetResponse, BuyTransmissionRequest, BuyTransmissionResponse, BuyResponse
-from src.models.game_state import GameState
+from src.models.game_state import GameState, Phase
 
 
 class Referee:
@@ -41,13 +41,20 @@ class Referee:
 
     @staticmethod
     def melt_ice_creams(gs: GameState) -> tuple[GameState, list[GameUpdate]]:
+        assert gs.market_coupling_result is not None, "Market coupling result must be available to melt ice creams."
+        assert gs.phase == Phase.DA_AUCTION, "Ice creams only melt at the end of the DA auction phase."
 
-        def generate_melted_ice_cream_message(new_gs: GameState, asset_id: AssetId) -> GameUpdate:
-            return GameUpdate(
-                player_id=gs.assets[asset_id].owner_player,
-                game_state=new_gs,
-                message=f"An ice cream melted for Freezer {asset_id}.",
-            )
+        def generate_melted_ice_cream_messages(
+            new_gs: GameState, asset_ids: list[AssetId]
+        ) -> list[IceCreamMeltedMessage | GameUpdate]:
+            return [
+                IceCreamMeltedMessage(
+                    player_id=new_gs.assets[asset_id].owner_player,
+                    asset_id=asset_id,
+                    message=f"Ice cream melted in Freezer {AssetId} due to insufficient power dispatch.",
+                )
+                for asset_id in asset_ids
+            ]
 
         asset_repo = gs.assets
         ice_cream_loads = asset_repo.only_freezers
@@ -60,16 +67,41 @@ class Referee:
                 melted_ids.append(load.id)
 
         new_gs = replace(gs, assets=asset_repo)
+        msgs = generate_melted_ice_cream_messages(new_gs, melted_ids)
 
-        return new_gs, [generate_melted_ice_cream_message(new_gs, asset_id) for asset_id in melted_ids]
+        return new_gs, msgs
 
     @staticmethod
     def wear_overloaded_transmission(gs: GameState) -> tuple[GameState, list[GameUpdate]]:
         raise NotImplementedError()
 
     @staticmethod
-    def wear_non_freezer_assets(gs: GameState) -> tuple[GameState, list[GameUpdate]]:
-        raise NotImplementedError()
+    def wear_non_freezer_assets(gs: GameState) -> tuple[GameState, list[AssetWornMessage]]:
+        assert gs.market_coupling_result is not None, "Market coupling result must be available to wear assets."
+        assert gs.phase == Phase.DA_AUCTION, "Assets only suffer wear at the end DA auction phase."
+
+        def generate_worn_asset_messages(new_gs: GameState, asset_ids: list[AssetId]) -> list[AssetWornMessage]:
+            return [
+                AssetWornMessage(
+                    player_id=new_gs.assets[asset_id].owner_player,
+                    asset_id=asset_id,
+                    message=f"Asset {AssetId} has worn with time, it can only operate during the next {new_gs.assets[asset_id].health} rounds.",
+                )
+                for asset_id in asset_ids
+            ]
+
+        asset_repo = gs.assets
+        wearable_assets = gs.assets.filter({"is_freezer": False})
+        melted_ids: list[AssetId] = []
+
+        for asset in wearable_assets:
+            asset_repo = asset_repo.wear_asset(asset_id=asset.id)
+            melted_ids.append(asset.id)
+
+        new_gs = replace(gs, assets=asset_repo)
+        msgs = generate_worn_asset_messages(new_gs=new_gs, asset_ids=melted_ids)
+
+        return new_gs, msgs
 
     @staticmethod
     def eliminate_players(gs: GameState) -> tuple[GameState, list[GameUpdate]]:

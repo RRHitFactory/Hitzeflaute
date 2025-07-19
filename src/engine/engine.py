@@ -114,7 +114,8 @@ class Engine:
                     )
                 )
             new_game_state, msgs_melted_icecream = Referee.melt_ice_creams(new_game_state)
-            msgs.extend(msgs_melted_icecream)
+            new_game_state, msgs_worn_assets = Referee.wear_non_freezer_assets(new_game_state)
+            msgs.extend(msgs_melted_icecream + msgs_worn_assets)
 
             return new_game_state, msgs
 
