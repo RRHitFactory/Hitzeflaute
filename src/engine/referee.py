@@ -1,10 +1,11 @@
 from dataclasses import replace
 
-from src.models.ids import AssetId, TransmissionId
+from src.models.ids import AssetId
 from src.models.message import (
     GameUpdate,
     IceCreamMeltedMessage,
     AssetWornMessage,
+    LoadsDeactivatedMessage
 )  # , BuyAssetRequest, BuyAssetResponse, BuyTransmissionRequest, BuyTransmissionResponse, BuyResponse
 from src.models.game_state import GameState, Phase
 
@@ -34,8 +35,27 @@ class Referee:
     #     raise NotImplementedError()
 
     @staticmethod
-    def deactivate_loads_of_players_in_debt(gs: GameState) -> tuple[GameState, list[GameUpdate]]:
-        raise NotImplementedError()
+    def deactivate_loads_of_players_in_debt(gs: GameState) -> tuple[GameState, list[LoadsDeactivatedMessage]]:
+
+        def deactivate_player_loads(gs: GameState, load_ids: list[AssetId]) -> GameState:
+            asset_repo = gs.assets.batch_deactivate(load_ids)
+            return replace(gs, assets=asset_repo)
+
+        new_gs = gs
+        msgs = []
+
+        for player in gs.players:
+            if player.money < 0:
+                load_ids = gs.assets.get_all_for_player(player_id=player.id).only_loads.asset_ids
+                new_gs = deactivate_player_loads(gs=new_gs, load_ids=load_ids)
+                msg = LoadsDeactivatedMessage(
+                    player_id=player.id,
+                    asset_ids=load_ids,
+                    message=f"Player {player.name} has negative balance, all their loads ({load_ids}) have been deactivated.",
+                )
+                msgs.append(msg)
+
+        return new_gs, msgs
 
     # AFTER MARKET COUPLING
 
