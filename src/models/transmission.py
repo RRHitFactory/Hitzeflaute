@@ -87,6 +87,17 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         df.loc[transmission_id, "is_for_sale"] = False
         return self.update_frame(df)
 
+    def wear_transmission(self, transmission_id: TransmissionId) -> Self:
+        if self.df.loc[transmission_id, "health"] > 1:
+            df = self.df.copy()
+            df.loc[transmission_id, "health"] -= 1
+            return self.update_frame(df)
+        else:
+            df = self.df.copy()
+            df.loc[transmission_id, "health"] = 0
+            df.loc[transmission_id, "is_active"] = False
+            return self.update_frame(df)
+
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:
         return self.drop_items({"owner_player": player_id})

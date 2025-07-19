@@ -1,6 +1,7 @@
 from unittest import TestCase
 from dataclasses import replace
 
+from src.models.message import IceCreamMeltedMessage, TransmissionWornMessage, AssetWornMessage
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from src.models.game_state import GameState, Phase
@@ -27,7 +28,9 @@ class TestReferee(TestCase):
             bus_repo=game_state.buses,
             asset_repo=game_state.assets,
             transmission_repo=game_state.transmission,
+            n_random_congested_transmissions=2
         )
+        game_state = replace(game_state, phase=Phase.DA_AUCTION, market_coupling_result=market_coupling_result)
 
         return game_state, market_coupling_result
 
@@ -55,7 +58,6 @@ class TestReferee(TestCase):
         game_state, market_result = self.create_game_state_and_market_coupling_result()
         wearable_assets = game_state.assets.filter({"is_freezer": False})
 
-        game_state = replace(game_state, phase=Phase.DA_AUCTION)
         new_game_state, update_msgs = Referee.wear_non_freezer_assets(game_state)
         self.assertEqual(len(update_msgs), len(wearable_assets))
 
@@ -65,3 +67,24 @@ class TestReferee(TestCase):
             else:
                 self.assertFalse(new_game_state.assets[asset.id].is_active)
                 self.assertEqual(new_game_state.assets[asset.id].health, 0)
+
+    def test_wear_congested_transmission(self):
+        game_state, market_result = self.create_game_state_and_market_coupling_result()
+
+        new_game_state, update_msgs = Referee.wear_congested_transmission(game_state)
+
+        n_congested_lines = 0
+        congested_transmissions = []
+        for transmission in game_state.transmission:
+            if market_result.transmission_flows.loc[:, transmission.id].iloc[0] >= transmission.capacity:
+                n_congested_lines += 1
+                congested_transmissions.append(transmission)
+
+        self.assertGreaterEqual(len(update_msgs), n_congested_lines)
+
+        for transmission in congested_transmissions:
+            if transmission.health > 1:
+                self.assertLess(new_game_state.transmission[transmission.id].health, transmission.health)
+            else:
+                self.assertFalse(new_game_state.transmission[transmission.id].is_active)
+                self.assertEqual(new_game_state.transmission[transmission.id].health, 0)

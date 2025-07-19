@@ -11,8 +11,9 @@ from src.models.ids import GameId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionRepo
-from src.tools.random_choice import random_choice
+from src.tools.random_choice import random_choice, random_choice_multi
 from tests.utils.repo_maker import PlayerRepoMaker, BusRepoMaker, AssetRepoMaker, TransmissionRepoMaker
+
 
 
 class MarketResultMaker:
@@ -22,6 +23,7 @@ class MarketResultMaker:
         bus_repo: Optional[BusRepo] = None,
         asset_repo: Optional[AssetRepo] = None,
         transmission_repo: Optional[TransmissionRepo] = None,
+        n_random_congested_transmissions: int = 0,
         n_timesteps: int = 1,
     ) -> MarketCouplingResult:
         market_time_units = pd.Index([k for k in range(n_timesteps)], name="time")
@@ -39,6 +41,9 @@ class MarketResultMaker:
 
         tx_columns = pd.Index([t.as_int() for t in transmission_repo.transmission_ids], name="Line")
         tx_data = np.random.rand(n_timesteps, len(tx_columns))
+        congested_ids = random_choice_multi(transmission_repo.transmission_ids, size=n_random_congested_transmissions, replace=False)
+        for id in congested_ids:
+            tx_data[:, id] = transmission_repo[id].capacity
         transmission_flows = pd.DataFrame(index=market_time_units, columns=tx_columns, data=tx_data)
 
         asset_columns = pd.Index([a.as_int() for a in asset_repo.asset_ids], name="Asset")
