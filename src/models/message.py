@@ -118,3 +118,8 @@ class AssetWornMessage(GameToPlayerMessage):
 @dataclass(frozen=True)
 class TransmissionWornMessage(GameToPlayerMessage):
     transmission_id: TransmissionId
+
+
+@dataclass(frozen=True)
+class LoadsDeactivatedMessage(GameToPlayerMessage):
+    asset_ids: list[AssetId]
