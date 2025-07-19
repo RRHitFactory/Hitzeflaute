@@ -88,3 +88,16 @@ class TestReferee(TestCase):
             else:
                 self.assertFalse(new_game_state.transmission[transmission.id].is_active)
                 self.assertEqual(new_game_state.transmission[transmission.id].health, 0)
+
+    def test_apply_rules_after_market_coupling(self):
+        game_state, market_result = self.create_game_state_and_market_coupling_result()
+
+        new_game_state, update_msgs = Referee.apply_rules_after_market_coupling(game_state)
+        melt_ice_cream_msgs = [msg for msg in update_msgs if isinstance(msg, IceCreamMeltedMessage)]
+        wear_transmission_msgs = [msg for msg in update_msgs if isinstance(msg, TransmissionWornMessage)]
+        wear_asset_msgs = [msg for msg in update_msgs if isinstance(msg, AssetWornMessage)]
+
+        self.assertIsInstance(new_game_state, GameState)
+        self.assertGreater(len(melt_ice_cream_msgs), 0)
+        self.assertGreater(len(wear_transmission_msgs), 0)
+        self.assertGreater(len(wear_asset_msgs), 0)

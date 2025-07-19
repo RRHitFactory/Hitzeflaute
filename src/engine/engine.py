@@ -106,9 +106,8 @@ class Engine:
                         message=text,
                     )
                 )
-            new_game_state, msgs_melted_icecream = Referee.melt_ice_creams(new_game_state)
-            new_game_state, msgs_worn_assets = Referee.wear_non_freezer_assets(new_game_state)
-            msgs.extend(msgs_melted_icecream + msgs_worn_assets)
+            new_game_state, all_referee_msgs = Referee.apply_rules_after_market_coupling(new_game_state)
+            msgs.extend(all_referee_msgs)
 
             return new_game_state, msgs
 

@@ -41,6 +41,29 @@ class Referee:
         raise NotImplementedError()
 
     # AFTER MARKET COUPLING
+    @classmethod
+    def apply_rules_after_market_coupling(cls, gs: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
+        """
+        Apply the rules that are enforced after the market coupling phase.
+        :param gs: The current game state
+        :return: A tuple containing the new game state and a list of messages to be sent to players
+        """
+        assert gs.market_coupling_result is not None, "Market coupling result must be available to apply rules."
+        assert gs.phase == Phase.DA_AUCTION, "Rules can only be applied at the end of DA auction phase."
+
+        new_gs = gs
+        msgs: list[GameToPlayerMessage] = []
+
+        new_gs, ice_cream_msgs = cls.melt_ice_creams(new_gs)
+        msgs.extend(ice_cream_msgs)
+
+        new_gs, transmission_msgs = cls.wear_congested_transmission(new_gs)
+        msgs.extend(transmission_msgs)
+
+        new_gs, asset_msgs = cls.wear_non_freezer_assets(new_gs)
+        msgs.extend(asset_msgs)
+
+        return new_gs, msgs
 
     @staticmethod
     def melt_ice_creams(gs: GameState) -> tuple[GameState, list[IceCreamMeltedMessage]]:
