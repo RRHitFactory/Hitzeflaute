@@ -59,7 +59,7 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         if players is None:
             players = [PlayerId(i) for i in range(3)]
         elif isinstance(players, PlayerRepo):
-            players = players.human_player_ids
+            players = players.player_ids
         self.player_ids = players
 
     def add_bus(self, player_id: PlayerId = PlayerId.get_npc()) -> Self:
@@ -152,7 +152,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         if players is None:
             players = [PlayerId(i) for i in range(3)]
         elif isinstance(players, PlayerRepo):
-            players = players.human_player_ids
+            players = players.player_ids
 
         if bus_repo is None:
             bus_repo = BusRepoMaker.make_quick(players=players)
@@ -306,7 +306,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         if players is None:
             players = [PlayerId(i) for i in range(3)]
         elif isinstance(players, PlayerRepo):
-            players = players.human_player_ids
+            players = players.player_ids
 
         if buses is None:
             buses = BusRepoMaker.make_quick(players=players)

@@ -45,8 +45,6 @@ class TestMarketCoupling(TestCase):
             .make()
         )
 
-        # GridPlotter().plot(game_state)  # Plot the grid for visual inspection
-
         return game_state
 
     def test_run_market_coupling(self) -> None:
