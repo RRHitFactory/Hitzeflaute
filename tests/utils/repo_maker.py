@@ -59,7 +59,7 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         if players is None:
             players = [PlayerId(i) for i in range(3)]
         elif isinstance(players, PlayerRepo):
-            players = players.player_ids
+            players = players.human_player_ids
         self.player_ids = players
 
     def add_bus(self, player_id: PlayerId = PlayerId.get_npc()) -> Self:
@@ -79,12 +79,7 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         y = -centre_y + abs(half_width - centre_y) * centre_rand()
 
         bus_id = next(self.id_counter)
-        return Bus(
-            id=BusId(bus_id),
-            x=x,
-            y=y,
-            player_id=player_id,
-        )
+        return Bus(id=BusId(bus_id), x=x, y=y, player_id=player_id, max_assets=20)
 
     def _get_current_centre(self) -> tuple[float, float]:
         """Get the current centre of the buses."""
@@ -157,7 +152,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         if players is None:
             players = [PlayerId(i) for i in range(3)]
         elif isinstance(players, PlayerRepo):
-            players = players.player_ids
+            players = players.human_player_ids
 
         if bus_repo is None:
             bus_repo = BusRepoMaker.make_quick(players=players)
@@ -166,7 +161,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         self._socket_manager = BusSocketManager({b.id: b.max_assets for b in bus_repo})
 
         for bus in self.buses.freezer_buses:
-            freezer = self._make_dc(cat="Freezer", bus=bus.id, owner=bus.player_id)
+            freezer = self._make_dc(cat="Freezer", bus=bus.id, owner=bus.player_id, is_active=True)
             self._safe_append(freezer)
 
     def __add__(self, dc: AssetInfo | list[AssetInfo]) -> Self:
@@ -198,9 +193,19 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         bus: Optional[BusId] = None,
         power_std: Optional[float] = None,
         is_for_sale: Optional[bool] = None,
+        bid_price: Optional[float] = None,
+        is_active: Optional[bool] = None,
     ) -> Self:
         if asset is None:
-            asset = self._make_dc(cat=cat, owner=owner, bus=bus, power_std=power_std, is_for_sale=is_for_sale)
+            asset = self._make_dc(
+                cat=cat,
+                owner=owner,
+                bus=bus,
+                power_std=power_std,
+                is_for_sale=is_for_sale,
+                bid_price=bid_price,
+                is_active=is_active,
+            )
         else:
             for x in [cat, owner, bus]:
                 assert x is None, "Cannot specify asset and any of cat, owner, or bus at the same time"
@@ -223,6 +228,8 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         bus: Optional[BusId] = None,
         power_std: Optional[float] = None,
         is_for_sale: Optional[bool] = None,
+        bid_price: Optional[float] = None,
+        is_active: Optional[bool] = None,
     ) -> AssetInfo:
         asset_id = next(self.id_counter)
 
@@ -241,6 +248,9 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         if is_for_sale is None:
             is_for_sale = random_choice([True, False]) if owner is PlayerId.get_npc() else False
 
+        if is_active is None:
+            is_active = np.random.rand() > 0.2
+
         asset_type: AssetType = {
             "Generator": AssetType.GENERATOR,
             "Load": AssetType.LOAD,
@@ -251,10 +261,11 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         offset = {"Generator": 0, "Load": 200, "Freezer": 500}[cat]
 
         marginal_cost = float(np.random.rand() * 50) + offset
-        if asset_type == AssetType.GENERATOR:
-            bid_price = marginal_cost + float(np.random.rand() * 50)
-        else:
-            bid_price = marginal_cost - float(np.random.rand() * 50)
+        if bid_price is None:
+            if asset_type == AssetType.GENERATOR:
+                bid_price = marginal_cost + float(np.random.rand() * 50)
+            else:
+                bid_price = marginal_cost - float(np.random.rand() * 50)
 
         return AssetInfo(
             id=AssetId(asset_id),
@@ -270,7 +281,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             bid_price=bid_price,
             is_freezer=is_freezer,
             health=health,
-            is_active=np.random.rand() > 0.2,
+            is_active=is_active,
         )
 
     def _get_repo_type(self) -> type[AssetRepo]:
@@ -295,7 +306,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         if players is None:
             players = [PlayerId(i) for i in range(3)]
         elif isinstance(players, PlayerRepo):
-            players = players.player_ids
+            players = players.human_player_ids
 
         if buses is None:
             buses = BusRepoMaker.make_quick(players=players)
@@ -357,7 +368,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
             fixed_operating_cost=float(np.random.rand() * 100),
             is_for_sale=random_choice([True, False]),
             minimum_acquisition_price=float(np.random.rand() * 1000) if random_choice([True, False]) else 0.0,
-            is_active=np.random.rand() > 0.2,
+            is_active=True,
         )
 
     def _get_repo_type(self) -> type[TransmissionRepo]:

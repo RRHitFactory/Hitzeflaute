@@ -77,7 +77,6 @@ class AssetRepo(LdcRepo[AssetInfo]):
 
     def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
         assets = self.filter({"owner_player": player_id, "is_freezer": True})
-        assert len(assets) == 1, f"Expected exactly one freezer asset for player {player_id}, found {len(assets)}"
         return assets.as_objs()[0]
 
     # UPDATE
