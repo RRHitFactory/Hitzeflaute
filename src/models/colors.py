@@ -9,7 +9,7 @@ from matplotlib import colormaps
 class Color:
     def __init__(
         self,
-        x: Union[str, tuple[int, int, int], Literal["red", "green", "blue", "black", "gray", "white"]],
+        x: Union[str, tuple[int, int, int], Literal["red", "green", "blue", "black", "gray", "white"]] = "black",
         color_model: Literal["rgb", "hsv", "hls"] = "rgb",
     ):
         """
@@ -69,6 +69,13 @@ class Color:
         if not isinstance(other, Color):
             return False
         return self.rgb_hex_str == other.rgb_hex_str
+
+    def __mul__(self, other: float) -> Self:
+        other = float(other)
+        return Color(x=tuple(round(value * other) for value in self.rgb), color_model="rgb")  # type: ignore
+
+    def __truediv__(self, other: float) -> Self:
+        return self * (1 / other)
 
     def calculate_distance_factor(self, other: "Color") -> float:
         # Returns a number between 0 and 1, where 0 means the colors are identical

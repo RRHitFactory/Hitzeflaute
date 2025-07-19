@@ -17,7 +17,7 @@ class GameSettings:
     initial_funds: int = 1000
     max_connections_per_bus: int = 7
     map_area: Shape = field(
-        default_factory=lambda: Shape.make_rectangle(bottom_left=Point(0, 0), top_right=Point(30, 30))
+        default_factory=lambda: Shape.make_rectangle(bottom_left=Point(-30, -15), top_right=Point(30, 15))
     )
 
     def __post_init__(self) -> None:
