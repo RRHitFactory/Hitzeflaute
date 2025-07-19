@@ -27,7 +27,6 @@ class GridPlotter:
         self._first_time: bool = True
 
     def make_figure(self, game_state: GameState) -> go.Figure:
-        # TODO Use playable map area from game state. Plot a box around the playable area.
         plot_objects = self.get_plot_objects(game_state)
 
         hover_texts = [po.render_hover_text() for po in plot_objects]
