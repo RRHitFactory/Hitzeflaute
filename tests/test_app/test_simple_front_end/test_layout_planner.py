@@ -16,7 +16,7 @@ class TestLayoutPlanner(TestCase):
         def assert_plans_are_equal(plan_a: Plan, plan_b: Plan) -> None:
             asset_a, line_a = plan_a
             asset_b, line_b = plan_b
-            self.assertSetEqual()
+
             self.assertEqual(set(asset_a.keys()), set(asset_b.keys()))
             self.assertEqual(set(line_a.keys()), set(line_b.keys()))
             for asset_id in asset_a:
