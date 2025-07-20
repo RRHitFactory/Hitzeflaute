@@ -68,12 +68,12 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return self.filter({"asset_type": AssetType.GENERATOR})
 
     def get_all_assets_at_bus(self, bus_id: BusId, only_active: bool = False) -> Self:
-        oa_filter = True if only_active else None
-        return self.filter({"bus": bus_id, "is_active": oa_filter})
+        oa_filter = {"is_active": True} if only_active else {}
+        return self.filter({"bus": bus_id, **oa_filter})
 
     def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> Self:
-        oa_filter = True if only_active else None
-        return self.filter({"owner_player": player_id, "is_active": oa_filter})
+        oa_filter = {"is_active": True} if only_active else {}
+        return self.filter({"owner_player": player_id, **oa_filter})
 
     def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
         assets = self.filter({"owner_player": player_id, "is_freezer": True})
