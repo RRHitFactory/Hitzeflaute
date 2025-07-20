@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from src.app.simple_front_end.plotting.layout_planner import LayoutPlanner, SocketAddress
+from src.app.simple_front_end.layout_planner import LayoutPlanner, SocketAddress
 from src.models.ids import AssetId, TransmissionId
 from tests.utils.game_state_maker import GameStateMaker
 

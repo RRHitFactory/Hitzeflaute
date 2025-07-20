@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
-from src.app.simple_front_end.plotting.layout_planner import LayoutPlanner
+from src.app.simple_front_end.layout_planner import LayoutPlanner
 from src.app.simple_front_end.plotting.live_html import LiveHtml
 from src.app.simple_front_end.plotting.po_asset import PlotAsset
 from src.app.simple_front_end.plotting.po_bus import PlotBus

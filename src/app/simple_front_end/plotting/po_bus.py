@@ -6,7 +6,7 @@ import numpy as np
 from plotly.graph_objs import Scatter
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
-from src.app.simple_front_end.plotting.layout_planner import SocketAddress
+from src.app.simple_front_end.layout_planner import SocketAddress, LayoutPlanner
 from src.app.simple_front_end.plotting.po_rect import render_shape
 from src.models.buses import Bus
 from src.models.colors import Color
@@ -80,7 +80,7 @@ class PlotBus(PlotObject):
 
     @cached_property
     def is_horizontal(self) -> bool:
-        return abs(self.centre.y) > abs(self.centre.x)
+        return LayoutPlanner.get_orientation_of_bus(bus=self.bus) == "horizontal"
 
     @cached_property
     def shape(self) -> Shape:
