@@ -30,6 +30,7 @@ class AssetInfo(LightDc):
     is_freezer: bool = False  # This is a special type of load
     health: int = 0
     is_active: bool = True
+    birthday: int = 1  # Round when the asset was created
 
     def __post_init__(self) -> None:
         if self.is_freezer:

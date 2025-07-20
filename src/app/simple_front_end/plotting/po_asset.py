@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 from plotly.graph_objs import Scatter
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
+from src.app.simple_front_end.plotting.layout_planner import SocketAddress
 from src.app.simple_front_end.plotting.po_bus import PlotBus
 from src.models.assets import AssetInfo, AssetType
 from src.models.colors import get_contrasting_color, Color
@@ -19,6 +20,7 @@ class PlotAsset(PlotObject):
     asset: AssetInfo
     owner: Player
     bus: PlotBus
+    socket_address: SocketAddress
     radius: float = 0.5
 
     @property
@@ -55,7 +57,8 @@ class PlotAsset(PlotObject):
 
     @cached_property
     def centre(self) -> Point:
-        socket = self.bus.get_socket()
+        socket = self.bus.get_socket_from_address(address=self.socket_address)
+
         bus_to_socket_vector = socket - self.bus.centre
         if self.bus.is_horizontal:
             unit_offset_vector = Point(x=0, y=np.sign(bus_to_socket_vector.y))

@@ -21,6 +21,7 @@ class TransmissionInfo(LightDc):
     is_for_sale: bool = False
     minimum_acquisition_price: float = 0.0  # 0 = Not for sale
     is_active: bool = True
+    birthday: int = 1  # Round when the asset was created
 
     @property
     def is_open(self) -> bool:

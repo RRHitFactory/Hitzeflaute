@@ -79,7 +79,7 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         y = -centre_y + abs(half_width - centre_y) * centre_rand()
 
         bus_id = next(self.id_counter)
-        return Bus(id=BusId(bus_id), x=x, y=y, player_id=player_id, max_assets=20)
+        return Bus(id=BusId(bus_id), x=x, y=y, player_id=player_id, max_assets=20, max_lines=10)
 
     def _get_current_centre(self) -> tuple[float, float]:
         """Get the current centre of the buses."""

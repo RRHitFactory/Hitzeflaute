@@ -5,6 +5,7 @@ import pandas as pd
 import plotly.graph_objects as go
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
+from src.app.simple_front_end.plotting.layout_planner import LayoutPlanner
 from src.app.simple_front_end.plotting.live_html import LiveHtml
 from src.app.simple_front_end.plotting.po_asset import PlotAsset
 from src.app.simple_front_end.plotting.po_bus import PlotBus
@@ -65,6 +66,9 @@ class GridPlotter:
 
     @classmethod
     def get_plot_objects(cls, game_state: GameState) -> list[PlotObject]:
+        addresses = LayoutPlanner.get_socket_addresses_for_assets_and_transmission(game_state=game_state)
+        asset_socket_addresses, transmission_socket_addresses = addresses
+
         bus_dict: dict[BusId, PlotBus] = {}
         for bus in game_state.buses:
             owner = game_state.players[bus.player_id]
@@ -76,13 +80,15 @@ class GridPlotter:
             owner = game_state.players[tx.owner_player]
             bus1 = bus_dict[tx.bus1]
             bus2 = bus_dict[tx.bus2]
-            txs.append(PlotTxLine(line=tx, owner=owner, buses=(bus1, bus2)))
+            socket_addresses = transmission_socket_addresses[tx.id]
+            txs.append(PlotTxLine(line=tx, owner=owner, buses=(bus1, bus2), socket_addresses=socket_addresses))
 
         assets: list[PlotAsset] = []
         for asset in game_state.assets:
             owner = game_state.players[asset.owner_player]
             bus = bus_dict[asset.bus]
-            assets.append(PlotAsset(asset=asset, owner=owner, bus=bus))
+            socket_address = asset_socket_addresses[asset.id]
+            assets.append(PlotAsset(asset=asset, owner=owner, bus=bus, socket_address=socket_address))
 
         playable_map = ShapePlotObject(
             shape=game_state.game_settings.map_area,
