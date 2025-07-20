@@ -6,7 +6,7 @@ from typing import Self, Optional
 from src.models.assets import AssetRepo, AssetInfo
 from src.models.buses import BusRepo, BusFullException
 from src.models.game_settings import GameSettings
-from src.models.ids import PlayerId, GameId
+from src.models.ids import PlayerId, GameId, BusId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionRepo, TransmissionInfo
@@ -57,6 +57,16 @@ class GameState:
                 raise BusFullException(f"Cannot add new line {transmission_info.id} to bus {bus_id}")
 
         return replace(self, transmission=self.transmission + transmission_info)
+
+    def get_remaining_space_for_assets_at_bus(self, bus_id: BusId) -> int:
+        bus = self.buses[bus_id]
+        n_assets_at_bus = len(self.assets.get_all_assets_at_bus(bus_id=bus_id))
+        return bus.max_assets - n_assets_at_bus
+
+    def get_remaining_space_for_lines_at_bus(self, bus_id: BusId) -> int:
+        bus = self.buses[bus_id]
+        n_lines_at_bus = len(self.transmission.get_all_at_bus(bus_id=bus_id))
+        return bus.max_lines - n_lines_at_bus
 
     def start_all_turns(self) -> Self:
         return replace(self, players=self.players.start_all_turns())
