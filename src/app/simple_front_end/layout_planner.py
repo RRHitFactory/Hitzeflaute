@@ -14,19 +14,19 @@ BusOrientation = Literal["horizontal", "vertical"]  # Orientation of the bus
 
 
 @dataclass(frozen=True)
-class SocketAddress:
+class Socket:
     bus: BusId
     side: SocketSide
     number: int
 
     def __str__(self) -> str:
-        return f"<SocketAddress ({self.bus}:{self.side}:{self.number})>"
+        return f"<Socket ({self.bus}:{self.side}:{self.number})>"
 
     def __repr__(self) -> str:
         return str(self)
 
-    def __eq__(self, other: "SocketAddress") -> bool:
-        if not isinstance(other, SocketAddress):
+    def __eq__(self, other: "Socket") -> bool:
+        if not isinstance(other, Socket):
             return NotImplemented
         return str(self) == str(other)
 
@@ -35,8 +35,8 @@ class SocketProvider:
     def __init__(self, bus: Bus, random_generator: Generator) -> None:
         n = bus.sockets_per_side
         self._random_generator = random_generator
-        self._tr_sockets = [SocketAddress(bus=bus.id, side="tr", number=i) for i in range(n)]
-        self._bl_sockets = [SocketAddress(bus=bus.id, side="bl", number=i) for i in range(n)]
+        self._tr_sockets = [Socket(bus=bus.id, side="tr", number=i) for i in range(n)]
+        self._bl_sockets = [Socket(bus=bus.id, side="bl", number=i) for i in range(n)]
         self._tr_assigned = 0
         self._bl_assigned = 0
 
@@ -46,7 +46,7 @@ class SocketProvider:
     def __repr__(self) -> str:
         return "<SocketProvider>"
 
-    def get_socket_address(self, preferred_side: Optional[SocketSide] = None) -> SocketAddress:
+    def get_socket(self, preferred_side: Optional[SocketSide] = None) -> Socket:
         if not self._has_remaining_sockets():
             raise IndexError("No remaining sockets available.")
 
@@ -69,7 +69,7 @@ class SocketProvider:
                 self._bl_assigned += 1
             return socket
 
-        return self.get_socket_address()
+        return self.get_socket()
 
     def _has_remaining_sockets(self, side: Optional[SocketSide] = None) -> bool:
         if side == "tr":
@@ -84,9 +84,9 @@ class SocketProvider:
 
 class LayoutPlanner:
     @classmethod
-    def get_socket_addresses_for_assets_and_transmission(
+    def get_sockets_for_assets_and_transmission(
         cls, game_state: GameState
-    ) -> tuple[dict[AssetId, SocketAddress], dict[TransmissionId, tuple[SocketAddress, SocketAddress]]]:
+    ) -> tuple[dict[AssetId, Socket], dict[TransmissionId, tuple[Socket, Socket]]]:
         random_generator = np.random.default_rng(game_state.game_id.as_int())
 
         asset_repo = game_state.assets
@@ -119,8 +119,8 @@ class LayoutPlanner:
 
         socket_providers = {bus.id: SocketProvider(bus=bus, random_generator=random_generator) for bus in bus_repo}
 
-        asset_addresses: dict[AssetId, SocketAddress] = {}
-        transmission_addresses: dict[TransmissionId, tuple[SocketAddress, SocketAddress]] = {}
+        asset_sockets: dict[AssetId, Socket] = {}
+        transmission_sockets: dict[TransmissionId, tuple[Socket, Socket]] = {}
 
         for x_id in sorted_ids:
             if isinstance(x_id, TransmissionId):
@@ -128,18 +128,18 @@ class LayoutPlanner:
                 bus1 = bus_repo[line.bus1]
                 bus2 = bus_repo[line.bus2]
                 side1, side2 = cls.get_preferred_bus_sides_for_line(bus1=bus1, bus2=bus2)
-                socket1 = socket_providers[bus1.id].get_socket_address(preferred_side=side1)
-                socket2 = socket_providers[bus2.id].get_socket_address(preferred_side=side2)
-                transmission_addresses[x_id] = (socket1, socket2)
+                socket1 = socket_providers[bus1.id].get_socket(preferred_side=side1)
+                socket2 = socket_providers[bus2.id].get_socket(preferred_side=side2)
+                transmission_sockets[x_id] = (socket1, socket2)
             elif isinstance(x_id, AssetId):
                 asset = asset_repo[x_id]
                 bus = bus_repo[asset.bus]
-                socket = socket_providers[bus.id].get_socket_address()
-                asset_addresses[x_id] = socket
+                socket = socket_providers[bus.id].get_socket()
+                asset_sockets[x_id] = socket
             else:
                 raise TypeError(f"Expected AssetId or TransmissionId, got {type(x_id)}")
 
-        return asset_addresses, transmission_addresses
+        return asset_sockets, transmission_sockets
 
     @classmethod
     def get_preferred_bus_sides_for_line(cls, bus1: Bus, bus2: Bus) -> tuple[SocketSide, SocketSide]:

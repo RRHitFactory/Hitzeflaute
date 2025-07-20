@@ -6,7 +6,7 @@ import numpy as np
 from plotly.graph_objs import Scatter
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
-from src.app.simple_front_end.layout_planner import SocketAddress, LayoutPlanner
+from src.app.simple_front_end.layout_planner import Socket, LayoutPlanner
 from src.app.simple_front_end.plotting.po_rect import render_shape
 from src.models.buses import Bus
 from src.models.colors import Color
@@ -47,16 +47,16 @@ class PlotBus(PlotObject):
     def data_dict(self) -> dict[str, str]:
         return {"Owner": self.owner.name}
 
-    def get_socket_from_address(self, address: SocketAddress) -> Point:
-        assert address.bus == self.bus.id, f"Socket address {address} does not match bus {self.bus.id}"
+    def get_socket_location(self, socket: Socket) -> Point:
+        assert socket.bus == self.bus.id, f"Socket {socket} does not match bus {self.bus.id}"
 
         tr_sockets, bl_sockets = self._socket_locations
-        if address.side == "tr":
-            return tr_sockets[address.number]
-        elif address.side == "bl":
-            return bl_sockets[address.number]
+        if socket.side == "tr":
+            return tr_sockets[socket.number]
+        elif socket.side == "bl":
+            return bl_sockets[socket.number]
         else:
-            raise ValueError(f"Invalid socket address: {address}")
+            raise ValueError(f"Invalid socket side: {socket}")
 
     @cached_property
     def _socket_locations(self) -> tuple[list[Point], list[Point]]:

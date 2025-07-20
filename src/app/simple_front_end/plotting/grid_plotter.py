@@ -66,8 +66,8 @@ class GridPlotter:
 
     @classmethod
     def get_plot_objects(cls, game_state: GameState) -> list[PlotObject]:
-        addresses = LayoutPlanner.get_socket_addresses_for_assets_and_transmission(game_state=game_state)
-        asset_socket_addresses, transmission_socket_addresses = addresses
+        all_sockets = LayoutPlanner.get_sockets_for_assets_and_transmission(game_state=game_state)
+        asset_sockets, transmission_sockets = all_sockets
 
         bus_dict: dict[BusId, PlotBus] = {}
         for bus in game_state.buses:
@@ -80,15 +80,15 @@ class GridPlotter:
             owner = game_state.players[tx.owner_player]
             bus1 = bus_dict[tx.bus1]
             bus2 = bus_dict[tx.bus2]
-            socket_addresses = transmission_socket_addresses[tx.id]
-            txs.append(PlotTxLine(line=tx, owner=owner, buses=(bus1, bus2), socket_addresses=socket_addresses))
+            sockets = transmission_sockets[tx.id]
+            txs.append(PlotTxLine(line=tx, owner=owner, buses=(bus1, bus2), sockets=sockets))
 
         assets: list[PlotAsset] = []
         for asset in game_state.assets:
             owner = game_state.players[asset.owner_player]
             bus = bus_dict[asset.bus]
-            socket_address = asset_socket_addresses[asset.id]
-            assets.append(PlotAsset(asset=asset, owner=owner, bus=bus, socket_address=socket_address))
+            socket = asset_sockets[asset.id]
+            assets.append(PlotAsset(asset=asset, owner=owner, bus=bus, socket=socket))
 
         playable_map = ShapePlotObject(
             shape=game_state.game_settings.map_area,

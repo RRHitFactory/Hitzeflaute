@@ -35,6 +35,9 @@ class GameState:
     market_coupling_result: Optional[MarketCouplingResult]
     round: int = 1
 
+    def __post_init__(self) -> None:
+        assert isinstance(self.game_id, GameId), f"game_id must be of type GameId. Got {type(self.game_id)}"
+
     @cached_property
     def current_players(self) -> list[PlayerId]:
         return self.players.get_currently_playing().player_ids
@@ -73,7 +76,7 @@ class GameState:
 
     def to_simple_dict(self) -> dict:
         return {
-            "game_id": self.game_id,
+            "game_id": self.game_id.as_int(),
             "game_settings": self.game_settings.to_simple_dict(),
             "phase": simplify_type(self.phase),
             "players": self.players.to_simple_dict(),
@@ -89,7 +92,7 @@ class GameState:
     @classmethod
     def from_simple_dict(cls, simple_dict: dict) -> Self:
         return cls(
-            game_id=simple_dict["game_id"],
+            game_id=GameId(simple_dict["game_id"]),
             game_settings=GameSettings.from_simple_dict(simple_dict["game_settings"]),
             phase=un_simplify_type(x=simple_dict["phase"], t=Phase),
             players=PlayerRepo.from_simple_dict(simple_dict["players"]),
