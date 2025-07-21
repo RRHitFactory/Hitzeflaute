@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, Optional
 
 from src.models.data.ldc_repo import LdcRepo
@@ -13,7 +13,7 @@ class Bus(LightDc):
     id: BusId
     x: float
     y: float
-    player_id: PlayerId = PlayerId.get_npc()
+    player_id: PlayerId = field(default_factory=PlayerId.get_npc)
     max_lines: int = 5
     max_assets: int = 5
 
