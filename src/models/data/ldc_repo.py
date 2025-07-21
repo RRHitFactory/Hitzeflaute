@@ -176,7 +176,7 @@ class LdcRepo[T_LightDc](ABC):
         Returns a copy of the repo filtered using the given condition
         :return: The filtered LdcFrame
         """
-        logical_indexer = self._filter(condition=condition, operator=operator, condition_2=condition_2)
+        logical_indexer = self._filter_index(condition=condition, operator=operator, condition_2=condition_2)
         filtered_df = self.df[logical_indexer]
         return self.__class__(filtered_df)
 
@@ -190,8 +190,7 @@ class LdcRepo[T_LightDc](ABC):
         Returns a copy of the repo with elements deleted using the given condition
         :return: A new version of the LdcFrame with the items dropped
         """
-
-        logical_indexer = self._filter(condition=condition, operator=operator, condition_2=condition_2)
+        logical_indexer = self._filter_index(condition=condition, operator=operator, condition_2=condition_2)
         index = logical_indexer.loc[logical_indexer].index
         return self.from_frame(self.df.drop(index, axis=0))
 
