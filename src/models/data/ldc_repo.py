@@ -1,6 +1,5 @@
 from abc import abstractmethod, ABC
 from typing import (
-    Generic,
     Any,
     Iterator,
     Callable,
@@ -11,10 +10,9 @@ from typing import (
     TypeVar,
 )
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from src.models.data.light_dc import T_LightDc
 from src.tools.serialization import simplify_type
 from src.tools.typing import T
 
@@ -22,7 +20,7 @@ type Condition = dict[str, Any] | Callable[[pd.Series], bool]
 type Operator = Literal["or", "and", "not", None]
 
 
-class LdcRepo(Generic[T_LightDc], ABC):
+class LdcRepo[T_LightDc](ABC):
     # A dataframe-based repo containing an indexed list of light dataclass objects
 
     @classmethod
