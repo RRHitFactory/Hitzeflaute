@@ -15,6 +15,12 @@ BusOrientation = Literal["horizontal", "vertical"]  # Orientation of the bus
 
 @dataclass(frozen=True)
 class Socket:
+    """
+    A socket is a connection point on a bus that can be used for assets and transmission lines.
+    Each bus has two sides and each side has a limited number of sockets.
+    The sides are referred to as "tr" (top right) and "bl" (bottom left).
+    """
+
     bus: BusId
     side: SocketSide
     number: int
@@ -32,13 +38,21 @@ class Socket:
 
 
 class SocketProvider:
-    def __init__(self, bus: Bus, random_generator: Generator) -> None:
+    def __init__(self, bus: Bus, random_generator: Optional[Generator] = None) -> None:
+        """
+        :param bus: The bus containing the sockets
+        :param random_generator: Optionally provide a random generator for reproducibility.
+        """
         n = bus.sockets_per_side
+
+        if random_generator is None:
+            random_generator = np.random.default_rng(bus.id.as_int())
+
         self._random_generator = random_generator
-        self._tr_sockets = [Socket(bus=bus.id, side="tr", number=i) for i in range(n)]
-        self._bl_sockets = [Socket(bus=bus.id, side="bl", number=i) for i in range(n)]
-        self._tr_assigned = 0
-        self._bl_assigned = 0
+        self._sockets = {
+            "tr": [Socket(bus=bus.id, side="tr", number=i) for i in range(n)],
+            "bl": [Socket(bus=bus.id, side="bl", number=i) for i in range(n)],
+        }
 
     def __str__(self) -> str:
         return "<SocketProvider>"
@@ -46,40 +60,39 @@ class SocketProvider:
     def __repr__(self) -> str:
         return "<SocketProvider>"
 
+    def get_n_sockets_free(self, side: Optional[SocketSide] = None) -> int:
+        if side is None:
+            return len(self._sockets["tr"]) + len(self._sockets["bl"])
+        return len(self._sockets[side])
+
     def get_socket(self, preferred_side: Optional[SocketSide] = None) -> Socket:
-        if not self._has_remaining_sockets():
+        if self.get_n_sockets_free() == 0:
             raise IndexError("No remaining sockets available.")
 
         if preferred_side is None:
-            if self._tr_assigned == self._bl_assigned:
+            if self.get_n_sockets_free("bl") == self.get_n_sockets_free("tr"):
                 preferred_side: SocketSide = random_choice(  # type: ignore
                     x=["tr", "bl"], generator=self._random_generator
                 )
-            elif self._tr_assigned < self._bl_assigned:
+            elif self.get_n_sockets_free("bl") < self.get_n_sockets_free("tr"):
                 preferred_side = "tr"
             else:
                 preferred_side = "bl"
 
-        if self._has_remaining_sockets(preferred_side):
-            if preferred_side == "tr":
-                socket = self._tr_sockets[self._tr_assigned]
-                self._tr_assigned += 1
-            else:
-                socket = self._bl_sockets[self._bl_assigned]
-                self._bl_assigned += 1
-            return socket
+        side = preferred_side
+        if self.get_n_sockets_free(preferred_side) == 0:
+            side = self.get_other_side(side)
 
-        return self.get_socket()
+        return self._sockets[side].pop(0)
 
-    def _has_remaining_sockets(self, side: Optional[SocketSide] = None) -> bool:
+    @staticmethod
+    def get_other_side(side: SocketSide) -> SocketSide:
         if side == "tr":
-            return len(self._tr_sockets) > self._tr_assigned
+            return "bl"
         elif side == "bl":
-            return len(self._bl_sockets) > self._bl_assigned
-        elif side is None:
-            return self._has_remaining_sockets("tr") or self._has_remaining_sockets("bl")
+            return "tr"
         else:
-            raise ValueError(f"Invalid side: {side}. Must be 'tr', 'bl', or None.")
+            raise ValueError(f"Invalid socket side: {side}. Must be 'tr' or 'bl'.")
 
 
 class LayoutPlanner:
@@ -87,6 +100,12 @@ class LayoutPlanner:
     def get_sockets_for_assets_and_transmission(
         cls, game_state: GameState
     ) -> tuple[dict[AssetId, Socket], dict[TransmissionId, tuple[Socket, Socket]]]:
+        """
+        :param game_state:
+        :return:
+        * A mapping of asset ids to sockets
+        * A mapping of transmission ids to socket pairs (one for each side of the line)
+        """
         random_generator = np.random.default_rng(game_state.game_id.as_int())
 
         asset_repo = game_state.assets
