@@ -7,7 +7,7 @@ from matplotlib.axes import Axes
 
 from src.models.random_variable.models import Statistics
 
-PdfPlotType = Literal["pdf", "cdf", "both"]
+type PdfPlotType = Literal["pdf", "cdf", "both"]
 
 
 class ProbabilityDistributionFunction(ABC):

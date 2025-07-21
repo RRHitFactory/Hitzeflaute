@@ -6,8 +6,8 @@ from typing import Protocol, Self, runtime_checkable, TypeVar
 
 from src.tools.typing import WrappedInt, T
 
-Primitive = int | float | str | bool
-SimpleDict = dict[str, Primitive]
+type Primitive = int | float | str | bool
+type SimpleDict = dict[str, Primitive]
 primitives = (int, float, str, bool)
 
 
@@ -45,7 +45,7 @@ def simplify_type(x: Stringable | Enum | WrappedInt | Primitive) -> Primitive:
         return x.value
     if isinstance(x, WrappedInt):
         return x.as_int()
-    if isinstance(x, primitives):
+    if any(isinstance(x, p) for p in primitives):
         return x
     raise TypeError(f"Unsupported type {type(x)}")
 

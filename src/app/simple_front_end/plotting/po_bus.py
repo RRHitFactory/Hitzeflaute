@@ -12,7 +12,7 @@ from src.models.colors import Color
 from src.models.geometry import Point, Shape
 from src.models.player import Player
 
-SocketSide = Literal["tr", "bl"]  # Top Right or Bottom Left
+type SocketSide = Literal["tr", "bl"]  # Top Right or Bottom Left
 
 
 class SocketProvider:

@@ -18,8 +18,8 @@ from src.models.data.light_dc import T_LightDc
 from src.tools.serialization import simplify_type
 from src.tools.typing import T
 
-Condition = dict[str, Any] | Callable[[pd.Series], bool]
-Operator = Literal["or", "and", "not", None]
+type Condition = dict[str, Any] | Callable[[pd.Series], bool]
+type Operator = Literal["or", "and", "not", None]
 
 
 class LdcRepo(Generic[T_LightDc], ABC):

@@ -45,8 +45,8 @@ class GameToPlayerMessage(Message, ABC):
         return str(self)
 
 
-ToGameMessage = Union[PlayerToGameMessage, InternalMessage]
-FromGameMessage = Union[InternalMessage, GameToPlayerMessage]
+type ToGameMessage = Union[PlayerToGameMessage, InternalMessage]
+type FromGameMessage = Union[InternalMessage, GameToPlayerMessage]
 T_Id = TypeVar("T_Id", bound=Union[AssetId, TransmissionId])
 
 
