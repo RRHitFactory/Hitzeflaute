@@ -43,13 +43,13 @@ class SocketProvider:
         :param bus: The bus containing the sockets
         :param random_generator: Optionally provide a random generator for reproducibility.
         """
-        n = bus.sockets_per_side
-
         if random_generator is None:
             random_generator = np.random.default_rng(bus.id.as_int())
-
         self._random_generator = random_generator
-        self._sockets = {
+
+        n = bus.sockets_per_side
+
+        self._sockets: dict[SocketSide, list[Socket]] = {
             "tr": [Socket(bus=bus.id, side="tr", number=i) for i in range(n)],
             "bl": [Socket(bus=bus.id, side="bl", number=i) for i in range(n)],
         }
