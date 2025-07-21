@@ -42,18 +42,18 @@ class BusRepo(LdcRepo[Bus]):
 
     @property
     def npc_bus_ids(self) -> list[BusId]:
-        return self.filter({"player_id": PlayerId.get_npc()}).bus_ids
+        return self._filter({"player_id": PlayerId.get_npc()}).bus_ids
 
     @property
     def player_bus_ids(self) -> list[BusId]:
-        return self.filter(operator="not", condition={"player_id": PlayerId.get_npc()}).bus_ids
+        return self._filter(operator="not", condition={"player_id": PlayerId.get_npc()}).bus_ids
 
     @property
     def freezer_buses(self) -> list[Bus]:
         return [self[b] for b in self.player_bus_ids]
 
     def get_bus_for_player(self, player_id: PlayerId) -> Bus:
-        player_buses = self.filter({"player_id": player_id})
+        player_buses = self._filter({"player_id": player_id})
         assert len(player_buses) == 1
         return player_buses.as_objs()[0]
 

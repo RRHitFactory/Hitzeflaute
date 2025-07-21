@@ -91,7 +91,7 @@ class Referee:
             ]
 
         asset_repo = gs.assets
-        wearable_assets = gs.assets.filter({"is_freezer": False})
+        wearable_assets = gs.assets._filter({"is_freezer": False})
         melted_ids: list[AssetId] = []
 
         for asset in wearable_assets:

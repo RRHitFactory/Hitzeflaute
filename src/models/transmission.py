@@ -47,19 +47,19 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
 
     @cached_property
     def only_closed(self) -> Self:
-        return self.filter({"is_active": True})
+        return self._filter({"is_active": True})
 
     @cached_property
     def only_open(self) -> Self:
-        return self.filter({"is_active": False})
+        return self._filter({"is_active": False})
 
     def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> Self:
         repo = self.only_closed if only_active else self
-        return repo.filter({"owner_player": player_id})
+        return repo._filter({"owner_player": player_id})
 
     def get_all_at_bus(self, bus_id: BusId, only_active: bool = False) -> Self:
         repo = self.only_closed if only_active else self
-        return repo.filter({"bus1": bus_id}, "or", {"bus2": bus_id})
+        return repo._filter({"bus1": bus_id}, "or", {"bus2": bus_id})
 
     def get_all_between_buses(self, bus1: BusId, bus2: BusId, only_active: bool = False) -> Self:
         repo = self.only_closed if only_active else self
@@ -68,7 +68,7 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         min_bus = min(bus1, bus2)
         max_bus = max(bus1, bus2)
 
-        return repo.filter({"bus1": min_bus, "bus2": max_bus})
+        return repo._filter({"bus1": min_bus, "bus2": max_bus})
 
     # UPDATE
     def open_line(self, transmission_id: TransmissionId) -> Self:
