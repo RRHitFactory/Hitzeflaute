@@ -331,7 +331,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
 
     def add_transmission(
         self,
-        transmission: Optional[TransmissionInfo] = None,
+        transmission_info: Optional[TransmissionInfo] = None,
         owner: Optional[PlayerId] = None,
         reactance: Optional[float] = None,
         capacity: Optional[float] = None,
@@ -341,8 +341,8 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         minimum_acquisition_price: Optional[float] = None,
         is_active: Optional[bool] = None,
     ) -> Self:
-        if transmission is None:
-            asset = self._make_dc(
+        if transmission_info is None:
+            transmission = self._make_dc(
                 owner=owner,
                 buses=None,
                 reactance=reactance,
@@ -353,11 +353,8 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
                 minimum_acquisition_price=minimum_acquisition_price,
                 is_active=is_active,
             )
-        else:
-            for x in [cat, owner, bus]:
-                assert x is None, "Cannot specify asset and any of cat, owner, or bus at the same time"
 
-        self._safe_append(asset)
+        self._safe_append(transmission)
         return self
 
     def _safe_append(self, dc: TransmissionInfo) -> None:
