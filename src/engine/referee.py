@@ -45,15 +45,16 @@ class Referee:
         ids_to_deactivate = []
 
         for player in gs.players:
-            if player.money < 0:
-                load_ids = gs.assets.get_all_for_player(player_id=player.id).only_loads.asset_ids
-                ids_to_deactivate.extend(load_ids)
-                msg = LoadsDeactivatedMessage(
-                    player_id=player.id,
-                    asset_ids=load_ids,
-                    message=f"Player {player.name} has negative balance, all their loads ({load_ids}) have been deactivated.",
-                )
-                msgs.append(msg)
+            if player.money >= 0:
+                continue
+            load_ids = gs.assets.get_all_for_player(player_id=player.id).only_loads.asset_ids
+            ids_to_deactivate.extend(load_ids)
+            msg = LoadsDeactivatedMessage(
+                player_id=player.id,
+                asset_ids=load_ids,
+                message=f"Player {player.name} has negative balance, all their loads ({load_ids}) have been deactivated.",
+            )
+            msgs.append(msg)
 
         new_gs = deactivate_player_loads(game_state=gs, loads=ids_to_deactivate)
 
