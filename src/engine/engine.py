@@ -94,13 +94,17 @@ class Engine:
             return new_game_state, []
 
         elif msg.phase == Phase.DA_AUCTION:
-            market_result = MarketCouplingCalculator.run(game_state)
+            msgs: list[GameToPlayerMessage] = []
+
+            new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
+            msgs.extend(msgs_load_deactivation)
+
+            market_result = MarketCouplingCalculator.run(game_state=new_game_state)
             new_game_state = cls.update_game_state_with_market_coupling_result(
-                game_state=game_state, market_coupling_result=market_result
+                game_state=new_game_state, market_coupling_result=market_result
             )
             new_game_state = increment_phase_and_start_turns(new_game_state)
 
-            msgs: list[GameToPlayerMessage] = []
             for player_id in new_game_state.players.player_ids:
                 old_money = game_state.players[player_id].money
                 new_money = new_game_state.players[player_id].money
