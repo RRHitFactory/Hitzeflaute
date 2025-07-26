@@ -5,11 +5,21 @@ from unittest import TestCase
 from src.engine.engine import Engine
 from src.models.colors import Color
 from src.models.ids import PlayerId, AssetId, TransmissionId
-from src.models.message import PlayerToGameMessage, BuyRequest, BuyResponse, OperateLineRequest, OperateLineResponse
+from src.models.message import (
+    PlayerToGameMessage,
+    BuyRequest,
+    BuyResponse,
+    OperateLineRequest,
+    OperateLineResponse,
+    IceCreamMeltedMessage,
+    TransmissionWornMessage,
+    AssetWornMessage,
+)
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
+from src.models.game_state import GameState, Phase
 from tests.utils.comparisons import assert_game_states_are_equal, assert_game_states_are_not_equal
-from tests.utils.game_state_maker import GameStateMaker
+from tests.utils.game_state_maker import GameStateMaker, AssetRepoMaker, MarketResultMaker
 from tests.utils.repo_maker import PlayerRepoMaker, BusRepoMaker, TransmissionRepoMaker
 
 
@@ -177,3 +187,34 @@ class TestAssets(TestCase):
         self.assertIsInstance(response, OperateLineResponse)
         self.assertEqual(response.result, "failure")
         self.assertEqual(game_state.transmission[not_my_line.id].is_open, False)
+
+    def test_apply_rules_after_market_coupling(self):
+        game_maker = GameStateMaker()
+
+        player_repo = PlayerRepoMaker.make_quick(3)
+        buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
+        asset_maker = AssetRepoMaker(bus_repo=buses, players=player_repo)
+
+        for _ in range(6):
+            asset_maker.add_asset(cat="Generator", power_std=0)
+
+        assets = asset_maker.make()
+        game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).make()
+        market_coupling_result = MarketResultMaker.make_quick(
+            player_repo=game_state.players,
+            bus_repo=game_state.buses,
+            asset_repo=game_state.assets,
+            transmission_repo=game_state.transmission,
+            n_random_congested_transmissions=2,
+        )
+        game_state = replace(game_state, phase=Phase.DA_AUCTION, market_coupling_result=market_coupling_result)
+
+        new_game_state, update_msgs = Engine.apply_rules_after_market_coupling(game_state)
+        melt_ice_cream_msgs = [msg for msg in update_msgs if isinstance(msg, IceCreamMeltedMessage)]
+        wear_transmission_msgs = [msg for msg in update_msgs if isinstance(msg, TransmissionWornMessage)]
+        wear_asset_msgs = [msg for msg in update_msgs if isinstance(msg, AssetWornMessage)]
+
+        self.assertIsInstance(new_game_state, GameState)
+        self.assertGreater(len(melt_ice_cream_msgs), 0)
+        self.assertGreater(len(wear_transmission_msgs), 0)
+        self.assertGreater(len(wear_asset_msgs), 0)
