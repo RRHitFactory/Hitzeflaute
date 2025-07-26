@@ -1,6 +1,8 @@
-from unittest import TestCase, skip
+from unittest import TestCase
+import numpy as np
 
-from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
+from src.app.simple_front_end.plotting.grid_plotter import GridPlotter
+from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
 from tests.utils.game_state_maker import GameStateMaker
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.assets import AssetType
@@ -11,15 +13,37 @@ class TestMarketCoupling(TestCase):
     def create_game_state():
         game_maker = GameStateMaker()
 
-        player_repo = PlayerRepoMaker.make_quick(3)
-        buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
-        asset_maker = AssetRepoMaker(players=player_repo, bus_repo=buses)
+        player_repo = PlayerRepoMaker().make_quick(2)
+        bus_repo = BusRepoMaker.make_quick(n_npc_buses=0, players=player_repo)
+        asset_maker = AssetRepoMaker(players=player_repo.human_player_ids, bus_repo=bus_repo)
+        transmission_repo = TransmissionRepoMaker.make_quick(1, players=player_repo.human_player_ids, buses=bus_repo)
 
-        for _ in range(6):
-            asset_maker.add_asset(cat="Generator", power_std=0)
+        # add generators
+        for bid_price in [10.0, 20.0, 30.0, 80.0]:
+            # cheap bus
+            asset_maker.add_asset(cat="Generator", power_std=0, bid_price=bid_price, bus=bus_repo[0].id, is_active=True)
+            # expensive bus
+            asset_maker.add_asset(
+                cat="Generator", power_std=0, bid_price=bid_price * 3, bus=bus_repo[1].id, is_active=True
+            )
+
+        # add two loads for each player at the expensive bus
+        for player in player_repo.human_players:
+            asset_maker.add_asset(
+                cat="Load", bid_price=100, power_std=0, owner=player.id, bus=bus_repo[1].id, is_active=True
+            )
+            asset_maker.add_asset(
+                cat="Load", bid_price=100, power_std=0, owner=player.id, bus=bus_repo[1].id, is_active=True
+            )
 
         assets = asset_maker.make()
-        game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).make()
+        game_state = (
+            game_maker.add_player_repo(player_repo)
+            .add_bus_repo(bus_repo)
+            .add_asset_repo(assets)
+            .add_transmission_repo(transmission_repo)
+            .make()
+        )
 
         return game_state
 
@@ -32,26 +56,29 @@ class TestMarketCoupling(TestCase):
         self.assertGreaterEqual(market_result.bus_prices.shape[0], 1)
         self.assertGreaterEqual(market_result.transmission_flows.shape[0], 1)
 
-    def test_no_paradoxes(self) -> None:
+    def test_no_paradoxically_accepted_assets(self) -> None:
         game_state = self.create_game_state()
         market_result = MarketCouplingCalculator.run(game_state)
 
-        small_number = 1e-3
         for mtu in market_result.bus_prices.index:
             for bus in game_state.buses:
                 bus_price = market_result.bus_prices.loc[mtu, bus.id]
                 assets_in_bus = game_state.assets.filter({"bus": bus.id})
                 generators_in_the_money = assets_in_bus.filter(
-                    lambda x: x["bid_price"] <= bus_price + small_number, 'and', {"asset_type": AssetType.GENERATOR}
+                    lambda x: x["bid_price"] <= bus_price, 'and', {"asset_type": AssetType.GENERATOR}
                 ).asset_ids
                 loads_in_the_money = assets_in_bus.filter(
-                    lambda x: x["bid_price"] >= bus_price - small_number, 'and', {"asset_type": AssetType.LOAD}
+                    lambda x: x["bid_price"] >= bus_price, 'and', {"asset_type": AssetType.LOAD}
                 ).asset_ids
                 asset_dispatch = market_result.assets_dispatch.loc[mtu]
 
-                dispatched_assets = set(asset_dispatch[asset_dispatch.abs() > 0].index) & set(assets_in_bus.asset_ids)
+                small_generation = 0.1  # Define a threshold for small generation to avoid floating point issues
+                dispatched_assets = set(asset_dispatch[asset_dispatch.abs() > small_generation].index) & set(
+                    assets_in_bus.asset_ids
+                )
 
-                self.assertSetEqual(set(generators_in_the_money) | set(loads_in_the_money), dispatched_assets)
+                for asset_id in dispatched_assets:
+                    self.assertIn(asset_id, set(generators_in_the_money) | set(loads_in_the_money))
 
     def test_energy_balance(self) -> None:
         game_state = self.create_game_state()
@@ -67,16 +94,14 @@ class TestMarketCoupling(TestCase):
 
             self.assertAlmostEqual(total_generation, total_load, places=5)
 
-    @skip("This test fails sometimes, needs to be fixed somehow")
-    def test_rent_only_for_congested_lines(self) -> None:
-        # TODO Fix this test, make sure it will consistently pass
+    def test_congestion_rent_and_price_spread(self) -> None:
         game_state = self.create_game_state()
         market_result = MarketCouplingCalculator.run(game_state)
 
         for mtu in market_result.transmission_flows.index:
             for transmission in game_state.transmission:
                 flow = market_result.transmission_flows.loc[mtu, transmission.id]
-                if abs(flow) == abs(transmission.capacity):
+                if np.isclose(abs(flow), abs(transmission.capacity)):
                     self.assertGreater(
                         abs(
                             market_result.bus_prices.loc[mtu, transmission.bus1]

@@ -3,8 +3,10 @@ from functools import cached_property
 from typing import Literal, Optional
 
 import numpy as np
+from plotly.graph_objs import Scatter
 
-from src.app.simple_front_end.plotting.po_rect import RectBase
+from src.app.simple_front_end.plotting.base_plot_object import PlotObject
+from src.app.simple_front_end.plotting.po_rect import render_shape
 from src.models.buses import Bus
 from src.models.colors import Color
 from src.models.geometry import Point, Shape
@@ -69,7 +71,7 @@ class SocketProvider:
 
 
 @dataclass(frozen=True)
-class PlotBus(RectBase):
+class PlotBus(PlotObject):
     bus: Bus
     owner: Player
     width: float = 1.0
@@ -139,3 +141,6 @@ class PlotBus(RectBase):
         dl = self.centre + down + left
         ur = self.centre + up + right
         return Shape.make_rectangle(bottom_left=dl, top_right=ur, closed=True)
+
+    def render_shape(self) -> Scatter:
+        return render_shape(shape=self.shape, fill_color=self.color, centre_text=self.centre_text, outline_width=0.0)

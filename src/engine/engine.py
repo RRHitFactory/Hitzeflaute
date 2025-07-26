@@ -82,20 +82,29 @@ class Engine:
         msg: ConcludePhase,
     ) -> tuple[GameState, list[GameToPlayerMessage]]:
         def increment_phase_and_start_turns(gs: GameState) -> GameState:
-            return replace(gs, phase=msg.phase.get_next(), players=game_state.players.start_all_turns())
+            new_phase = msg.phase.get_next()
+            game_round = gs.round
+            if new_phase.value == 0:
+                game_round += 1
+
+            return replace(gs, phase=new_phase, players=game_state.players.start_all_turns(), round=game_round)
 
         if msg.phase == Phase.CONSTRUCTION:
             new_game_state = increment_phase_and_start_turns(game_state)
             return new_game_state, []
 
         elif msg.phase == Phase.DA_AUCTION:
-            market_result = MarketCouplingCalculator.run(game_state)
+            msgs: list[GameToPlayerMessage] = []
+
+            new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
+            msgs.extend(msgs_load_deactivation)
+
+            market_result = MarketCouplingCalculator.run(game_state=new_game_state)
             new_game_state = cls.update_game_state_with_market_coupling_result(
-                game_state=game_state, market_coupling_result=market_result
+                game_state=new_game_state, market_coupling_result=market_result
             )
             new_game_state = increment_phase_and_start_turns(new_game_state)
 
-            msgs: list[GameToPlayerMessage] = []
             for player_id in new_game_state.players.player_ids:
                 old_money = game_state.players[player_id].money
                 new_money = new_game_state.players[player_id].money

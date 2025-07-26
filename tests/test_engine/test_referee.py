@@ -88,3 +88,18 @@ class TestReferee(TestCase):
             else:
                 self.assertFalse(new_game_state.transmission[transmission.id].is_active)
                 self.assertEqual(new_game_state.transmission[transmission.id].health, 0)
+
+    def test_deactivate_loads_of_players_in_debt(self):
+        game_state, market_result = self.create_game_state_and_market_coupling_result()
+
+        # make the first player go in debt
+        player = game_state.players[0]
+        players = game_state.players.subtract_money(player_id=player.id, amount=player.money * 2 + 100)
+        game_state = replace(game_state, players=players)
+
+        new_game_state, update_msgs = Referee.deactivate_loads_of_players_in_debt(game_state)
+        loads_player_in_debt = new_game_state.assets.get_all_for_player(player_id=player.id).only_loads
+
+        self.assertEqual(len(update_msgs), 1)
+        for asset in loads_player_in_debt:
+            self.assertFalse(new_game_state.assets[asset.id].is_active)

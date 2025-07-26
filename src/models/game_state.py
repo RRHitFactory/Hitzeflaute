@@ -33,6 +33,7 @@ class GameState:
     assets: AssetRepo
     transmission: TransmissionRepo
     market_coupling_result: Optional[MarketCouplingResult]
+    round: int = 1
 
     @cached_property
     def current_players(self) -> list[PlayerId]:
@@ -72,6 +73,7 @@ class GameState:
             "market_coupling_result": (
                 self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None
             ),
+            "round": self.round,
         }
 
     @classmethod
@@ -89,4 +91,5 @@ class GameState:
                 if simple_dict.get("market_coupling_result")
                 else None
             ),
+            round=simple_dict["round"],
         )

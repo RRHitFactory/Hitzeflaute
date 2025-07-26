@@ -7,9 +7,6 @@ from tests.utils.repo_maker import BusRepoMaker, TransmissionRepoMaker, PlayerRe
 
 class TestPlotNetwork(TestCase):
     def test_plot_network(self) -> None:
-        # This is a placeholder for the actual test implementation.
-        # The test should verify that the plot_network function works as expected.
-
         player_repo = PlayerRepoMaker.make_quick()
         bus_repo = BusRepoMaker.make_quick(n_npc_buses=0)
         transmission_repo = TransmissionRepoMaker.make_quick(players=player_repo.player_ids, buses=bus_repo, n=2)
@@ -20,4 +17,4 @@ class TestPlotNetwork(TestCase):
             .add_transmission_repo(transmission_repo=transmission_repo)
             .make()
         )
-        GridPlotter().plot(game_state=game_state)
+        GridPlotter().make_figure(game_state=game_state).show()
