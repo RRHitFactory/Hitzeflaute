@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pypsa
 
-from src.models.assets import AssetId, AssetType
+from src.models.assets import AssetId, AssetType, AssetRepo
 from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
@@ -22,7 +22,7 @@ class MarketCouplingCalculator:
         return MarketCouplingResult(
             bus_prices=cls.get_bus_prices(network),
             transmission_flows=cls.get_transmission_flows(network=network, transmission=game_state.transmission),
-            assets_dispatch=cls.get_assets_dispatch(network),
+            assets_dispatch=cls.get_assets_dispatch(network=network, assets=game_state.assets),
         )
 
     @classmethod
@@ -39,6 +39,8 @@ class MarketCouplingCalculator:
         for bus in game_state.buses:
             network.add(class_name="Bus", name=cls.get_pypsa_name(bus.id), carrier="AC")
         for line in game_state.transmission.only_closed:
+            if not line.is_active:
+                continue
             network.add(
                 class_name="Line",
                 name=cls.get_pypsa_name(line.id),
@@ -50,6 +52,8 @@ class MarketCouplingCalculator:
                 carrier="AC",
             )
         for generator in game_state.assets.only_generators:
+            if not generator.is_active:
+                continue
             network.add(
                 class_name="Generator",
                 name=cls.get_pypsa_name(generator.id),
@@ -59,6 +63,8 @@ class MarketCouplingCalculator:
                 carrier="AC",
             )
         for load in game_state.assets.only_loads:
+            if not load.is_active:
+                continue
             # Loads are treated as generators with negative power in PyPSA
             network.add(
                 class_name="Generator",
@@ -96,9 +102,14 @@ class MarketCouplingCalculator:
         return df
 
     @classmethod
-    def get_assets_dispatch(cls, network: pypsa.Network) -> pd.DataFrame:
+    def get_assets_dispatch(cls, network: pypsa.Network, assets: AssetRepo) -> pd.DataFrame:
         # Note that all values are positive. For generators this means production, for loads it means consumption.
-        return cls._tidy_df(df=network.generators_t.p, column_name="Asset").abs()
+        df = cls._tidy_df(df=network.generators_t.p, column_name="Asset").abs()
+        # Add zero flows to open lines
+        open_ids = assets.only_inactive.asset_ids
+        df.loc[:, open_ids] = 0.0
+        df.sort_index(axis=1, inplace=True)  # Sort columns by asset ID
+        return df
 
     @classmethod
     def _tidy_df(cls, df: pd.DataFrame, column_name: Optional[str] = None) -> pd.DataFrame:
@@ -111,11 +122,6 @@ class MarketCouplingCalculator:
 
     @staticmethod
     def get_pypsa_name(id_in_game: BusId | TransmissionId | AssetId) -> str:
-        """
-        Convert a bus, transmission, or asset ID to a PyPSA-compatible name.
-        :param id_in_game: The ID of the bus, transmission, or asset
-        :return: A string representation of the ID for PyPSA
-        """
         if isinstance(id_in_game, BusId):
             return f"bus_{id_in_game}"
         elif isinstance(id_in_game, TransmissionId):
