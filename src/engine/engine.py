@@ -16,7 +16,6 @@ from src.models.message import (
     FromGameMessage,
     BuyRequest,
     BuyResponse,
-    T_Id,
     AuctionClearedMessage,
     GameToPlayerMessage,
     OperateLineRequest,
@@ -179,52 +178,14 @@ class Engine:
         return new_game_state, [response]
 
     @classmethod
-    def _validate_purchase(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
-
-        if isinstance(msg.purchase_id, AssetId):
-            purchase_type = "asset"
-            purchase_repo = gs.assets
-            purchase_repo_ids = purchase_repo.asset_ids
-
-        elif isinstance(msg.purchase_id, TransmissionId):
-            purchase_type = "transmission"
-            purchase_repo = gs.transmission
-            purchase_repo_ids = purchase_repo.transmission_ids
-
-        else:
-            raise NotImplementedError(f"Message type {type(msg)} not implemented for purchase validation.")
-
-        purchase_id = msg.purchase_id
-        player = gs.players[msg.player_id]
-
-        def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
-            failed_response = BuyResponse(
-                player_id=msg.player_id,
-                success=False,
-                message=failed_message,
-                purchase_id=purchase_id,
-            )
-            return [failed_response]
-
-        if not purchase_id in purchase_repo_ids:
-            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
-        purchase_obj = purchase_repo[purchase_id]
-
-        if not purchase_obj.is_for_sale:
-            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} is not for sale.")
-
-        elif player.money < purchase_obj.minimum_acquisition_price:
-            return make_failed_response(f"Sorry, player {msg.player_id} cannot afford {purchase_type} {purchase_id}.")
-
-        return []
-
-    @classmethod
     def handle_buy_asset_message(
         cls,
         game_state: GameState,
         msg: BuyRequest[AssetId],
     ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
-        list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
+        list_failed_response = Referee.invalidate_purchase(
+            gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id
+        )
         if list_failed_response:
             return game_state, list_failed_response
 
@@ -246,7 +207,9 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[TransmissionId],
     ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
-        list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
+        list_failed_response = Referee.invalidate_purchase(
+            gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id
+        )
         if list_failed_response:
             return game_state, list_failed_response
 
