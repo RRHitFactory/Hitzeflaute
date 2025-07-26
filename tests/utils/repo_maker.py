@@ -329,6 +329,37 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
             self._safe_append(new_line)
         return self
 
+    def add_transmission(
+        self,
+        transmission: Optional[TransmissionInfo] = None,
+        owner: Optional[PlayerId] = None,
+        reactance: Optional[float] = None,
+        capacity: Optional[float] = None,
+        health: Optional[int] = None,
+        fixed_operating_cost: Optional[float] = None,
+        is_for_sale: Optional[bool] = None,
+        minimum_acquisition_price: Optional[float] = None,
+        is_active: Optional[bool] = None,
+    ) -> Self:
+        if transmission is None:
+            asset = self._make_dc(
+                owner=owner,
+                buses=None,
+                reactance=reactance,
+                capacity=capacity,
+                health=health,
+                fixed_operating_cost=fixed_operating_cost,
+                is_for_sale=is_for_sale,
+                minimum_acquisition_price=minimum_acquisition_price,
+                is_active=is_active,
+            )
+        else:
+            for x in [cat, owner, bus]:
+                assert x is None, "Cannot specify asset and any of cat, owner, or bus at the same time"
+
+        self._safe_append(asset)
+        return self
+
     def _safe_append(self, dc: TransmissionInfo) -> None:
         # Adds the transmission line to the dcs and consumes the sockets
         bus1, bus2 = dc.bus1, dc.bus2
@@ -345,7 +376,17 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         return min(bus1, bus2), max(bus1, bus2)
 
     def _make_dc(
-        self, owner: Optional[PlayerId] = None, buses: Optional[tuple[BusId, BusId]] = None
+        self,
+        transmission: Optional[TransmissionInfo] = None,
+        owner: Optional[PlayerId] = None,
+        buses: Optional[tuple[BusId, BusId]] = None,
+        reactance: Optional[float] = None,
+        capacity: Optional[float] = None,
+        health: Optional[int] = None,
+        fixed_operating_cost: Optional[float] = None,
+        is_for_sale: Optional[bool] = None,
+        minimum_acquisition_price: Optional[float] = None,
+        is_active: Optional[bool] = None,
     ) -> TransmissionInfo:
         transmission_id = TransmissionId(next(self.id_counter))
         if owner is None:
@@ -362,13 +403,19 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
             owner_player=owner,
             bus1=bus1,
             bus2=bus2,
-            reactance=float(np.random.rand() * 10 + 1),
-            capacity=float(np.random.rand() * 100 + 50),
-            health=int(np.random.randint(1, 6)),
-            fixed_operating_cost=float(np.random.rand() * 100),
-            is_for_sale=random_choice([True, False]),
-            minimum_acquisition_price=float(np.random.rand() * 1000) if random_choice([True, False]) else 0.0,
-            is_active=True,
+            reactance=reactance if reactance is not None else float(np.random.rand() * 10 + 1),
+            capacity=capacity if capacity is not None else float(np.random.rand() * 100 + 50),
+            health=health if health is not None else int(np.random.randint(1, 6)),
+            fixed_operating_cost=(
+                fixed_operating_cost if fixed_operating_cost is not None else float(np.random.rand() * 100)
+            ),
+            is_for_sale=is_for_sale if is_for_sale is not None else random_choice([True, False]),
+            minimum_acquisition_price=(
+                minimum_acquisition_price
+                if minimum_acquisition_price is not None
+                else float(np.random.rand() * 1000) if random_choice([True, False]) else 0.0
+            ),
+            is_active=is_active if is_active is not None else True,
         )
 
     def _get_repo_type(self) -> type[TransmissionRepo]:

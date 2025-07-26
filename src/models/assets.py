@@ -56,6 +56,10 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return self.filter({"is_active": True})
 
     @cached_property
+    def only_inactive(self) -> Self:
+        return self.filter({"is_active": False})
+
+    @cached_property
     def only_freezers(self) -> Self:
         return self.filter({"is_freezer": True})
 
