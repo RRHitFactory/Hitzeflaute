@@ -63,11 +63,11 @@ class TestMarketCoupling(TestCase):
         for mtu in market_result.bus_prices.index:
             for bus in game_state.buses:
                 bus_price = market_result.bus_prices.loc[mtu, bus.id]
-                assets_in_bus = game_state.assets.filter({"bus": bus.id})
-                generators_in_the_money = assets_in_bus.filter(
+                assets_in_bus = game_state.assets._filter({"bus": bus.id})
+                generators_in_the_money = assets_in_bus._filter(
                     lambda x: x["bid_price"] <= bus_price, 'and', {"asset_type": AssetType.GENERATOR}
                 ).asset_ids
-                loads_in_the_money = assets_in_bus.filter(
+                loads_in_the_money = assets_in_bus._filter(
                     lambda x: x["bid_price"] >= bus_price, 'and', {"asset_type": AssetType.LOAD}
                 ).asset_ids
                 asset_dispatch = market_result.assets_dispatch.loc[mtu]
@@ -86,10 +86,10 @@ class TestMarketCoupling(TestCase):
 
         for mtu in market_result.assets_dispatch.index:
             total_generation = market_result.assets_dispatch.loc[mtu][
-                game_state.assets.filter({"asset_type": AssetType.GENERATOR}).asset_ids
+                game_state.assets._filter({"asset_type": AssetType.GENERATOR}).asset_ids
             ].sum()
             total_load = market_result.assets_dispatch.loc[mtu][
-                game_state.assets.filter({"asset_type": AssetType.LOAD}).asset_ids
+                game_state.assets._filter({"asset_type": AssetType.LOAD}).asset_ids
             ].sum()
 
             self.assertAlmostEqual(total_generation, total_load, places=5)

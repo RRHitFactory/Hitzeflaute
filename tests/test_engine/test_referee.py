@@ -53,7 +53,7 @@ class TestReferee(TestCase):
 
     def test_wear_non_freezer_assets(self):
         game_state, market_result = self.create_game_state_and_market_coupling_result()
-        wearable_assets = game_state.assets.filter({"is_freezer": False})
+        wearable_assets = game_state.assets._filter({"is_freezer": False})
 
         game_state = replace(game_state, phase=Phase.DA_AUCTION)
         new_game_state, update_msgs = Referee.wear_non_freezer_assets(game_state)

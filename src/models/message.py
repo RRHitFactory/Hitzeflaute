@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Union, TypeVar, Generic
+from typing import TypeVar
 from typing import Union, Literal
 
 from src.models.game_state import GameState, Phase
@@ -45,8 +45,8 @@ class GameToPlayerMessage(Message, ABC):
         return str(self)
 
 
-ToGameMessage = Union[PlayerToGameMessage, InternalMessage]
-FromGameMessage = Union[InternalMessage, GameToPlayerMessage]
+type ToGameMessage = Union[PlayerToGameMessage, InternalMessage]
+type FromGameMessage = Union[InternalMessage, GameToPlayerMessage]
 T_Id = TypeVar("T_Id", bound=Union[AssetId, TransmissionId])
 
 
@@ -73,12 +73,12 @@ class UpdateBidResponse(GameToPlayerMessage):
 
 
 @dataclass(frozen=True)
-class BuyRequest(PlayerToGameMessage, Generic[T_Id]):
+class BuyRequest[T_Id](PlayerToGameMessage):
     purchase_id: T_Id
 
 
 @dataclass(frozen=True)
-class BuyResponse(GameToPlayerMessage, Generic[T_Id]):
+class BuyResponse[T_Id](GameToPlayerMessage):
     success: bool
     purchase_id: T_Id
 

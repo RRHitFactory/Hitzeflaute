@@ -1,14 +1,12 @@
 from abc import abstractmethod
 from itertools import count
-from typing import Generic, Self, Literal, Optional, TypeVar
+from typing import Self, Literal, Optional, TypeVar
 
 import numpy as np
 
 from src.models.assets import AssetRepo, AssetInfo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color
-from src.models.data.ldc_repo import T_LdcRepo
-from src.models.data.light_dc import T_LightDc
 from src.models.ids import PlayerId, AssetId, BusId, TransmissionId
 from src.models.player import PlayerRepo, Player
 from src.models.transmission import TransmissionRepo, TransmissionInfo
@@ -17,7 +15,7 @@ from src.tools.random_choice import random_choice
 T_RepoMaker = TypeVar("T_RepoMaker", bound="RepoMaker")
 
 
-class RepoMaker(Generic[T_LdcRepo, T_LightDc]):
+class RepoMaker[T_LdcRepo, T_LightDc]:
     def __init__(self, *args, **kwargs) -> None:
         self.dcs: list[T_LightDc] = []
         self.id_counter = count(start=0)

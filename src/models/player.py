@@ -47,7 +47,7 @@ class PlayerRepo(LdcRepo[Player]):
         return self[player_id]
 
     def get_currently_playing(self) -> Self:
-        return self.filter(condition={"is_having_turn": True})
+        return self._filter(condition={"is_having_turn": True})
 
     def are_all_players_finished(self) -> bool:
         return len(self.get_currently_playing()) == 0

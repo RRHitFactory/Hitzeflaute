@@ -1,12 +1,12 @@
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TypeVar, Generic, Callable, Literal, Iterable
+from typing import TypeVar, Callable, Literal, Iterable
 
 T = TypeVar("T")
 
 
 @dataclass(frozen=True)
-class Uncertainty(Generic[T]):
+class Uncertainty[T]:
     value: T
     is_certain: bool
 

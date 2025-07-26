@@ -37,7 +37,7 @@ class TestFinanceCalculator(TestCase):
 
         asset_repo = game_state.assets
         for asset in asset_repo:
-            single_asset_repo = asset_repo.filter({"id": asset.id})
+            single_asset_repo = asset_repo._filter({"id": asset.id})
             asset_cashflow = FinanceCalculator.compute_assets_cashflow(single_asset_repo, assets_dispatch, bus_prices)
             sign = asset.cashflow_sign
             self.assertAlmostEqual(
@@ -53,7 +53,7 @@ class TestFinanceCalculator(TestCase):
 
         transmission_repo = game_state.transmission
         for transmission in transmission_repo:
-            single_transmission_repo = transmission_repo.filter({"id": transmission.id})
+            single_transmission_repo = transmission_repo._filter({"id": transmission.id})
             transmission_cashflow = FinanceCalculator.compute_transmission_cashflow(
                 single_transmission_repo, transmission_flows, bus_prices
             )
