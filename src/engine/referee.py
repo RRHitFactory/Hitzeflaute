@@ -1,12 +1,14 @@
 from dataclasses import replace
 
-from src.models.ids import AssetId
+from src.models.ids import AssetId, TransmissionId, PlayerId
 from src.models.message import (
     GameUpdate,
     IceCreamMeltedMessage,
     AssetWornMessage,
-    LoadsDeactivatedMessage
-)  # , BuyAssetRequest, BuyAssetResponse, BuyTransmissionRequest, BuyTransmissionResponse, BuyResponse
+    LoadsDeactivatedMessage,
+    BuyResponse,
+    T_Id,
+)
 from src.models.game_state import GameState, Phase
 
 
@@ -18,21 +20,45 @@ class Referee:
     """
 
     # BEFORE MARKET COUPLING
+    @classmethod
+    def invalidate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
 
-    # TODO: shift _check_if_purchase_is_invalid from engine to referee
-    # @overload
-    # @classmethod
-    # def _check_if_purchase_is_invalid(cls, gs: GameState, msg: BuyAssetRequest) -> list[BuyAssetResponse]: ...
-    #
-    # @overload
-    # @classmethod
-    # def _check_if_purchase_is_invalid(
-    #     cls, gs: GameState, msg: BuyTransmissionRequest
-    # ) -> list[BuyTransmissionResponse]: ...
-    #
-    # @staticmethod
-    # def check_if_purchase_is_invalid(gs: GameState, msg) -> list[BuyResponse]:
-    #     raise NotImplementedError()
+        if isinstance(purchase_id, AssetId):
+            purchase_type = "asset"
+            purchase_repo = gs.assets
+            purchase_repo_ids = purchase_repo.asset_ids
+
+        elif isinstance(purchase_id, TransmissionId):
+            purchase_type = "transmission"
+            purchase_repo = gs.transmission
+            purchase_repo_ids = purchase_repo.transmission_ids
+
+        else:
+            raise NotImplementedError(f"Elements with id type {type(purchase_id)} cannot be purchased.")
+
+        purchase_id = purchase_id
+        player = gs.players[player_id]
+
+        def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
+            failed_response = BuyResponse(
+                player_id=player_id,
+                success=False,
+                message=failed_message,
+                purchase_id=purchase_id,
+            )
+            return [failed_response]
+
+        if not purchase_id in purchase_repo_ids:
+            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
+        purchase_obj = purchase_repo[purchase_id]
+
+        if not purchase_obj.is_for_sale:
+            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} is not for sale.")
+
+        elif player.money < purchase_obj.minimum_acquisition_price:
+            return make_failed_response(f"Sorry, player {player_id} cannot afford {purchase_type} {purchase_id}.")
+
+        return []
 
     @staticmethod
     def deactivate_loads_of_players_in_debt(gs: GameState) -> tuple[GameState, list[LoadsDeactivatedMessage]]:
@@ -64,8 +90,6 @@ class Referee:
 
     @staticmethod
     def melt_ice_creams(gs: GameState) -> tuple[GameState, list[GameUpdate]]:
-        assert gs.market_coupling_result is not None, "Market coupling result must be available to melt ice creams."
-        assert gs.phase == Phase.DA_AUCTION, "Ice creams only melt at the end of the DA auction phase."
 
         def generate_melted_ice_cream_messages(
             new_gs: GameState, asset_ids: list[AssetId]
@@ -100,8 +124,6 @@ class Referee:
 
     @staticmethod
     def wear_non_freezer_assets(gs: GameState) -> tuple[GameState, list[AssetWornMessage]]:
-        assert gs.market_coupling_result is not None, "Market coupling result must be available to wear assets."
-        assert gs.phase == Phase.DA_AUCTION, "Assets only suffer wear at the end DA auction phase."
 
         def generate_worn_asset_messages(new_gs: GameState, asset_ids: list[AssetId]) -> list[AssetWornMessage]:
             return [
