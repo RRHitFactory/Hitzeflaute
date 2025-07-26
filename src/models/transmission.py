@@ -21,6 +21,7 @@ class TransmissionInfo(LightDc):
     is_for_sale: bool = False
     minimum_acquisition_price: float = 0.0  # 0 = Not for sale
     is_active: bool = True
+    birthday: int = 1  # Round when the asset was created
 
     @property
     def is_open(self) -> bool:
@@ -54,21 +55,21 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         return self.filter({"is_active": False})
 
     def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> Self:
-        repo = self.only_closed if only_active else self
-        return repo.filter({"owner_player": player_id})
+        oa_filter = {"is_active": True} if only_active else {}
+        return self.filter({"owner_player": player_id, **oa_filter})
 
     def get_all_at_bus(self, bus_id: BusId, only_active: bool = False) -> Self:
         repo = self.only_closed if only_active else self
         return repo.filter({"bus1": bus_id}, "or", {"bus2": bus_id})
 
     def get_all_between_buses(self, bus1: BusId, bus2: BusId, only_active: bool = False) -> Self:
-        repo = self.only_closed if only_active else self
+        oa_filter = {"is_active": True} if only_active else {}
 
         assert bus1 != bus2, f"bus1 and bus2 must be different. Got {bus1} and {bus2}"
         min_bus = min(bus1, bus2)
         max_bus = max(bus1, bus2)
 
-        return repo.filter({"bus1": min_bus, "bus2": max_bus})
+        return self.filter({"bus1": min_bus, "bus2": max_bus, **oa_filter})
 
     # UPDATE
     def open_line(self, transmission_id: TransmissionId) -> Self:

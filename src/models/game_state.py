@@ -6,7 +6,7 @@ from typing import Self, Optional
 from src.models.assets import AssetRepo, AssetInfo
 from src.models.buses import BusRepo, BusFullException
 from src.models.game_settings import GameSettings
-from src.models.ids import PlayerId, GameId
+from src.models.ids import PlayerId, GameId, BusId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionRepo, TransmissionInfo
@@ -35,6 +35,9 @@ class GameState:
     market_coupling_result: Optional[MarketCouplingResult]
     round: int = 1
 
+    def __post_init__(self) -> None:
+        assert isinstance(self.game_id, GameId), f"game_id must be of type GameId. Got {type(self.game_id)}"
+
     @cached_property
     def current_players(self) -> list[PlayerId]:
         return self.players.get_currently_playing().player_ids
@@ -58,12 +61,22 @@ class GameState:
 
         return replace(self, transmission=self.transmission + transmission_info)
 
+    def get_remaining_space_for_assets_at_bus(self, bus_id: BusId) -> int:
+        bus = self.buses[bus_id]
+        n_assets_at_bus = len(self.assets.get_all_assets_at_bus(bus_id=bus_id))
+        return bus.max_assets - n_assets_at_bus
+
+    def get_remaining_space_for_lines_at_bus(self, bus_id: BusId) -> int:
+        bus = self.buses[bus_id]
+        n_lines_at_bus = len(self.transmission.get_all_at_bus(bus_id=bus_id))
+        return bus.max_lines - n_lines_at_bus
+
     def start_all_turns(self) -> Self:
         return replace(self, players=self.players.start_all_turns())
 
     def to_simple_dict(self) -> dict:
         return {
-            "game_id": self.game_id,
+            "game_id": self.game_id.as_int(),
             "game_settings": self.game_settings.to_simple_dict(),
             "phase": simplify_type(self.phase),
             "players": self.players.to_simple_dict(),
@@ -79,7 +92,7 @@ class GameState:
     @classmethod
     def from_simple_dict(cls, simple_dict: dict) -> Self:
         return cls(
-            game_id=simple_dict["game_id"],
+            game_id=GameId(simple_dict["game_id"]),
             game_settings=GameSettings.from_simple_dict(simple_dict["game_settings"]),
             phase=un_simplify_type(x=simple_dict["phase"], t=Phase),
             players=PlayerRepo.from_simple_dict(simple_dict["players"]),

@@ -18,12 +18,17 @@ class Bus(LightDc):
     max_assets: int = 5
 
     def __post_init__(self) -> None:
+        assert self.total_sockets % 2 == 0, f"Total sockets must be even. Got {self.total_sockets}"
         assert self.max_assets >= 0, f"max_assets must be non-negative. Got {self.max_assets}"
         assert self.max_lines >= 0, f"max_lines must be non-negative. Got {self.max_lines}"
 
     @property
     def total_sockets(self) -> int:
         return self.max_assets + self.max_lines
+
+    @property
+    def sockets_per_side(self) -> int:
+        return round(self.total_sockets / 2)
 
     @property
     def point(self) -> Point:

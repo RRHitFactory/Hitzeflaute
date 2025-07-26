@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from plotly.graph_objs import Scatter
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
+from src.app.simple_front_end.layout_planner import Socket
 from src.app.simple_front_end.plotting.po_bus import PlotBus
 from src.models.colors import Color
 from src.models.geometry import Point, Shape
@@ -17,6 +18,7 @@ class PlotTxLine(PlotObject):
     line: TransmissionInfo
     owner: Player
     buses: tuple[PlotBus, PlotBus]
+    sockets: tuple[Socket, Socket]
 
     @property
     def title(self) -> str:
@@ -43,19 +45,12 @@ class PlotTxLine(PlotObject):
     @cached_property
     def vertices(self) -> list[Point]:
         bus1, bus2 = self.buses
+        sa1, sa2 = self.sockets
+
         vector = bus2.centre - bus1.centre
 
-        if bus1.is_horizontal:
-            preferred_side = "tr" if vector.y > 0 else "bl"
-        else:
-            preferred_side = "tr" if vector.x > 0 else "bl"
-        start = bus1.get_socket(preferred_side=preferred_side)  # type: ignore
-
-        if bus2.is_horizontal:
-            preferred_side = "bl" if vector.y > 0 else "tr"
-        else:
-            preferred_side = "bl" if vector.x > 0 else "tr"
-        end = bus2.get_socket(preferred_side=preferred_side)  # type: ignore
+        start = bus1.get_socket_location(socket=sa1)
+        end = bus2.get_socket_location(socket=sa2)
 
         if bus1.is_horizontal:
             p1 = start + Point(x=0, y=vector.y * 0.1)

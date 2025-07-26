@@ -30,6 +30,7 @@ class AssetInfo(LightDc):
     is_freezer: bool = False  # This is a special type of load
     health: int = 0
     is_active: bool = True
+    birthday: int = 1  # Round when the asset was created
 
     def __post_init__(self) -> None:
         if self.is_freezer:
@@ -66,14 +67,13 @@ class AssetRepo(LdcRepo[AssetInfo]):
     def only_generators(self) -> Self:
         return self.filter({"asset_type": AssetType.GENERATOR})
 
-    def get_all_assets_at_bus(self, bus_id: BusId) -> Self:
-        return self.filter({"bus": bus_id})
+    def get_all_assets_at_bus(self, bus_id: BusId, only_active: bool = False) -> Self:
+        oa_filter = {"is_active": True} if only_active else {}
+        return self.filter({"bus": bus_id, **oa_filter})
 
     def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> Self:
-        if only_active:
-            return self.filter({"owner_player": player_id, "is_active": True})
-        else:
-            return self.filter({"owner_player": player_id})
+        oa_filter = {"is_active": True} if only_active else {}
+        return self.filter({"owner_player": player_id, **oa_filter})
 
     def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
         assets = self.filter({"owner_player": player_id, "is_freezer": True})
