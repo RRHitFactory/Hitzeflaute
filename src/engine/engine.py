@@ -106,7 +106,7 @@ class Engine:
                         message=text,
                     )
                 )
-            new_game_state, all_referee_msgs = Referee.apply_rules_after_market_coupling(new_game_state)
+            new_game_state, all_referee_msgs = cls.apply_rules_after_market_coupling(new_game_state)
             msgs.extend(all_referee_msgs)
 
             return new_game_state, msgs
@@ -167,6 +167,30 @@ class Engine:
         )
 
         return new_game_state, [response]
+
+    @classmethod
+    def apply_rules_after_market_coupling(cls, gs: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
+        """
+        Apply the rules that are enforced after the market coupling phase.
+        :param gs: The current game state
+        :return: A tuple containing the new game state and a list of messages to be sent to players
+        """
+        assert gs.market_coupling_result is not None, "Market coupling result must be available to apply rules."
+        assert gs.phase == Phase.DA_AUCTION, "Rules can only be applied at the end of DA auction phase."
+
+        new_gs = gs
+        msgs: list[GameToPlayerMessage] = []
+
+        new_gs, ice_cream_msgs = Referee.melt_ice_creams(new_gs)
+        msgs.extend(ice_cream_msgs)
+
+        new_gs, transmission_msgs = Referee.wear_congested_transmission(new_gs)
+        msgs.extend(transmission_msgs)
+
+        new_gs, asset_msgs = Referee.wear_non_freezer_assets(new_gs)
+        msgs.extend(asset_msgs)
+
+        return new_gs, msgs
 
     @classmethod
     def _validate_purchase(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
