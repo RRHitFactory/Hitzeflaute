@@ -90,6 +90,8 @@ class Referee:
         melted_ids = []
 
         for load in ice_cream_loads:
+            if load.health == 0:
+                continue
             if assets_dispatch[load.id] < load.power_expected:
                 asset_repo = asset_repo.melt_ice_cream(load.id)
                 melted_ids.append(load.id)
@@ -114,11 +116,13 @@ class Referee:
                 for transmission_id in transmission_ids
             ]
 
-        transmission_repo = gs.transmission.filter({"is_active": True})
+        transmission_repo = gs.transmission
         congested_transmissions: list[TransmissionId] = []
         flows = gs.market_coupling_result.transmission_flows
 
         for transmission in transmission_repo:
+            if transmission.health == 0:
+                continue
             if np.isclose(transmission.capacity, flows[transmission.id]):
                 transmission_repo = transmission_repo.wear_transmission(transmission_id=transmission.id)
                 congested_transmissions.append(transmission.id)
@@ -146,10 +150,12 @@ class Referee:
             ]
 
         asset_repo = gs.assets
-        wearable_assets = gs.assets.filter({"is_freezer": False, "is_active": True})
+        wearable_assets = gs.assets.filter({"is_freezer": False})
         melted_ids: list[AssetId] = []
 
         for asset in wearable_assets:
+            if asset.health == 0:
+                continue
             asset_repo = asset_repo.wear_asset(asset_id=asset.id)
             melted_ids.append(asset.id)
 
