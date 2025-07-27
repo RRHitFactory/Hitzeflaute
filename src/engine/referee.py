@@ -1,10 +1,13 @@
 from dataclasses import replace
+import numpy as np
 
 from src.models.ids import AssetId, TransmissionId, PlayerId
 from src.models.message import (
     GameUpdate,
     IceCreamMeltedMessage,
     AssetWornMessage,
+    TransmissionWornMessage,
+    GameToPlayerMessage,
     LoadsDeactivatedMessage,
     BuyResponse,
     T_Id,
@@ -89,11 +92,11 @@ class Referee:
     # AFTER MARKET COUPLING
 
     @staticmethod
-    def melt_ice_creams(gs: GameState) -> tuple[GameState, list[GameUpdate]]:
+    def melt_ice_creams(gs: GameState) -> tuple[GameState, list[IceCreamMeltedMessage]]:
 
         def generate_melted_ice_cream_messages(
             new_gs: GameState, asset_ids: list[AssetId]
-        ) -> list[IceCreamMeltedMessage | GameUpdate]:
+        ) -> list[IceCreamMeltedMessage]:
             return [
                 IceCreamMeltedMessage(
                     player_id=new_gs.assets[asset_id].owner_player,
@@ -119,8 +122,33 @@ class Referee:
         return new_gs, msgs
 
     @staticmethod
-    def wear_overloaded_transmission(gs: GameState) -> tuple[GameState, list[GameUpdate]]:
-        raise NotImplementedError()
+    def wear_congested_transmission(gs: GameState) -> tuple[GameState, list[TransmissionWornMessage]]:
+
+        def generate_worn_transmission_messages(
+            new_gs: GameState, transmission_ids: list[TransmissionId]
+        ) -> list[TransmissionWornMessage]:
+            return [
+                TransmissionWornMessage(
+                    player_id=new_gs.transmission[transmission_id].owner_player,
+                    transmission_id=transmission_id,
+                    message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand {new_gs.transmission[transmission_id].health} more congested periods.",
+                )
+                for transmission_id in transmission_ids
+            ]
+
+        transmission_repo = gs.transmission
+        congested_transmissions: list[TransmissionId] = []
+        flows = gs.market_coupling_result.transmission_flows
+
+        for transmission in transmission_repo:
+            if np.isclose(transmission.capacity, flows[transmission.id]):
+                transmission_repo = transmission_repo.wear_transmission(transmission_id=transmission.id)
+                congested_transmissions.append(transmission.id)
+
+        new_gs = replace(gs, transmission=transmission_repo)
+        msgs = generate_worn_transmission_messages(new_gs=new_gs, transmission_ids=congested_transmissions)
+
+        return new_gs, msgs
 
     @staticmethod
     def wear_non_freezer_assets(gs: GameState) -> tuple[GameState, list[AssetWornMessage]]:

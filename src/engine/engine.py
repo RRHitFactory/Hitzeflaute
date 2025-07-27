@@ -16,6 +16,7 @@ from src.models.message import (
     FromGameMessage,
     BuyRequest,
     BuyResponse,
+    T_Id,
     AuctionClearedMessage,
     GameToPlayerMessage,
     OperateLineRequest,
@@ -114,9 +115,8 @@ class Engine:
                         message=text,
                     )
                 )
-            new_game_state, msgs_melted_icecream = Referee.melt_ice_creams(new_game_state)
-            new_game_state, msgs_worn_assets = Referee.wear_non_freezer_assets(new_game_state)
-            msgs.extend(msgs_melted_icecream + msgs_worn_assets)
+            new_game_state, all_referee_msgs = cls.apply_rules_after_market_coupling(new_game_state)
+            msgs.extend(all_referee_msgs)
 
             return new_game_state, msgs
 
@@ -176,6 +176,70 @@ class Engine:
         )
 
         return new_game_state, [response]
+
+    @classmethod
+    def apply_rules_after_market_coupling(cls, gs: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
+        """
+        Apply the rules that are enforced after the market coupling phase.
+        :param gs: The current game state
+        :return: A tuple containing the new game state and a list of messages to be sent to players
+        """
+        assert gs.market_coupling_result is not None, "Market coupling result must be available to apply rules."
+        assert gs.phase == Phase.DA_AUCTION, "Rules can only be applied at the end of DA auction phase."
+
+        new_gs = gs
+        msgs: list[GameToPlayerMessage] = []
+
+        new_gs, ice_cream_msgs = Referee.melt_ice_creams(new_gs)
+        msgs.extend(ice_cream_msgs)
+
+        new_gs, transmission_msgs = Referee.wear_congested_transmission(new_gs)
+        msgs.extend(transmission_msgs)
+
+        new_gs, asset_msgs = Referee.wear_non_freezer_assets(new_gs)
+        msgs.extend(asset_msgs)
+
+        return new_gs, msgs
+
+    @classmethod
+    def _validate_purchase(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
+
+        if isinstance(msg.purchase_id, AssetId):
+            purchase_type = "asset"
+            purchase_repo = gs.assets
+            purchase_repo_ids = purchase_repo.asset_ids
+
+        elif isinstance(msg.purchase_id, TransmissionId):
+            purchase_type = "transmission"
+            purchase_repo = gs.transmission
+            purchase_repo_ids = purchase_repo.transmission_ids
+
+        else:
+            raise NotImplementedError(f"Message type {type(msg)} not implemented for purchase validation.")
+
+        purchase_id = msg.purchase_id
+        player = gs.players[msg.player_id]
+
+        def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
+            failed_response = BuyResponse(
+                player_id=msg.player_id,
+                success=False,
+                message=failed_message,
+                purchase_id=purchase_id,
+            )
+            return [failed_response]
+
+        if not purchase_id in purchase_repo_ids:
+            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
+        purchase_obj = purchase_repo[purchase_id]
+
+        if not purchase_obj.is_for_sale:
+            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} is not for sale.")
+
+        elif player.money < purchase_obj.minimum_acquisition_price:
+            return make_failed_response(f"Sorry, player {msg.player_id} cannot afford {purchase_type} {purchase_id}.")
+
+        return []
 
     @classmethod
     def handle_buy_asset_message(
