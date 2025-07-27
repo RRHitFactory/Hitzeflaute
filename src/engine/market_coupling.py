@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pypsa
 
-from src.models.assets import AssetId, AssetType
+from src.models.assets import AssetId
 from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult

@@ -54,7 +54,6 @@ class Engine:
         else:
             raise NotImplementedError(f"message type {type(msg)} not implemented.")
 
-
     @classmethod
     def handle_new_phase_message(
         cls,
@@ -72,12 +71,11 @@ class Engine:
             raise NotImplementedError(f"Phase {msg.phase} not implemented.")
 
         new_game_state = new_game_state.update(
-                phase=new_game_state.phase.get_next(),
-                players=new_game_state.players.start_all_turns(),
-                round=new_game_state.round + 1 if new_game_state.phase.get_next().value == 0 else new_game_state.round
-            )
+            phase=new_game_state.phase.get_next(),
+            players=new_game_state.players.start_all_turns(),
+            round=new_game_state.round + 1 if new_game_state.phase.get_next().value == 0 else new_game_state.round,
+        )
         return new_game_state, msgs
-
 
     @classmethod
     def handle_update_bid_message(
@@ -102,7 +100,6 @@ class Engine:
 
         return new_game_state, [response]
 
-
     @classmethod
     def handle_buy_asset_message(
         cls,
@@ -125,7 +122,6 @@ class Engine:
         response = BuyResponse(player_id=msg.player_id, success=True, message=message, purchase_id=asset.id)
         return new_game_state, [response]
 
-
     @classmethod
     def handle_buy_transmission_message(
         cls,
@@ -140,14 +136,17 @@ class Engine:
         transmission = game_state.transmission[msg.purchase_id]
 
         message = f"Player {msg.player_id} successfully bought transmission {transmission.id}."
-        new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=transmission.minimum_acquisition_price)
-        new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=msg.player_id)
+        new_players = game_state.players.subtract_money(
+            player_id=msg.player_id, amount=transmission.minimum_acquisition_price
+        )
+        new_transmission = game_state.transmission.change_owner(
+            transmission_id=transmission.id, new_owner=msg.player_id
+        )
 
         new_game_state = game_state.update(players=new_players, transmission=new_transmission)
 
         response = BuyResponse(player_id=msg.player_id, success=True, message=message, purchase_id=transmission.id)
         return new_game_state, [response]
-
 
     @classmethod
     def handle_operate_line_message(
@@ -187,7 +186,6 @@ class Engine:
         new_state = game_state.update(transmission=game_state.transmission.close_line(line.id))
         return make_response(result="success", text="Transmission line closed successfully.", new_game_state=new_state)
 
-
     @classmethod
     def handle_end_turn_message(
         cls,
@@ -200,7 +198,6 @@ class Engine:
             return game_state, [ConcludePhase(phase=game_state.phase)]
         else:
             return game_state, []
-
 
     @classmethod
     def _process_construction_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
@@ -305,7 +302,7 @@ class Engine:
             )
             return [failed_response]
 
-        if not purchase_id in purchase_repo_ids:
+        if purchase_id not in purchase_repo_ids:
             return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
         purchase_obj = purchase_repo[purchase_id]
 
@@ -318,9 +315,7 @@ class Engine:
         return []
 
     @classmethod
-    def _validate_update_bid(
-        cls, gs: GameState, msg: UpdateBidRequest
-    ) -> list[UpdateBidResponse]:
+    def _validate_update_bid(cls, gs: GameState, msg: UpdateBidRequest) -> list[UpdateBidResponse]:
 
         def make_failed_response(failed_message: str) -> list[UpdateBidResponse]:
             failed_response = UpdateBidResponse(

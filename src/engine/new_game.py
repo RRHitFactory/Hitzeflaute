@@ -1,7 +1,7 @@
 import math
 from abc import ABC, abstractmethod
 from itertools import combinations, count
-from typing import Optional, Iterable, Generator
+from typing import Optional, Generator
 
 import numpy as np
 
@@ -14,7 +14,6 @@ from src.models.geometry import Point, Shape
 from src.models.ids import GameId, PlayerId, BusId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionRepo, TransmissionInfo, TransmissionId
-from src.tools.random_choice import random_choice
 
 
 class BusTopologyMaker:

@@ -22,7 +22,9 @@ class Phase(IntEnum):
         next_index = (self.value + 1) % len(Phase)
         return Phase(next_index)
 
-type GameStateAttributes = GameSettings | Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | Round
+
+type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | Round
+
 
 @dataclass(frozen=True)
 class GameState:
@@ -84,9 +86,7 @@ class GameState:
             map_new_attributes[key] = attribute
 
         for attr in new_attributes:
-            if isinstance(attr, GameSettings):
-                append_to_map("game_settings", attr)
-            elif isinstance(attr, Phase):
+            if isinstance(attr, Phase):
                 append_to_map("phase", attr)
             elif isinstance(attr, PlayerRepo):
                 append_to_map("players", attr)

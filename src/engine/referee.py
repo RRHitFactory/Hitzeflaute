@@ -6,10 +6,9 @@ from src.models.message import (
     IceCreamMeltedMessage,
     AssetWornMessage,
     TransmissionWornMessage,
-    GameToPlayerMessage,
-    LoadsDeactivatedMessage
+    LoadsDeactivatedMessage,
 )  # , BuyAssetRequest, BuyAssetResponse, BuyTransmissionRequest, BuyTransmissionResponse, BuyResponse
-from src.models.game_state import GameState, Phase
+from src.models.game_state import GameState
 
 
 class Referee:
@@ -104,7 +103,8 @@ class Referee:
                 TransmissionWornMessage(
                     player_id=new_gs.transmission[transmission_id].owner_player,
                     transmission_id=transmission_id,
-                    message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand {new_gs.transmission[transmission_id].health} more congested periods.",
+                    message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand "
+                    f"{new_gs.transmission[transmission_id].health} more congested periods.",
                 )
                 for transmission_id in transmission_ids
             ]
@@ -131,7 +131,8 @@ class Referee:
                 AssetWornMessage(
                     player_id=new_gs.assets[asset_id].owner_player,
                     asset_id=asset_id,
-                    message=f"Asset {AssetId} has worn with time, it can only operate during the next {new_gs.assets[asset_id].health} rounds.",
+                    message=f"Asset {AssetId} has worn with time, it can only operate during the next "
+                    f"{new_gs.assets[asset_id].health} rounds.",
                 )
                 for asset_id in asset_ids
             ]
