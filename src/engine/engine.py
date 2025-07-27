@@ -1,4 +1,3 @@
-from dataclasses import replace
 from typing import Literal, Optional
 
 from src.engine.finance import FinanceCalculator
@@ -68,8 +67,7 @@ class Engine:
         for player_id, net_cashflow in cashflows.items():
             player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
 
-        new_game_state = replace(
-            game_state,
+        new_game_state = game_state.update(
             players=player_repo,
             market_coupling_result=market_coupling_result,
         )
@@ -165,8 +163,8 @@ class Engine:
                 f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
             )
 
-        new_asset = game_state.assets.update_bid_price(asset_id=msg.asset_id, bid_price=msg.bid_price)
-        new_game_state = replace(game_state, assets=new_asset)
+        new_assets = game_state.assets.update_bid_price(asset_id=msg.asset_id, bid_price=msg.bid_price)
+        new_game_state = game_state.update(assets=new_assets)
 
         response = UpdateBidResponse(
             player_id=player.id,
@@ -258,7 +256,7 @@ class Engine:
         new_players = game_state.players.subtract_money(player_id=player.id, amount=asset.minimum_acquisition_price)
         new_assets = game_state.assets.change_owner(asset_id=asset.id, new_owner=player.id)
 
-        new_game_state = replace(game_state, players=new_players, assets=new_assets)
+        new_game_state = game_state.update(players=new_players, assets=new_assets)
 
         response = BuyResponse(player_id=player.id, success=True, message=message, purchase_id=asset.id)
         return new_game_state, [response]
@@ -282,7 +280,7 @@ class Engine:
         )
         new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=player.id)
 
-        new_game_state = replace(game_state, players=new_players, transmission=new_transmission)
+        new_game_state = game_state.update(players=new_players, transmission=new_transmission)
 
         response = BuyResponse(
             player_id=player.id,
@@ -318,7 +316,7 @@ class Engine:
             if line.is_open:
                 return make_response(result="no_change", text="Transmission line is already open.")
             else:
-                new_state = replace(game_state, transmission=game_state.transmission.open_line(line.id))
+                new_state = game_state.update(transmission=game_state.transmission.open_line(line.id))
                 return make_response(
                     result="success", text="Transmission line opened successfully.", new_game_state=new_state
                 )
@@ -327,7 +325,7 @@ class Engine:
         if line.is_closed:
             return make_response(result="no_change", text="Transmission line is already closed.")
 
-        new_state = replace(game_state, transmission=game_state.transmission.close_line(line.id))
+        new_state = game_state.update(transmission=game_state.transmission.close_line(line.id))
         return make_response(result="success", text="Transmission line closed successfully.", new_game_state=new_state)
 
     @classmethod
@@ -337,7 +335,7 @@ class Engine:
         msg: EndTurn,
     ) -> tuple[GameState, list[ConcludePhase]]:
         # TODO If this phase requires players to play one by one (Do we need such a phase?) Then cycle to the next player
-        game_state = replace(game_state, players=game_state.players.end_turn(player_id=msg.player_id))
+        game_state = game_state.update(players=game_state.players.end_turn(player_id=msg.player_id))
         if game_state.players.are_all_players_finished():
             return game_state, [ConcludePhase(phase=game_state.phase)]
         else:

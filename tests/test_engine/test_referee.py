@@ -1,5 +1,4 @@
 from unittest import TestCase
-from dataclasses import replace
 
 from src.models.message import IceCreamMeltedMessage, TransmissionWornMessage, AssetWornMessage
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
@@ -30,14 +29,14 @@ class TestReferee(TestCase):
             transmission_repo=game_state.transmission,
             n_random_congested_transmissions=2,
         )
-        game_state = replace(game_state, phase=Phase.DA_AUCTION, market_coupling_result=market_coupling_result)
+        game_state = game_state.update(phase=Phase.DA_AUCTION, market_coupling_result=market_coupling_result)
 
         return game_state, market_coupling_result
 
     def test_melt_ice_creams(self):
         game_state, market_result = self.create_game_state_and_market_coupling_result()
         freezers = game_state.assets.only_freezers
-        game_state = replace(game_state, phase=Phase.DA_AUCTION)
+        game_state = game_state.update(phase=Phase.DA_AUCTION)
 
         unpowered_freezer_ids = []
         for freezer in freezers:
@@ -95,7 +94,7 @@ class TestReferee(TestCase):
         # make the first player go in debt
         player = game_state.players[0]
         players = game_state.players.subtract_money(player_id=player.id, amount=player.money * 2 + 100)
-        game_state = replace(game_state, players=players)
+        game_state = game_state.update(players=players)
 
         new_game_state, update_msgs = Referee.deactivate_loads_of_players_in_debt(game_state)
         loads_player_in_debt = new_game_state.assets.get_all_for_player(player_id=player.id).only_loads

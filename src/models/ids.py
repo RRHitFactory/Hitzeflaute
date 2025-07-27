@@ -27,3 +27,7 @@ class BusId(WrappedInt):
 
 class TransmissionId(WrappedInt):
     pass
+
+
+class Round(WrappedInt):
+    pass

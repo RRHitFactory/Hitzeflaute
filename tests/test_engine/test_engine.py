@@ -1,4 +1,3 @@
-from dataclasses import replace
 from typing import Callable
 from unittest import TestCase
 
@@ -207,7 +206,7 @@ class TestAssets(TestCase):
             transmission_repo=game_state.transmission,
             n_random_congested_transmissions=2,
         )
-        game_state = replace(game_state, phase=Phase.DA_AUCTION, market_coupling_result=market_coupling_result)
+        game_state = game_state.update(Phase.DA_AUCTION, market_coupling_result)
 
         new_game_state, update_msgs = Engine.apply_rules_after_market_coupling(game_state)
         melt_ice_cream_msgs = [msg for msg in update_msgs if isinstance(msg, IceCreamMeltedMessage)]
