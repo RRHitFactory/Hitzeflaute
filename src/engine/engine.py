@@ -295,15 +295,7 @@ class Engine:
         return new_game_state, msgs
 
     @classmethod
-    def apply_rules_after_market_coupling(cls, gs: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
-        """
-        Apply the rules that are enforced after the market coupling phase.
-        :param gs: The current game state
-        :return: A tuple containing the new game state and a list of messages to be sent to players
-        """
-        assert gs.market_coupling_result is not None, "Market coupling result must be available to apply rules."
-        assert gs.phase == Phase.DA_AUCTION, "Rules can only be applied at the end of DA auction phase."
-
+    def _apply_rules_after_market_coupling(cls, gs: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
         new_gs = gs
         msgs: list[GameToPlayerMessage] = []
 
