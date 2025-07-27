@@ -85,44 +85,18 @@ class Engine:
         game_state: GameState,
         msg: UpdateBidRequest,
     ) -> tuple[GameState, list[UpdateBidResponse]]:
-        def make_failed_response(failed_message: str) -> tuple[GameState, list[UpdateBidResponse]]:
-            failed_response = UpdateBidResponse(
-                player_id=msg.player_id,
-                success=False,
-                message=failed_message,
-                asset_id=msg.asset_id,
-            )
-            return game_state, [failed_response]
 
-        if msg.asset_id not in game_state.assets.asset_ids:
-            return make_failed_response("Asset does not exist.")
-
-        player = game_state.players[msg.player_id]
-        asset = game_state.assets[msg.asset_id]
-        player_assets = game_state.assets.get_all_for_player(player.id, only_active=True)
-        min_bid = game_state.game_settings.min_bid_price
-        max_bid = game_state.game_settings.max_bid_price
-
-        if player.id != asset.owner_player:
-            return make_failed_response(f"Player {player.id} cannot bid on asset {asset.id} as they do not own it.")
-
-        if not (min_bid <= msg.bid_price <= max_bid):
-            return make_failed_response(
-                f"Bid price {msg.bid_price} is not within the allowed range " f"[{min_bid}, {max_bid}]."
-            )
-
-        if FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
-            return make_failed_response(
-                f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
-            )
+        list_failed_response = cls._validate_update_bid(gs=game_state, msg=msg)
+        if list_failed_response:
+            return game_state, list_failed_response
 
         new_assets = game_state.assets.update_bid_price(asset_id=msg.asset_id, bid_price=msg.bid_price)
         new_game_state = game_state.update(assets=new_assets)
 
         response = UpdateBidResponse(
-            player_id=player.id,
+            player_id=msg.player_id,
             success=True,
-            message=f"Player {player.id} successfully updated bid for asset {asset.id} to {msg.bid_price}.",
+            message=f"Player {msg.player_id} successfully updated bid for asset {msg.asset_id} to {msg.bid_price}.",
             asset_id=msg.asset_id,
         )
 
@@ -135,20 +109,20 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[AssetId],
     ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
+
         list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
         if list_failed_response:
             return game_state, list_failed_response
 
-        player = game_state.players[msg.player_id]
         asset = game_state.assets[msg.purchase_id]
 
-        message = f"Player {player.id} successfully bought asset {asset.id}."
-        new_players = game_state.players.subtract_money(player_id=player.id, amount=asset.minimum_acquisition_price)
-        new_assets = game_state.assets.change_owner(asset_id=asset.id, new_owner=player.id)
+        message = f"Player {msg.player_id} successfully bought asset {asset.id}."
+        new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=asset.minimum_acquisition_price)
+        new_assets = game_state.assets.change_owner(asset_id=asset.id, new_owner=msg.player_id)
 
         new_game_state = game_state.update(players=new_players, assets=new_assets)
 
-        response = BuyResponse(player_id=player.id, success=True, message=message, purchase_id=asset.id)
+        response = BuyResponse(player_id=msg.player_id, success=True, message=message, purchase_id=asset.id)
         return new_game_state, [response]
 
 
@@ -158,27 +132,20 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[TransmissionId],
     ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
+
         list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
         if list_failed_response:
             return game_state, list_failed_response
 
-        player = game_state.players[msg.player_id]
         transmission = game_state.transmission[msg.purchase_id]
 
-        message = f"Player {player.id} successfully bought transmission {transmission.id}."
-        new_players = game_state.players.subtract_money(
-            player_id=player.id, amount=transmission.minimum_acquisition_price
-        )
-        new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=player.id)
+        message = f"Player {msg.player_id} successfully bought transmission {transmission.id}."
+        new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=transmission.minimum_acquisition_price)
+        new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=msg.player_id)
 
         new_game_state = game_state.update(players=new_players, transmission=new_transmission)
 
-        response = BuyResponse(
-            player_id=player.id,
-            success=True,
-            message=message,
-            purchase_id=transmission.id,
-        )
+        response = BuyResponse(player_id=msg.player_id, success=True, message=message, purchase_id=transmission.id)
         return new_game_state, [response]
 
 
@@ -347,5 +314,43 @@ class Engine:
 
         elif player.money < purchase_obj.minimum_acquisition_price:
             return make_failed_response(f"Sorry, player {msg.player_id} cannot afford {purchase_type} {purchase_id}.")
+
+        return []
+
+    @classmethod
+    def _validate_update_bid(
+        cls, gs: GameState, msg: UpdateBidRequest
+    ) -> list[UpdateBidResponse]:
+
+        def make_failed_response(failed_message: str) -> list[UpdateBidResponse]:
+            failed_response = UpdateBidResponse(
+                player_id=msg.player_id,
+                success=False,
+                message=failed_message,
+                asset_id=msg.asset_id,
+            )
+            return [failed_response]
+
+        if msg.asset_id not in gs.assets.asset_ids:
+            return make_failed_response("Asset does not exist.")
+
+        player = gs.players[msg.player_id]
+        asset = gs.assets[msg.asset_id]
+        player_assets = gs.assets.get_all_for_player(player.id, only_active=True)
+        min_bid = gs.game_settings.min_bid_price
+        max_bid = gs.game_settings.max_bid_price
+
+        if player.id != asset.owner_player:
+            return make_failed_response(f"Player {player.id} cannot bid on asset {asset.id} as they do not own it.")
+
+        if not (min_bid <= msg.bid_price <= max_bid):
+            return make_failed_response(
+                f"Bid price {msg.bid_price} is not within the allowed range " f"[{min_bid}, {max_bid}]."
+            )
+
+        if FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
+            return make_failed_response(
+                f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
+            )
 
         return []
