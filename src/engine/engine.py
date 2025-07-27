@@ -79,52 +79,23 @@ class Engine:
         game_state: GameState,
         msg: ConcludePhase,
     ) -> tuple[GameState, list[GameToPlayerMessage]]:
-        def increment_phase_and_start_turns(gs: GameState) -> GameState:
-            new_phase = msg.phase.get_next()
-            game_round = gs.round
-            if new_phase.value == 0:
-                game_round += 1
-
-            return replace(gs, phase=new_phase, players=game_state.players.start_all_turns(), round=game_round)
 
         if msg.phase == Phase.CONSTRUCTION:
-            new_game_state = increment_phase_and_start_turns(game_state)
-            return new_game_state, []
-
+            new_game_state, msgs = cls._process_construction_phase(game_state)
         elif msg.phase == Phase.DA_AUCTION:
-            msgs: list[GameToPlayerMessage] = []
-
-            new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
-            msgs.extend(msgs_load_deactivation)
-
-            market_result = MarketCouplingCalculator.run(game_state=new_game_state)
-            new_game_state = cls.update_game_state_with_market_coupling_result(
-                game_state=new_game_state, market_coupling_result=market_result
-            )
-            new_game_state = increment_phase_and_start_turns(new_game_state)
-
-            for player_id in new_game_state.players.player_ids:
-                old_money = game_state.players[player_id].money
-                new_money = new_game_state.players[player_id].money
-                text = f"Day-ahead market cleared. Your balance was adjusted accordingly from ${old_money} to ${new_money}."
-                msgs.append(
-                    AuctionClearedMessage(
-                        player_id=player_id,
-                        message=text,
-                    )
-                )
-            new_game_state, all_referee_msgs = cls.apply_rules_after_market_coupling(new_game_state)
-            msgs.extend(all_referee_msgs)
-
-            return new_game_state, msgs
-
+            new_game_state, msgs = cls._process_day_ahead_auction_phase(game_state)
         elif msg.phase == Phase.SNEAKY_TRICKS:
-            new_game_state = increment_phase_and_start_turns(game_state)
-            return new_game_state, []
-
-        # TODO in the new phase, one or all players have turns, so we need to update the game state accordingly
+            new_game_state, msgs = cls._process_sneaky_tricks_phase(game_state)
         else:
             raise NotImplementedError(f"Phase {msg.phase} not implemented.")
+
+        new_game_state = new_game_state.update(
+                phase=new_game_state.phase.get_next(),
+                players=new_game_state.players.start_all_turns(),
+                round=new_game_state.round + 1 if new_game_state.phase.get_next().value == 0 else new_game_state.round
+            )
+        return new_game_state, msgs
+
 
     @classmethod
     def handle_update_bid_message(
@@ -146,6 +117,7 @@ class Engine:
 
         player = game_state.players[msg.player_id]
         asset = game_state.assets[msg.asset_id]
+        player_assets = game_state.assets.get_all_for_player(player.id, only_active=True)
         min_bid = game_state.game_settings.min_bid_price
         max_bid = game_state.game_settings.max_bid_price
 
@@ -157,7 +129,6 @@ class Engine:
                 f"Bid price {msg.bid_price} is not within the allowed range " f"[{min_bid}, {max_bid}]."
             )
 
-        player_assets = game_state.assets.get_all_for_player(player.id, only_active=True)
         if FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
             return make_failed_response(
                 f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
@@ -174,6 +145,172 @@ class Engine:
         )
 
         return new_game_state, [response]
+
+
+    @classmethod
+    def handle_buy_asset_message(
+        cls,
+        game_state: GameState,
+        msg: BuyRequest[AssetId],
+    ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
+        list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
+        if list_failed_response:
+            return game_state, list_failed_response
+
+        player = game_state.players[msg.player_id]
+        asset = game_state.assets[msg.purchase_id]
+
+        message = f"Player {player.id} successfully bought asset {asset.id}."
+        new_players = game_state.players.subtract_money(player_id=player.id, amount=asset.minimum_acquisition_price)
+        new_assets = game_state.assets.change_owner(asset_id=asset.id, new_owner=player.id)
+
+        new_game_state = game_state.update(players=new_players, assets=new_assets)
+
+        response = BuyResponse(player_id=player.id, success=True, message=message, purchase_id=asset.id)
+        return new_game_state, [response]
+
+
+    @classmethod
+    def handle_buy_transmission_message(
+        cls,
+        game_state: GameState,
+        msg: BuyRequest[TransmissionId],
+    ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
+        list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
+        if list_failed_response:
+            return game_state, list_failed_response
+
+        player = game_state.players[msg.player_id]
+        transmission = game_state.transmission[msg.purchase_id]
+
+        message = f"Player {player.id} successfully bought transmission {transmission.id}."
+        new_players = game_state.players.subtract_money(
+            player_id=player.id, amount=transmission.minimum_acquisition_price
+        )
+        new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=player.id)
+
+        new_game_state = game_state.update(players=new_players, transmission=new_transmission)
+
+        response = BuyResponse(
+            player_id=player.id,
+            success=True,
+            message=message,
+            purchase_id=transmission.id,
+        )
+        return new_game_state, [response]
+
+
+    @classmethod
+    def handle_operate_line_message(
+        cls,
+        game_state: GameState,
+        msg: OperateLineRequest,
+    ) -> tuple[GameState, list[OperateLineResponse]]:
+
+        def make_response(
+            result: Literal["success", "no_change", "failure"], text: str, new_game_state: Optional[GameState] = None
+        ) -> tuple[GameState, list[OperateLineResponse]]:
+            if new_game_state is None:
+                new_game_state = game_state
+            response = OperateLineResponse(player_id=msg.player_id, request=msg, result=result, message=text)
+            return new_game_state, [response]
+
+        if msg.transmission_id not in game_state.transmission.transmission_ids:
+            return make_response(result="failure", text="Transmission does not exist.")
+
+        line = game_state.transmission[msg.transmission_id]
+        if line.owner_player != msg.player_id:
+            return make_response(result="failure", text="Transmission does not belong to this player.")
+
+        if msg.action == "open":
+            if line.is_open:
+                return make_response(result="no_change", text="Transmission line is already open.")
+            else:
+                new_state = game_state.update(transmission=game_state.transmission.open_line(line.id))
+                return make_response(
+                    result="success", text="Transmission line opened successfully.", new_game_state=new_state
+                )
+
+        assert msg.action == "close"
+        if line.is_closed:
+            return make_response(result="no_change", text="Transmission line is already closed.")
+
+        new_state = game_state.update(transmission=game_state.transmission.close_line(line.id))
+        return make_response(result="success", text="Transmission line closed successfully.", new_game_state=new_state)
+
+
+    @classmethod
+    def handle_end_turn_message(
+        cls,
+        game_state: GameState,
+        msg: EndTurn,
+    ) -> tuple[GameState, list[ConcludePhase]]:
+        # TODO If this phase requires players to play one by one (Do we need such a phase?) Then cycle to the next player
+        game_state = game_state.update(players=game_state.players.end_turn(player_id=msg.player_id))
+        if game_state.players.are_all_players_finished():
+            return game_state, [ConcludePhase(phase=game_state.phase)]
+        else:
+            return game_state, []
+
+
+    @classmethod
+    def _process_construction_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
+        new_game_state = game_state
+        return new_game_state, []
+
+    @classmethod
+    def _process_sneaky_tricks_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
+        new_game_state = game_state
+        return new_game_state, []
+
+    @classmethod
+    def _process_day_ahead_auction_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
+        msgs: list[GameToPlayerMessage] = []
+
+        new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
+        msgs.extend(msgs_load_deactivation)
+
+        market_result = MarketCouplingCalculator.run(game_state=new_game_state)
+        new_game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(
+            game_state=new_game_state, market_coupling_result=market_result
+        )
+
+        new_game_state, referee_after_coupling_msgs = cls._apply_rules_after_market_coupling(new_game_state)
+        msgs.extend(referee_after_coupling_msgs)
+
+        return new_game_state, msgs
+
+    @staticmethod
+    def _update_game_state_with_market_coupling_result(
+        game_state: GameState,
+        market_coupling_result: MarketCouplingResult,
+    ) -> tuple[GameState, list[AuctionClearedMessage]]:
+        player_repo = game_state.players
+        cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(
+            game_state=game_state, market_coupling_result=market_coupling_result
+        )
+
+        for player_id, net_cashflow in cashflows.items():
+            player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
+
+        new_game_state = game_state.update(
+            players=player_repo,
+            market_coupling_result=market_coupling_result,
+        )
+
+        msgs: list[AuctionClearedMessage] = []
+        for player_id in new_game_state.players.player_ids:
+            old_money = game_state.players[player_id].money
+            new_money = new_game_state.players[player_id].money
+            text = f"Day-ahead market cleared. Your balance was adjusted accordingly from ${old_money} to ${new_money}."
+            msgs.append(
+                AuctionClearedMessage(
+                    player_id=player_id,
+                    message=text,
+                )
+            )
+
+        return new_game_state, msgs
 
     @classmethod
     def apply_rules_after_market_coupling(cls, gs: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
