@@ -1,14 +1,14 @@
 from dataclasses import replace
 import numpy as np
 
-from src.models.ids import AssetId, TransmissionId
+from src.models.ids import AssetId, TransmissionId, PlayerId
 from src.models.message import (
     GameUpdate,
     IceCreamMeltedMessage,
     AssetWornMessage,
     TransmissionWornMessage,
     GameToPlayerMessage,
-    LoadsDeactivatedMessage
+    LoadsDeactivatedMessage,
 )  # , BuyAssetRequest, BuyAssetResponse, BuyTransmissionRequest, BuyTransmissionResponse, BuyResponse
 from src.models.game_state import GameState, Phase
 
@@ -47,7 +47,7 @@ class Referee:
         msgs = []
         ids_to_deactivate = []
 
-        for player in gs.players:
+        for player in gs.players.human_players:
             if player.money >= 0:
                 continue
             load_ids = gs.assets.get_all_for_player(player_id=player.id).only_loads.asset_ids
@@ -75,7 +75,11 @@ class Referee:
                 IceCreamMeltedMessage(
                     player_id=new_gs.assets[asset_id].owner_player,
                     asset_id=asset_id,
-                    message=f"Ice cream melted in Freezer {AssetId} due to insufficient power dispatch.",
+                    message=(
+                        f"Ice cream melted in Freezer {asset_id} due to insufficient power dispatch. You only have {new_gs.assets[asset_id].health} ice creams left in this freezer."
+                        if new_gs.assets[asset_id].health > 0
+                        else f"Your Freezer {asset_id} has no ice creams left, you will not survive global warming."
+                    ),
                 )
                 for asset_id in asset_ids
             ]
@@ -110,7 +114,7 @@ class Referee:
                 for transmission_id in transmission_ids
             ]
 
-        transmission_repo = gs.transmission
+        transmission_repo = gs.transmission.filter({"is_active": True})
         congested_transmissions: list[TransmissionId] = []
         flows = gs.market_coupling_result.transmission_flows
 
@@ -132,13 +136,17 @@ class Referee:
                 AssetWornMessage(
                     player_id=new_gs.assets[asset_id].owner_player,
                     asset_id=asset_id,
-                    message=f"Asset {AssetId} has worn with time, it can only operate during the next {new_gs.assets[asset_id].health} rounds.",
+                    message=(
+                        f"Asset {asset_id} has worn with time, it can only operate during the next {new_gs.assets[asset_id].health} rounds."
+                        if new_gs.assets[asset_id].health > 0
+                        else f"Asset {asset_id} has worn with time and is no longer operational."
+                    ),
                 )
                 for asset_id in asset_ids
             ]
 
         asset_repo = gs.assets
-        wearable_assets = gs.assets.filter({"is_freezer": False})
+        wearable_assets = gs.assets.filter({"is_freezer": False, "is_active": True})
         melted_ids: list[AssetId] = []
 
         for asset in wearable_assets:
