@@ -23,7 +23,7 @@ class Referee:
 
     # BEFORE MARKET COUPLING
     @classmethod
-    def invalidate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
+    def validate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
 
         if isinstance(purchase_id, AssetId):
             purchase_type = "asset"

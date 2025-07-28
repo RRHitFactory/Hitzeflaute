@@ -78,6 +78,7 @@ class GameState:
         return self.update(self.players.start_all_turns())
 
     def update(self, *new_attributes: GameStateAttributes, **kw_new_attributes: GameStateAttributes) -> Self:
+        assert kw_new_attributes.keys() <= vars(self).keys()
         map_new_attributes = {**kw_new_attributes}
 
         def append_to_map(key: str, attribute: GameStateAttributes) -> None:

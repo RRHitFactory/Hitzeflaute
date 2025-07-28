@@ -1,7 +1,6 @@
 from unittest import TestCase
 
 from src.models.ids import PlayerId
-from src.models.message import IceCreamMeltedMessage, TransmissionWornMessage, AssetWornMessage
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from src.models.game_state import GameState, Phase
@@ -113,7 +112,7 @@ class TestReferee(TestCase):
         # make the second player rich
         rich_player = game_state.players[1]
         players = players.add_money(player_id=rich_player.id, amount=1e10)
-        game_state = replace(game_state, players=players)
+        game_state = game_state.update(players=players)
 
         # get the first asset for sale
         asset = game_state.assets.filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
@@ -122,7 +121,7 @@ class TestReferee(TestCase):
             {"is_for_sale": True, "owner_player": PlayerId.get_npc()}
         ).as_objs()[0]
 
-        self.assertTrue(len(Referee.invalidate_purchase(game_state, poor_player.id, asset.id)) == 1)
-        self.assertTrue(len(Referee.invalidate_purchase(game_state, poor_player.id, transmission.id)) == 1)
-        self.assertTrue(len(Referee.invalidate_purchase(game_state, rich_player.id, asset.id)) == 0)
-        self.assertTrue(len(Referee.invalidate_purchase(game_state, rich_player.id, transmission.id)) == 0)
+        self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, asset.id)) == 1)
+        self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, transmission.id)) == 1)
+        self.assertTrue(len(Referee.validate_purchase(game_state, rich_player.id, asset.id)) == 0)
+        self.assertTrue(len(Referee.validate_purchase(game_state, rich_player.id, transmission.id)) == 0)
