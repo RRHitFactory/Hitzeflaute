@@ -38,7 +38,7 @@ class MarketCouplingCalculator:
         network.add(class_name="Carrier", name="AC")
         for bus in game_state.buses:
             network.add(class_name="Bus", name=cls.get_pypsa_name(bus.id), carrier="AC")
-        for line in game_state.transmission.only_closed:
+        for line in game_state.transmission:
             if not line.is_active:
                 continue
             network.add(
