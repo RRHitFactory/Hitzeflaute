@@ -374,6 +374,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                     marginal_cost=self.settings.initial_funds / 20,
                     bid_price=np.random.uniform(self.settings.initial_funds / 20, self.settings.initial_funds / 2),
                     is_freezer=False,
+                    health=5,
                 )
             )
         return AssetRepo(assets)

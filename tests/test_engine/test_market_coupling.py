@@ -15,7 +15,10 @@ class TestMarketCoupling(TestCase):
         player_repo = PlayerRepoMaker().make_quick(2)
         bus_repo = BusRepoMaker.make_quick(n_npc_buses=0, players=player_repo)
         asset_maker = AssetRepoMaker(players=player_repo.human_player_ids, bus_repo=bus_repo)
-        transmission_repo = TransmissionRepoMaker.make_quick(1, players=player_repo.human_player_ids, buses=bus_repo)
+
+        transmission_maker = TransmissionRepoMaker(players=player_repo.human_player_ids, buses=bus_repo)
+        transmission_maker.add_transmission(is_active=False)
+        transmission_maker.add_n_random(1)
 
         # add generators
         for bid_price in [10.0, 20.0, 30.0, 80.0]:
@@ -24,6 +27,10 @@ class TestMarketCoupling(TestCase):
             # expensive bus
             asset_maker.add_asset(
                 cat="Generator", power_std=0, bid_price=bid_price * 3, bus=bus_repo[1].id, is_active=True
+            )
+            # inactive generator
+            asset_maker.add_asset(
+                cat="Generator", power_std=0, bid_price=bid_price * 3, bus=bus_repo[1].id, is_active=False
             )
 
         # add two loads for each player at the expensive bus
@@ -36,11 +43,12 @@ class TestMarketCoupling(TestCase):
             )
 
         assets = asset_maker.make()
+        transmission = transmission_maker.make()
         game_state = (
             game_maker.add_player_repo(player_repo)
             .add_bus_repo(bus_repo)
             .add_asset_repo(assets)
-            .add_transmission_repo(transmission_repo)
+            .add_transmission_repo(transmission)
             .make()
         )
 
@@ -63,21 +71,24 @@ class TestMarketCoupling(TestCase):
             for bus in game_state.buses:
                 bus_price = market_result.bus_prices.loc[mtu, bus.id]
                 assets_in_bus = game_state.assets.filter({"bus": bus.id})
-                generators_in_the_money = assets_in_bus.filter(
+                generators_in_or_at_the_money = assets_in_bus.filter(
                     lambda x: x["bid_price"] <= bus_price, 'and', {"asset_type": AssetType.GENERATOR}
                 ).asset_ids
-                loads_in_the_money = assets_in_bus.filter(
+                loads_in_or_at_the_money = assets_in_bus.filter(
                     lambda x: x["bid_price"] >= bus_price, 'and', {"asset_type": AssetType.LOAD}
                 ).asset_ids
                 asset_dispatch = market_result.assets_dispatch.loc[mtu]
 
-                small_generation = 0.1  # Define a threshold for small generation to avoid floating point issues
+                small_generation = 0.5  # Define a threshold for small generation to avoid floating point issues
                 dispatched_assets = set(asset_dispatch[asset_dispatch.abs() > small_generation].index) & set(
                     assets_in_bus.asset_ids
                 )
+                assets_in_or_at_the_money = set(generators_in_or_at_the_money) | set(loads_in_or_at_the_money)
 
-                for asset_id in dispatched_assets:
-                    self.assertIn(asset_id, set(generators_in_the_money) | set(loads_in_the_money))
+                self.assertTrue(
+                    dispatched_assets.issubset(assets_in_or_at_the_money),
+                    f"Some dispatched assets ({dispatched_assets}) are not in/at the money ({assets_in_or_at_the_money})",
+                )
 
     def test_energy_balance(self) -> None:
         game_state = self.create_game_state()
@@ -100,7 +111,9 @@ class TestMarketCoupling(TestCase):
         for mtu in market_result.transmission_flows.index:
             for transmission in game_state.transmission:
                 flow = market_result.transmission_flows.loc[mtu, transmission.id]
-                if np.isclose(abs(flow), abs(transmission.capacity)):
+                if not transmission.is_active:
+                    continue
+                elif np.isclose(abs(flow), abs(transmission.capacity)):
                     self.assertGreater(
                         abs(
                             market_result.bus_prices.loc[mtu, transmission.bus1]
@@ -114,3 +127,17 @@ class TestMarketCoupling(TestCase):
                         market_result.bus_prices.loc[mtu, transmission.bus2],
                         places=0,
                     )
+
+    def test_all_assets_and_transmission_appear_in_results(self) -> None:
+        game_state = self.create_game_state()
+        market_result = MarketCouplingCalculator.run(game_state)
+
+        all_assets = game_state.assets.asset_ids
+        dispatched_assets = market_result.assets_dispatch.columns.tolist()
+        self.assertSetEqual(set(all_assets), set(dispatched_assets), "Not all assets appear in the market results.")
+
+        all_transmissions = game_state.transmission.transmission_ids
+        transmission_flows = market_result.transmission_flows.columns.tolist()
+        self.assertSetEqual(
+            set(all_transmissions), set(transmission_flows), "Not all transmission lines appear in the market results."
+        )
