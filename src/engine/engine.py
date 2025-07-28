@@ -240,7 +240,9 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[AssetId],
     ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
-        list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
+        list_failed_response = Referee.invalidate_purchase(
+            gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id
+        )
         if list_failed_response:
             return game_state, list_failed_response
 
@@ -262,7 +264,9 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[TransmissionId],
     ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
-        list_failed_response = cls._validate_purchase(gs=game_state, msg=msg)
+        list_failed_response = Referee.invalidate_purchase(
+            gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id
+        )
         if list_failed_response:
             return game_state, list_failed_response
 

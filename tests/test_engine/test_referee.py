@@ -1,6 +1,7 @@
 from unittest import TestCase
 from dataclasses import replace
 
+from src.models.ids import PlayerId
 from src.models.message import IceCreamMeltedMessage, TransmissionWornMessage, AssetWornMessage
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
@@ -19,7 +20,7 @@ class TestReferee(TestCase):
         asset_maker = AssetRepoMaker(bus_repo=buses, players=player_repo)
 
         for _ in range(6):
-            asset_maker.add_asset(cat="Generator", power_std=0)
+            asset_maker.add_asset(cat="Generator", power_std=0, is_for_sale=True)
 
         assets = asset_maker.make()
         game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).make()
@@ -103,3 +104,26 @@ class TestReferee(TestCase):
         self.assertEqual(len(update_msgs), 1)
         for asset in loads_player_in_debt:
             self.assertFalse(new_game_state.assets[asset.id].is_active)
+
+    def test_validate_purchase(self):
+        game_state, market_result = self.create_game_state_and_market_coupling_result()
+
+        # make the first player go in debt
+        poor_player = game_state.players[0]
+        players = game_state.players.subtract_money(player_id=poor_player.id, amount=poor_player.money * 2 + 100)
+        # make the second player rich
+        rich_player = game_state.players[1]
+        players = players.add_money(player_id=rich_player.id, amount=1e10)
+        game_state = replace(game_state, players=players)
+
+        # get the first asset for sale
+        asset = game_state.assets.filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
+        # get the first transmission for sale
+        transmission = game_state.transmission.filter(
+            {"is_for_sale": True, "owner_player": PlayerId.get_npc()}
+        ).as_objs()[0]
+
+        self.assertTrue(len(Referee.invalidate_purchase(game_state, poor_player.id, asset.id)) == 1)
+        self.assertTrue(len(Referee.invalidate_purchase(game_state, poor_player.id, transmission.id)) == 1)
+        self.assertTrue(len(Referee.invalidate_purchase(game_state, rich_player.id, asset.id)) == 0)
+        self.assertTrue(len(Referee.invalidate_purchase(game_state, rich_player.id, transmission.id)) == 0)
