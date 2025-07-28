@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Optional
 
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc

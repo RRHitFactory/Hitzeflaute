@@ -1,4 +1,3 @@
-from dataclasses import replace
 import numpy as np
 
 from src.models.ids import AssetId, TransmissionId, PlayerId
@@ -24,7 +23,7 @@ class Referee:
 
     # BEFORE MARKET COUPLING
     @classmethod
-    def invalidate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
+    def validate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
 
         if isinstance(purchase_id, AssetId):
             purchase_type = "asset"
@@ -68,7 +67,7 @@ class Referee:
 
         def deactivate_player_loads(game_state: GameState, loads: list[AssetId]) -> GameState:
             asset_repo = game_state.assets.batch_deactivate(loads)
-            return replace(game_state, assets=asset_repo)
+            return game_state.update(assets=asset_repo)
 
         msgs = []
         ids_to_deactivate = []
@@ -122,7 +121,7 @@ class Referee:
                 asset_repo = asset_repo.melt_ice_cream(load.id)
                 melted_ids.append(load.id)
 
-        new_gs = replace(gs, assets=asset_repo)
+        new_gs = gs.update(assets=asset_repo)
         msgs = generate_melted_ice_cream_messages(new_gs, melted_ids)
 
         return new_gs, msgs
@@ -137,7 +136,8 @@ class Referee:
                 TransmissionWornMessage(
                     player_id=new_gs.transmission[transmission_id].owner_player,
                     transmission_id=transmission_id,
-                    message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand {new_gs.transmission[transmission_id].health} more congested periods.",
+                    message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand "
+                    f"{new_gs.transmission[transmission_id].health} more congested periods.",
                 )
                 for transmission_id in transmission_ids
             ]
@@ -153,7 +153,7 @@ class Referee:
                 transmission_repo = transmission_repo.wear_transmission(transmission_id=transmission.id)
                 congested_transmissions.append(transmission.id)
 
-        new_gs = replace(gs, transmission=transmission_repo)
+        new_gs = gs.update(transmission=transmission_repo)
         msgs = generate_worn_transmission_messages(new_gs=new_gs, transmission_ids=congested_transmissions)
 
         return new_gs, msgs
@@ -185,7 +185,7 @@ class Referee:
             asset_repo = asset_repo.wear_asset(asset_id=asset.id)
             melted_ids.append(asset.id)
 
-        new_gs = replace(gs, assets=asset_repo)
+        new_gs = gs.update(assets=asset_repo)
         msgs = generate_worn_asset_messages(new_gs=new_gs, asset_ids=melted_ids)
 
         return new_gs, msgs

@@ -6,7 +6,7 @@ from plotly.graph_objs import Scatter
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
 from src.models.colors import get_contrasting_color, Color
-from src.models.geometry import Point, Shape, ShapeType
+from src.models.geometry import Point, Shape
 
 
 def render_shape(

@@ -1,4 +1,4 @@
-from src.models.assets import AssetId, AssetRepo, AssetType
+from src.models.assets import AssetId, AssetRepo
 from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.ids import PlayerId
@@ -83,7 +83,8 @@ class FinanceCalculator:
             bid_price = asset.bid_price if asset.id != asset_id_to_validate else bid_to_validate
             sign = asset.cashflow_sign
 
-            # Players must at least be capable of covering the market cashflow of their assets. Operative cashflow is not considered here.
+            # Players must at least be capable of covering the market cashflow of their assets.
+            # Operative cashflow is not considered here.
             expected_market_cashflow += sign * bid_price * expected_volume
 
         delta_money = expected_market_cashflow

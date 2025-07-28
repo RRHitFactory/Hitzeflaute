@@ -1,7 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Union, TypeVar, Generic
-from typing import Union, Literal
+from typing import TypeVar, Generic, Union, Literal
 
 from src.models.game_state import GameState, Phase
 from src.models.ids import PlayerId, AssetId, TransmissionId

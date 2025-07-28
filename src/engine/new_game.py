@@ -1,8 +1,7 @@
 import math
 from abc import ABC, abstractmethod
-from dataclasses import replace
 from itertools import combinations, count
-from typing import Optional, Iterable, Generator
+from typing import Optional, Generator
 
 import numpy as np
 
@@ -15,7 +14,6 @@ from src.models.geometry import Point, Shape
 from src.models.ids import GameId, PlayerId, BusId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionRepo, TransmissionInfo, TransmissionId
-from src.tools.random_choice import random_choice
 
 
 class BusTopologyMaker:
@@ -213,7 +211,7 @@ class BaseGameInitializer(ABC):
             transmission=transmission_repo,
             market_coupling_result=None,
         )
-        new_game = replace(new_game, players=new_game.players.start_all_turns())
+        new_game = new_game.update(new_game.players.start_all_turns())
         return new_game
 
     def _create_player_repo(self, names: list[str], colors: list[Color]) -> PlayerRepo:
