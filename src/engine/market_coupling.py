@@ -105,7 +105,7 @@ class MarketCouplingCalculator:
     def get_assets_dispatch(cls, network: pypsa.Network, assets: AssetRepo) -> pd.DataFrame:
         # Note that all values are positive. For generators this means production, for loads it means consumption.
         df = cls._tidy_df(df=network.generators_t.p, column_name="Asset").abs()
-        # Add zero flows to open lines
+        # Add zero dispatch to inactive assets
         open_ids = assets.only_inactive.asset_ids
         df.loc[:, open_ids] = 0.0
         df.sort_index(axis=1, inplace=True)  # Sort columns by asset ID
