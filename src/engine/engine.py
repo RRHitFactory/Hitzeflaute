@@ -87,7 +87,7 @@ class Engine:
             if new_phase.value == 0:
                 game_round += 1
 
-            return replace(gs, phase=new_phase, players=game_state.players.start_all_turns(), round=game_round)
+            return replace(gs, phase=new_phase, players=gs.players.start_all_turns(), round=game_round)
 
         if msg.phase == Phase.CONSTRUCTION:
             new_game_state = increment_phase_and_start_turns(game_state)
@@ -179,13 +179,6 @@ class Engine:
 
     @classmethod
     def apply_rules_after_market_coupling(cls, gs: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
-        """
-        Apply the rules that are enforced after the market coupling phase.
-        :param gs: The current game state
-        :return: A tuple containing the new game state and a list of messages to be sent to players
-        """
-        assert gs.market_coupling_result is not None, "Market coupling result must be available to apply rules."
-        assert gs.phase == Phase.DA_AUCTION, "Rules can only be applied at the end of DA auction phase."
 
         new_gs = gs
         msgs: list[GameToPlayerMessage] = []

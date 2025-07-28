@@ -73,7 +73,7 @@ class Referee:
         msgs = []
         ids_to_deactivate = []
 
-        for player in gs.players:
+        for player in gs.players.human_players:
             if player.money >= 0:
                 continue
             load_ids = gs.assets.get_all_for_player(player_id=player.id).only_loads.asset_ids
@@ -101,7 +101,11 @@ class Referee:
                 IceCreamMeltedMessage(
                     player_id=new_gs.assets[asset_id].owner_player,
                     asset_id=asset_id,
-                    message=f"Ice cream melted in Freezer {AssetId} due to insufficient power dispatch.",
+                    message=(
+                        f"Ice cream melted in Freezer {asset_id} due to insufficient power dispatch. You only have {new_gs.assets[asset_id].health} ice creams left in this freezer."
+                        if new_gs.assets[asset_id].health > 0
+                        else f"Your Freezer {asset_id} has no ice creams left, you will not survive global warming."
+                    ),
                 )
                 for asset_id in asset_ids
             ]
@@ -112,6 +116,8 @@ class Referee:
         melted_ids = []
 
         for load in ice_cream_loads:
+            if load.health == 0:
+                continue
             if assets_dispatch[load.id] < load.power_expected:
                 asset_repo = asset_repo.melt_ice_cream(load.id)
                 melted_ids.append(load.id)
@@ -141,6 +147,8 @@ class Referee:
         flows = gs.market_coupling_result.transmission_flows
 
         for transmission in transmission_repo:
+            if transmission.health == 0:
+                continue
             if np.isclose(transmission.capacity, flows[transmission.id]):
                 transmission_repo = transmission_repo.wear_transmission(transmission_id=transmission.id)
                 congested_transmissions.append(transmission.id)
@@ -158,7 +166,11 @@ class Referee:
                 AssetWornMessage(
                     player_id=new_gs.assets[asset_id].owner_player,
                     asset_id=asset_id,
-                    message=f"Asset {AssetId} has worn with time, it can only operate during the next {new_gs.assets[asset_id].health} rounds.",
+                    message=(
+                        f"Asset {asset_id} has worn with time, it can only operate during the next {new_gs.assets[asset_id].health} rounds."
+                        if new_gs.assets[asset_id].health > 0
+                        else f"Asset {asset_id} has worn with time and is no longer operational."
+                    ),
                 )
                 for asset_id in asset_ids
             ]
@@ -168,6 +180,8 @@ class Referee:
         melted_ids: list[AssetId] = []
 
         for asset in wearable_assets:
+            if asset.health == 0:
+                continue
             asset_repo = asset_repo.wear_asset(asset_id=asset.id)
             melted_ids.append(asset.id)
 
