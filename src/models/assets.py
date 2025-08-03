@@ -30,6 +30,7 @@ class AssetInfo(LightDc):
     is_freezer: bool = False  # This is a special type of load
     health: int = 0
     is_active: bool = True
+    birthday: int = 1  # Round when the asset was created
 
     def __post_init__(self) -> None:
         if self.is_freezer:
@@ -55,6 +56,10 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return self._filter({"is_active": True})
 
     @cached_property
+    def only_inactive(self) -> Self:
+        return self._filter({"is_active": False})
+
+    @cached_property
     def only_freezers(self) -> Self:
         return self._filter({"is_freezer": True})
 
@@ -66,14 +71,13 @@ class AssetRepo(LdcRepo[AssetInfo]):
     def only_generators(self) -> Self:
         return self._filter({"asset_type": AssetType.GENERATOR})
 
-    def get_all_assets_at_bus(self, bus_id: BusId) -> Self:
-        return self._filter({"bus": bus_id})
+    def get_all_assets_at_bus(self, bus_id: BusId, only_active: bool = False) -> Self:
+        oa_filter = {"is_active": True} if only_active else {}
+        return self._filter({"bus": bus_id, **oa_filter})
 
     def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> Self:
-        if only_active:
-            return self._filter({"owner_player": player_id, "is_active": True})
-        else:
-            return self._filter({"owner_player": player_id})
+        oa_filter = {"is_active": True} if only_active else {}
+        return self._filter({"owner_player": player_id, **oa_filter})
 
     def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
         assets = self._filter({"owner_player": player_id, "is_freezer": True})
@@ -109,6 +113,11 @@ class AssetRepo(LdcRepo[AssetInfo]):
     def wear_asset(self, asset_id: AssetId) -> Self:
         assert not self.df.loc[asset_id, "is_freezer"], "Only non-freezer assets can wear out"
         return self._decrease_health(asset_id)
+
+    def batch_deactivate(self, asset_ids: list[AssetId]) -> Self:
+        df = self.df.copy()
+        df.loc[asset_ids, "is_active"] = False
+        return self.update_frame(df)
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:

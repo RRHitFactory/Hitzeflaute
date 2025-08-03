@@ -87,8 +87,8 @@ class LdcRepo[T_LightDc](ABC):
     def __len__(self) -> int:
         return len(self._df)
 
-    def __eq__(self, other: "LdcRepo") -> bool:
-        if not type(self) == type(other):
+    def __eq__(self: T, other: T) -> bool:
+        if not isinstance(other, self.__class__):
             return False
         return self.df.equals(other.df)
 

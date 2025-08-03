@@ -27,3 +27,7 @@ class BusId(IntId):
 
 class TransmissionId(IntId):
     pass
+
+
+class Round(IntId):
+    pass

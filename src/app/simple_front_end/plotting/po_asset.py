@@ -5,6 +5,7 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.graph_objs import Scatter
 
+from src.app.simple_front_end.layout_planner import Socket
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
 from src.app.simple_front_end.plotting.po_bus import PlotBus
 from src.models.assets import AssetInfo, AssetType
@@ -19,6 +20,7 @@ class PlotAsset(PlotObject):
     asset: AssetInfo
     owner: Player
     bus: PlotBus
+    socket: Socket
     radius: float = 0.5
 
     @property
@@ -55,7 +57,8 @@ class PlotAsset(PlotObject):
 
     @cached_property
     def centre(self) -> Point:
-        socket = self.bus.get_socket()
+        socket = self.bus.get_socket_location(socket=self.socket)
+
         bus_to_socket_vector = socket - self.bus.centre
         if self.bus.is_horizontal:
             unit_offset_vector = Point(x=0, y=np.sign(bus_to_socket_vector.y))

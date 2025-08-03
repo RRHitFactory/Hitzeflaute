@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, Self, runtime_checkable, TypeVar
 
-from src.tools.typing import IntId, T
+from src.tools.typing import T, IntId
 
 type Primitive = int | float | str | bool
 type SimpleDict = dict[str, Primitive]

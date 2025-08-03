@@ -2,6 +2,7 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import TypeVar
 from typing import Union, Literal
+from typing import TypeVar, Generic, Union, Literal
 
 from src.models.game_state import GameState, Phase
 from src.models.ids import PlayerId, AssetId, TransmissionId
@@ -118,3 +119,8 @@ class AssetWornMessage(GameToPlayerMessage):
 @dataclass(frozen=True)
 class TransmissionWornMessage(GameToPlayerMessage):
     transmission_id: TransmissionId
+
+
+@dataclass(frozen=True)
+class LoadsDeactivatedMessage(GameToPlayerMessage):
+    asset_ids: list[AssetId]
