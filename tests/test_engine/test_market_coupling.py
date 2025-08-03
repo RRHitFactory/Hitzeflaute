@@ -1,10 +1,11 @@
 from unittest import TestCase
+
 import numpy as np
 
-from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
-from tests.utils.game_state_maker import GameStateMaker
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.assets import AssetType
+from tests.utils.game_state_maker import GameStateMaker
+from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
 
 
 class TestMarketCoupling(TestCase):
