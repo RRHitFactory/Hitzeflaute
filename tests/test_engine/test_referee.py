@@ -55,7 +55,7 @@ class TestReferee(TestCase):
 
     def test_wear_non_freezer_assets(self):
         game_state, market_result = self.create_game_state_and_market_coupling_result()
-        wearable_assets = game_state.assets.filter({"is_freezer": False})
+        wearable_assets = game_state.assets._filter({"is_freezer": False})
 
         new_game_state, update_msgs = Referee.wear_non_freezer_assets(game_state)
         self.assertEqual(len(update_msgs), len(wearable_assets))
@@ -115,9 +115,9 @@ class TestReferee(TestCase):
         game_state = game_state.update(players=players)
 
         # get the first asset for sale
-        asset = game_state.assets.filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
+        asset = game_state.assets._filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
         # get the first transmission for sale
-        transmission = game_state.transmission.filter(
+        transmission = game_state.transmission._filter(
             {"is_for_sale": True, "owner_player": PlayerId.get_npc()}
         ).as_objs()[0]
 

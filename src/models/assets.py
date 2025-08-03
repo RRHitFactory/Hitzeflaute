@@ -53,34 +53,34 @@ class AssetRepo(LdcRepo[AssetInfo]):
 
     @cached_property
     def only_active(self) -> Self:
-        return self.filter({"is_active": True})
+        return self._filter({"is_active": True})
 
     @cached_property
     def only_inactive(self) -> Self:
-        return self.filter({"is_active": False})
+        return self._filter({"is_active": False})
 
     @cached_property
     def only_freezers(self) -> Self:
-        return self.filter({"is_freezer": True})
+        return self._filter({"is_freezer": True})
 
     @cached_property
     def only_loads(self) -> Self:
-        return self.filter({"asset_type": AssetType.LOAD})
+        return self._filter({"asset_type": AssetType.LOAD})
 
     @cached_property
     def only_generators(self) -> Self:
-        return self.filter({"asset_type": AssetType.GENERATOR})
+        return self._filter({"asset_type": AssetType.GENERATOR})
 
     def get_all_assets_at_bus(self, bus_id: BusId, only_active: bool = False) -> Self:
         oa_filter = {"is_active": True} if only_active else {}
-        return self.filter({"bus": bus_id, **oa_filter})
+        return self._filter({"bus": bus_id, **oa_filter})
 
     def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> Self:
         oa_filter = {"is_active": True} if only_active else {}
-        return self.filter({"owner_player": player_id, **oa_filter})
+        return self._filter({"owner_player": player_id, **oa_filter})
 
     def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
-        assets = self.filter({"owner_player": player_id, "is_freezer": True})
+        assets = self._filter({"owner_player": player_id, "is_freezer": True})
         return assets.as_objs()[0]
 
     # UPDATE

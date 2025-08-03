@@ -5,8 +5,8 @@ import numpy as np
 import plotly.graph_objects as go
 from plotly.graph_objs import Scatter
 
-from src.app.simple_front_end.plotting.base_plot_object import PlotObject
 from src.app.simple_front_end.layout_planner import Socket
+from src.app.simple_front_end.plotting.base_plot_object import PlotObject
 from src.app.simple_front_end.plotting.po_bus import PlotBus
 from src.models.assets import AssetInfo, AssetType
 from src.models.colors import get_contrasting_color, Color

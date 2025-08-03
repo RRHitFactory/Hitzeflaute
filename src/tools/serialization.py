@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, Self, runtime_checkable, TypeVar
 
-from src.tools.typing import WrappedInt, T
+from src.tools.typing import T, IntId
 
-Primitive = int | float | str | bool
-SimpleDict = dict[str, Primitive]
+type Primitive = int | float | str | bool
+type SimpleDict = dict[str, Primitive]
 primitives = (int, float, str, bool)
 
 
@@ -38,20 +38,20 @@ def deserialize(x: str, cls: type[GenericSerializable]) -> GenericSerializable:
     return cls.from_simple_dict(json.loads(x))
 
 
-def simplify_type(x: Stringable | Enum | WrappedInt | Primitive) -> Primitive:
+def simplify_type(x: Stringable | Enum | IntId | Primitive) -> Primitive:
     if isinstance(x, Stringable):
         return x.to_string()
     if isinstance(x, Enum):
         return x.value
-    if isinstance(x, WrappedInt):
+    if isinstance(x, IntId):
         return x.as_int()
-    if isinstance(x, primitives):
+    if any(isinstance(x, p) for p in primitives):
         return x
     raise TypeError(f"Unsupported type {type(x)}")
 
 
 def simplify_optional_type(
-    x: Enum | WrappedInt | Primitive | None,
+    x: Enum | IntId | Primitive | None,
 ) -> Primitive | None:
     if x is None:
         return None
@@ -65,7 +65,7 @@ def un_simplify_type(x: Primitive, t: type[T]) -> T:
         return t(x)
     if issubclass(t, Enum):
         return t(x)
-    if issubclass(t, WrappedInt):
+    if issubclass(t, IntId):
         return t(x)
     raise TypeError(f"Unsupported type {t}")
 

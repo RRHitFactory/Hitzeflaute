@@ -9,8 +9,8 @@ from src.models.game_state import GameState
 from src.models.ids import AssetId, TransmissionId, BusId
 from src.tools.random_choice import random_choice
 
-SocketSide = Literal["tr", "bl"]  # Top Right or Bottom Left
-BusOrientation = Literal["horizontal", "vertical"]  # Orientation of the bus
+type SocketSide = Literal["tr", "bl"]  # Top Right or Bottom Left
+type BusOrientation = Literal["horizontal", "vertical"]  # Orientation of the bus
 
 
 @dataclass(frozen=True)

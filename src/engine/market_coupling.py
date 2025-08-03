@@ -82,10 +82,12 @@ class MarketCouplingCalculator:
     def optimize_network(cls, network: pypsa.Network) -> None:
         # TODO All solver logs have been silenced apart from the Highs Banner. Maybe there is an option here?
         #  https://github.com/ERGO-Code/HiGHS/blob/364c83a51e44ba6c27def9c8fc1a49b1daf5ad5c/highs/highspy/_core/__init__.pyi#L401
+        logging.getLogger("linopy").setLevel(logging.ERROR)
+        logging.getLogger("pypsa").setLevel(logging.ERROR)
         with warnings.catch_warnings(action="ignore"):
-            logging.getLogger("linopy").setLevel(logging.ERROR)
-            logging.getLogger("pypsa").setLevel(logging.ERROR)
-            network.optimize(solver_name="highs", solver_options={"log_to_console": False, "output_flag": False})
+            res = network.optimize(solver_name="highs", solver_options={"log_to_console": False, "output_flag": False})
+        if res[1] != "optimal":
+            raise AssertionError(f"PyPSA optimization failed with status: {res[1]}. Please check the network setup.")
         return
 
     @classmethod

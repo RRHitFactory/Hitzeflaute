@@ -1,17 +1,17 @@
 import numpy as np
 
+from src.models.game_state import GameState
 from src.models.ids import AssetId, TransmissionId, PlayerId
 from src.models.message import (
     GameUpdate,
     IceCreamMeltedMessage,
     AssetWornMessage,
     TransmissionWornMessage,
-    GameToPlayerMessage,
     LoadsDeactivatedMessage,
     BuyResponse,
     T_Id,
 )
-from src.models.game_state import GameState, Phase
+from src.models.transmission import TransmissionInfo
 
 
 class Referee:
@@ -128,55 +128,36 @@ class Referee:
 
     @staticmethod
     def wear_congested_transmission(gs: GameState) -> tuple[GameState, list[TransmissionWornMessage]]:
-
-        def generate_worn_transmission_messages(
-            new_gs: GameState, transmission_ids: list[TransmissionId]
-        ) -> list[TransmissionWornMessage]:
-            return [
-                TransmissionWornMessage(
-                    player_id=new_gs.transmission[transmission_id].owner_player,
-                    transmission_id=transmission_id,
-                    message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand "
-                    f"{new_gs.transmission[transmission_id].health} more congested periods.",
-                )
-                for transmission_id in transmission_ids
-            ]
-
         transmission_repo = gs.transmission
-        congested_transmissions: list[TransmissionId] = []
         flows = gs.market_coupling_result.transmission_flows
 
-        for transmission in transmission_repo:
-            if transmission.health == 0:
-                continue
-            if np.isclose(transmission.capacity, flows[transmission.id]):
-                transmission_repo = transmission_repo.wear_transmission(transmission_id=transmission.id)
-                congested_transmissions.append(transmission.id)
+        def filter_transmission(tx: TransmissionInfo) -> bool:
+            if tx.health == 0:
+                return False
+            return any(np.isclose(tx.capacity, flows[tx.id]))
+
+        congested_transmissions = [t.id for t in transmission_repo if filter_transmission(t)]
+        for tid in congested_transmissions:
+            transmission_repo = transmission_repo.wear_transmission(tid)
 
         new_gs = gs.update(transmission=transmission_repo)
-        msgs = generate_worn_transmission_messages(new_gs=new_gs, transmission_ids=congested_transmissions)
+
+        msgs = [
+            TransmissionWornMessage(
+                player_id=new_gs.transmission[transmission_id].owner_player,
+                transmission_id=transmission_id,
+                message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand "
+                f"{new_gs.transmission[transmission_id].health} more congested periods.",
+            )
+            for transmission_id in congested_transmissions
+        ]
 
         return new_gs, msgs
 
     @staticmethod
     def wear_non_freezer_assets(gs: GameState) -> tuple[GameState, list[AssetWornMessage]]:
-
-        def generate_worn_asset_messages(new_gs: GameState, asset_ids: list[AssetId]) -> list[AssetWornMessage]:
-            return [
-                AssetWornMessage(
-                    player_id=new_gs.assets[asset_id].owner_player,
-                    asset_id=asset_id,
-                    message=(
-                        f"Asset {asset_id} has worn with time, it can only operate during the next {new_gs.assets[asset_id].health} rounds."
-                        if new_gs.assets[asset_id].health > 0
-                        else f"Asset {asset_id} has worn with time and is no longer operational."
-                    ),
-                )
-                for asset_id in asset_ids
-            ]
-
         asset_repo = gs.assets
-        wearable_assets = gs.assets.filter({"is_freezer": False})
+        wearable_assets = gs.assets._filter({"is_freezer": False})
         melted_ids: list[AssetId] = []
 
         for asset in wearable_assets:
@@ -186,9 +167,21 @@ class Referee:
             melted_ids.append(asset.id)
 
         new_gs = gs.update(assets=asset_repo)
-        msgs = generate_worn_asset_messages(new_gs=new_gs, asset_ids=melted_ids)
 
-        return new_gs, msgs
+        warn_asset_messages = [
+            AssetWornMessage(
+                player_id=new_gs.assets[asset_id].owner_player,
+                asset_id=asset_id,
+                message=(
+                    f"Asset {asset_id} has worn with time, it can only operate during the next {new_gs.assets[asset_id].health} rounds."
+                    if new_gs.assets[asset_id].health > 0
+                    else f"Asset {asset_id} has worn with time and is no longer operational."
+                ),
+            )
+            for asset_id in melted_ids
+        ]
+
+        return new_gs, warn_asset_messages
 
     @staticmethod
     def eliminate_players(gs: GameState) -> tuple[GameState, list[GameUpdate]]:

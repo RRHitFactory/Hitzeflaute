@@ -41,8 +41,8 @@ class TestAssets(TestCase):
         player_repo += rich_player
         game_state = GameStateMaker().add_player_repo(player_repo).make()
 
-        is_for_sale_ids = game_state.assets.filter(condition={"is_for_sale": True}).asset_ids
-        not_for_sale_ids = game_state.assets.filter(condition={"is_for_sale": False}).asset_ids
+        is_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": True}).asset_ids
+        not_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": False}).asset_ids
 
         def assert_fails_with_message_matching(request: BuyRequest, x: Callable[[str], bool]) -> None:
             new_game_state, msgs = Engine.handle_message(game_state=game_state, msg=request)
@@ -79,8 +79,8 @@ class TestAssets(TestCase):
         player_repo += rich_player
         game_state = GameStateMaker().add_player_repo(player_repo).make()
 
-        is_for_sale_ids = game_state.transmission.filter(condition={"is_for_sale": True}).transmission_ids
-        not_for_sale_ids = game_state.transmission.filter(condition={"is_for_sale": False}).transmission_ids
+        is_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": True}).transmission_ids
+        not_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": False}).transmission_ids
 
         def assert_fails_with_message_matching(request: BuyRequest, x: Callable[[str], bool]) -> None:
             new_game_state, msgs = Engine.handle_message(game_state=game_state, msg=request)

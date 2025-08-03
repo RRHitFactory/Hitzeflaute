@@ -1,6 +1,5 @@
 from abc import abstractmethod, ABC
 from typing import (
-    Generic,
     Any,
     Iterator,
     Callable,
@@ -11,18 +10,17 @@ from typing import (
     TypeVar,
 )
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
-from src.models.data.light_dc import T_LightDc
 from src.tools.serialization import simplify_type
 from src.tools.typing import T
 
-Condition = dict[str, Any] | Callable[[pd.Series], bool]
-Operator = Literal["or", "and", "not", None]
+type Condition = dict[str, Any] | Callable[[pd.Series], bool]
+type Operator = Literal["or", "and", "not", None]
 
 
-class LdcRepo(Generic[T_LightDc], ABC):
+class LdcRepo[T_LightDc](ABC):
     # A dataframe-based repo containing an indexed list of light dataclass objects
 
     @classmethod
@@ -127,7 +125,7 @@ class LdcRepo(Generic[T_LightDc], ABC):
         condition = {k: simplify_type(x=v) for k, v in condition.items()}
         return filter_df[list(condition.keys())].eq(pd.Series(condition)).all(axis=1)
 
-    def _filter(
+    def _filter_index(
         self,
         condition: Condition,
         operator: Operator,
@@ -143,11 +141,11 @@ class LdcRepo(Generic[T_LightDc], ABC):
         :param operator: "or", "and", "not" to combine two conditions or negate the first one
         :param condition_2: A second condition to combine with the first one
         :return: A logical indexer for the given condition or combination of conditions
-        >>> self._filter({"bus": BusId(1), "color": Color.Red})
-        >>> self._filter(lambda x: x["bus"] == 1 and x["color"] == simplify_type(Color.Red))
+        >>> self._filter_index({"bus": BusId(1), "color": Color.Red})
+        >>> self._filter_index(lambda x: x["bus"] == 1 and x["color"] == simplify_type(Color.Red))
         >>>
-        >>> self._filter({"bus": BusId(1)},"or",{"color": Color.Red})
-        >>> self._filter(lambda x: x["bus"] == 1 or x["color"] == simplify_type(Color.Red))
+        >>> self._filter_index({"bus": BusId(1)},"or",{"color": Color.Red})
+        >>> self._filter_index(lambda x: x["bus"] == 1 or x["color"] == simplify_type(Color.Red))
 
         """
         if condition_2 is None:
@@ -168,7 +166,7 @@ class LdcRepo(Generic[T_LightDc], ABC):
         else:
             raise ValueError(f"Invalid operator {operator}")
 
-    def filter(
+    def _filter(
         self: T,
         condition: Condition,
         operator: Operator = None,
@@ -178,7 +176,7 @@ class LdcRepo(Generic[T_LightDc], ABC):
         Returns a copy of the repo filtered using the given condition
         :return: The filtered LdcFrame
         """
-        logical_indexer = self._filter(condition=condition, operator=operator, condition_2=condition_2)
+        logical_indexer = self._filter_index(condition=condition, operator=operator, condition_2=condition_2)
         filtered_df = self.df[logical_indexer]
         return self.__class__(filtered_df)
 
@@ -192,8 +190,7 @@ class LdcRepo(Generic[T_LightDc], ABC):
         Returns a copy of the repo with elements deleted using the given condition
         :return: A new version of the LdcFrame with the items dropped
         """
-
-        logical_indexer = self._filter(condition=condition, operator=operator, condition_2=condition_2)
+        logical_indexer = self._filter_index(condition=condition, operator=operator, condition_2=condition_2)
         index = logical_indexer.loc[logical_indexer].index
         return self.from_frame(self.df.drop(index, axis=0))
 

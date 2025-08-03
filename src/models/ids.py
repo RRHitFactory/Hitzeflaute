@@ -1,13 +1,13 @@
 from typing import Self
 
-from src.tools.typing import WrappedInt
+from src.tools.typing import IntId
 
 
-class GameId(WrappedInt):
+class GameId(IntId):
     pass
 
 
-class PlayerId(WrappedInt):
+class PlayerId(IntId):
     @property
     def is_npc(self) -> bool:
         return self == PlayerId.get_npc()
@@ -17,17 +17,17 @@ class PlayerId(WrappedInt):
         return cls(-1)
 
 
-class AssetId(WrappedInt):
+class AssetId(IntId):
     pass
 
 
-class BusId(WrappedInt):
+class BusId(IntId):
     pass
 
 
-class TransmissionId(WrappedInt):
+class TransmissionId(IntId):
     pass
 
 
-class Round(WrappedInt):
+class Round(IntId):
     pass
