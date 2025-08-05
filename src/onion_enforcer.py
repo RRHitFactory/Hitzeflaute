@@ -4,7 +4,7 @@ from itertools import product
 from pathlib import Path
 from typing import Union, Optional
 
-from src.directories import root_dir
+from src.directories import src_dir
 
 __all__ = []
 
@@ -80,10 +80,10 @@ class Module(Importable):
 
     @property
     def path(self) -> Path:
-        return root_dir / self.name
+        return src_dir / self.name
 
     def get_import_names(self) -> list[str]:
-        return [f"{root_dir.name}.{self.name}", self.name]
+        return [f"{src_dir.name}.{self.name}", self.name]
 
     def __gt__(self, other: Union["Module", "File"]) -> ProjectStructureRule:
         assert isinstance(other, (Module, File))
@@ -104,10 +104,10 @@ class File(Importable):
 
     @property
     def path(self) -> Path:
-        return root_dir / (self.name + ".py")
+        return src_dir / (self.name + ".py")
 
     def get_import_names(self) -> list[str]:
-        return [f"{root_dir.name}.{self.name}", self.name]
+        return [f"{src_dir.name}.{self.name}", self.name]
 
 
 def check_repo() -> None:

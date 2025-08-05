@@ -6,6 +6,8 @@ from typing import Self
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.ids import AssetId, BusId, PlayerId
+from src.models.random_variable import RandomVariable
+from src.models.random_variable.constructors import make_normal
 from src.tools.serialization import simplify_type
 
 
@@ -35,6 +37,11 @@ class AssetInfo(LightDc):
     def __post_init__(self) -> None:
         if self.is_freezer:
             assert self.asset_type == AssetType.LOAD, "Freezer asset must be of type LOAD"
+
+    def sample_power(self) -> float:
+        rv = make_normal(mean=self.power_expected, std_dev=self.power_std)
+        result = rv.sample_one()
+        return max(0.0, result)
 
     @cached_property
     def cashflow_sign(self) -> int:

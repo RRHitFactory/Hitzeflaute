@@ -2,7 +2,6 @@ import logging
 import warnings
 from typing import Optional
 
-import numpy as np
 import pandas as pd
 import pypsa
 
@@ -13,11 +12,18 @@ from src.models.market_coupling_result import MarketCouplingResult
 from src.models.transmission import TransmissionId, TransmissionRepo
 
 
+class OptimizationError(Exception):
+    def __init__(self, game_state: GameState, message: str) -> None:
+        super().__init__(message)
+        self.game_state = game_state
+        self.message = message
+
+
 class MarketCouplingCalculator:
     @classmethod
     def run(cls, game_state: GameState) -> MarketCouplingResult:
         network = cls.create_pypsa_network(game_state)
-        cls.optimize_network(network=network)
+        cls.optimize_network(network=network, game_state=game_state)
 
         return MarketCouplingResult(
             bus_prices=cls.get_bus_prices(network),
@@ -59,7 +65,7 @@ class MarketCouplingCalculator:
                 name=cls.get_pypsa_name(generator.id),
                 bus=cls.get_pypsa_name(generator.bus),
                 marginal_cost=generator.bid_price,
-                p_nom=np.random.normal(loc=generator.power_expected, scale=generator.power_std),
+                p_nom=generator.sample_power(),
                 carrier="AC",
             )
         for load in game_state.assets.only_loads:
@@ -72,14 +78,14 @@ class MarketCouplingCalculator:
                 bus=cls.get_pypsa_name(load.bus),
                 p_max_pu=0,
                 p_min_pu=-1.0,
-                p_nom=np.random.normal(loc=load.power_expected, scale=load.power_std),
+                p_nom=load.sample_power(),
                 marginal_cost=load.bid_price,
                 carrier="AC",
             )
         return network
 
     @classmethod
-    def optimize_network(cls, network: pypsa.Network) -> None:
+    def optimize_network(cls, network: pypsa.Network, game_state: GameState) -> None:
         # TODO All solver logs have been silenced apart from the Highs Banner. Maybe there is an option here?
         #  https://github.com/ERGO-Code/HiGHS/blob/364c83a51e44ba6c27def9c8fc1a49b1daf5ad5c/highs/highspy/_core/__init__.pyi#L401
         logging.getLogger("linopy").setLevel(logging.ERROR)
@@ -87,7 +93,10 @@ class MarketCouplingCalculator:
         with warnings.catch_warnings(action="ignore"):
             res = network.optimize(solver_name="highs", solver_options={"log_to_console": False, "output_flag": False})
         if res[1] != "optimal":
-            raise AssertionError(f"PyPSA optimization failed with status: {res[1]}. Please check the network setup.")
+            raise OptimizationError(
+                game_state=game_state,
+                message=f"PyPSA optimization failed with status: {res[1]}. Please check the network setup.",
+            )
         return
 
     @classmethod

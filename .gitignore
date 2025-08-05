@@ -1,3 +1,8 @@
+# Project stuff
+src/game_cache/*.json
+src/game_cache/*.html
+tests/bad_states/*.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -175,5 +180,4 @@ cython_debug/
 
 # IDE
 .idea/
-src/game_cache/*.json
-src/game_cache/*.html
+
