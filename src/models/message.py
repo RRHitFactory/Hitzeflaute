@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import TypeVar, Optional
 from typing import Union, Literal
 from typing import TypeVar, Generic, Union, Literal
 
@@ -124,3 +124,13 @@ class TransmissionWornMessage(GameToPlayerMessage):
 @dataclass(frozen=True)
 class LoadsDeactivatedMessage(GameToPlayerMessage):
     asset_ids: list[AssetId]
+
+
+@dataclass(frozen=True)
+class PlayerEliminatedMessage(GameToPlayerMessage):
+    pass
+
+
+@dataclass(frozen=True)
+class GameOverMessage(GameToPlayerMessage):
+    winner_id: Optional[PlayerId]

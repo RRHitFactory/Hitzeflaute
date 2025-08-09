@@ -225,8 +225,14 @@ class Engine:
             game_state=new_game_state, market_coupling_result=market_result
         )
 
-        new_game_state, referee_after_coupling_msgs = cls._apply_rules_after_market_coupling(new_game_state)
+        new_game_state, referee_after_coupling_msgs = cls._apply_rules_after_market_coupling(gs=new_game_state)
         msgs.extend(referee_after_coupling_msgs)
+
+        new_game_state, eliminated_player_msgs = Referee.eliminate_players(gs=new_game_state)
+        msgs.extend(eliminated_player_msgs)
+
+        new_game_state, game_over_msg = Referee.check_game_over(gs=new_game_state)
+        msgs.extend(game_over_msg)
 
         return new_game_state, msgs
 
