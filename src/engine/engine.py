@@ -353,7 +353,7 @@ class Engine:
                 f"Bid price {msg.bid_price} is not within the allowed range " f"[{min_bid}, {max_bid}]."
             )
 
-        if FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
+        if not FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
             return make_failed_response(
                 f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
             )
