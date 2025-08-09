@@ -81,7 +81,11 @@ class AssetRepo(LdcRepo[AssetInfo]):
 
     def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
         assets = self._filter({"owner_player": player_id, "is_freezer": True})
-        return assets.as_objs()[0]
+        return assets.as_objs()[0]  # TODO: to make the game more fun, players should be allowed to have multiple freezers
+
+    def get_remaining_ice_creams(self, player_id: PlayerId) -> int:
+        freezers = self.get_all_for_player(player_id).only_freezers
+        return freezers.df.health.sum()
 
     # UPDATE
     def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> Self:

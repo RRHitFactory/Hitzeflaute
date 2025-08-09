@@ -15,6 +15,7 @@ class Player(LightDc):
     color: Color
     money: float
     is_having_turn: bool  # Note that multiple players can have turns at the same time
+    still_alive: bool = True  # Indicates if the player is still in the game
 
     @classmethod
     def make_npc(cls) -> "Player":
@@ -42,6 +43,9 @@ class PlayerRepo(LdcRepo[Player]):
     @cached_property
     def n_human_players(self) -> int:
         return len(self.human_players)
+
+    def only_alive(self) -> Self:
+        return self._filter({"still_alive": True})
 
     def get_player(self, player_id: PlayerId) -> Player:
         return self[player_id]
@@ -80,6 +84,11 @@ class PlayerRepo(LdcRepo[Player]):
 
     def start_all_turns(self) -> Self:
         return self._set_turn(self.human_player_ids, True)
+
+    def eliminate_player(self, player_id: PlayerId) -> Self:
+        df = self.df.copy()
+        df.loc[player_id, "still_alive"] = False
+        return self.update_frame(df)
 
     # DELETE
     def delete_player(self, player_id: PlayerId) -> Self:
