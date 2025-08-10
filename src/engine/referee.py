@@ -190,7 +190,7 @@ class Referee:
         new_gs = gs
         eliminated_player_ids = []
 
-        for player in gs.players.human_players:
+        for player in gs.players.only_alive().human_players:
             remaining_ice_creams = gs.assets.get_remaining_ice_creams(player.id)
             if remaining_ice_creams > 0:
                 continue
