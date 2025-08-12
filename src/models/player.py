@@ -44,6 +44,7 @@ class PlayerRepo(LdcRepo[Player]):
     def n_human_players(self) -> int:
         return len(self.human_players)
 
+    @property
     def only_alive(self) -> Self:
         return self._filter({"still_alive": True})
 

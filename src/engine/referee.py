@@ -190,7 +190,7 @@ class Referee:
         new_gs = gs
         eliminated_player_ids = []
 
-        for player in gs.players.only_alive().human_players:
+        for player in gs.players.only_alive.human_players:
             remaining_ice_creams = gs.assets.get_remaining_ice_creams(player.id)
             if remaining_ice_creams > 0:
                 continue
@@ -208,9 +208,9 @@ class Referee:
 
     @staticmethod
     def check_game_over(gs: GameState) -> tuple[GameState, list[GameOverMessage]]:
-        n_players_alive = len(gs.players.only_alive().human_players)
+        n_players_alive = len(gs.players.only_alive.human_players)
         if n_players_alive == 1:
-            winner = gs.players.only_alive().human_players[0]
+            winner = gs.players.only_alive.human_players[0]
             return gs, [
                 GameOverMessage(
                     player_id=player_id,
