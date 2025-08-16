@@ -137,6 +137,7 @@ class TestAssets(TestCase):
             .add_player_repo(player_repo)
             .add_bus_repo(bus_repo)
             .add_transmission_repo(transmission_repo)
+            .add_phase(Phase.SNEAKY_TRICKS)
             .make()
         )
 
@@ -147,6 +148,7 @@ class TestAssets(TestCase):
         self.assertEqual(len(responses), 1)
         response = responses[0]
         self.assertIsInstance(response, OperateLineResponse)
+        print(response)
         self.assertEqual(response.result, "success")
         self.assertEqual(game_state.transmission[my_line.id].is_open, True)
 
@@ -188,6 +190,10 @@ class TestAssets(TestCase):
         self.assertEqual(game_state.transmission[not_my_line.id].is_open, False)
 
     def test_apply_rules_after_market_coupling(self):
+        # TODO Fix this test. The market coupling result created in this test is not actually used, a new market
+        # market coupling result is calculated in the market coupling phase based on the random game state.
+        # Either the market coupling calculation should be mocked, or the test should be adjusted to guarantee that
+        # market coupling will result in the desired outcome.
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker.make_quick(3)
