@@ -215,18 +215,29 @@ class Engine:
 
     @classmethod
     def _process_day_ahead_auction_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
-        msgs: list[GameToPlayerMessage] = []
 
         new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
-        msgs.extend(msgs_load_deactivation)
 
         market_result = MarketCouplingCalculator.run(game_state=new_game_state)
         new_game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(
             game_state=new_game_state, market_coupling_result=market_result
         )
 
-        new_game_state, referee_after_coupling_msgs = cls._apply_rules_after_market_coupling(new_game_state)
-        msgs.extend(referee_after_coupling_msgs)
+        new_game_state, ice_cream_msgs = Referee.melt_ice_creams(new_game_state)
+        new_game_state, transmission_msgs = Referee.wear_congested_transmission(new_game_state)
+        new_game_state, asset_msgs = Referee.wear_non_freezer_assets(new_game_state)
+        new_game_state, eliminated_player_msgs = Referee.eliminate_players(gs=new_game_state)
+        new_game_state, game_over_msg = Referee.check_game_over(gs=new_game_state)
+
+        msgs = (
+            msgs_load_deactivation
+            + msgs_auction_cashflows
+            + ice_cream_msgs
+            + transmission_msgs
+            + asset_msgs
+            + eliminated_player_msgs
+            + game_over_msg
+        )
 
         return new_game_state, msgs
 
@@ -261,22 +272,6 @@ class Engine:
             )
 
         return new_game_state, msgs
-
-    @classmethod
-    def _apply_rules_after_market_coupling(cls, gs: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
-        new_gs = gs
-        msgs: list[GameToPlayerMessage] = []
-
-        new_gs, ice_cream_msgs = Referee.melt_ice_creams(new_gs)
-        msgs.extend(ice_cream_msgs)
-
-        new_gs, transmission_msgs = Referee.wear_congested_transmission(new_gs)
-        msgs.extend(transmission_msgs)
-
-        new_gs, asset_msgs = Referee.wear_non_freezer_assets(new_gs)
-        msgs.extend(asset_msgs)
-
-        return new_gs, msgs
 
     @classmethod
     def _validate_purchase(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
@@ -347,7 +342,7 @@ class Engine:
                 f"Bid price {msg.bid_price} is not within the allowed range " f"[{min_bid}, {max_bid}]."
             )
 
-        if FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
+        if not FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
             return make_failed_response(
                 f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
             )

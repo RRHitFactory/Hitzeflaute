@@ -193,12 +193,16 @@ class TestAssets(TestCase):
         player_repo = PlayerRepoMaker.make_quick(3)
         buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
         asset_maker = AssetRepoMaker(bus_repo=buses, players=player_repo)
+        transmission_maker = TransmissionRepoMaker(buses=buses, players=player_repo)
 
         for _ in range(6):
             asset_maker.add_asset(cat="Generator", power_std=0)
+        for _ in range(6):
+            transmission_maker.add_transmission(capacity=1)  # Add weak lines to enable congestion
 
         assets = asset_maker.make()
-        game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).make()
+        transmission = transmission_maker.make()
+        game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).add_transmission_repo(transmission).make()
         market_coupling_result = MarketResultMaker.make_quick(
             player_repo=game_state.players,
             bus_repo=game_state.buses,
@@ -208,7 +212,7 @@ class TestAssets(TestCase):
         )
         game_state = game_state.update(Phase.DA_AUCTION, market_coupling_result)
 
-        new_game_state, update_msgs = Engine._apply_rules_after_market_coupling(game_state)
+        new_game_state, update_msgs = Engine._process_day_ahead_auction_phase(game_state)
         melt_ice_cream_msgs = [msg for msg in update_msgs if isinstance(msg, IceCreamMeltedMessage)]
         wear_transmission_msgs = [msg for msg in update_msgs if isinstance(msg, TransmissionWornMessage)]
         wear_asset_msgs = [msg for msg in update_msgs if isinstance(msg, AssetWornMessage)]
