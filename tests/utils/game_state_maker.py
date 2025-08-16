@@ -121,7 +121,7 @@ class GameStateMaker:
         return GameState(
             game_id=self.game_id,
             game_settings=self.game_settings,
-            phase=Phase.CONSTRUCTION,
+            phase=self.phase,
             players=self.player_repo,
             buses=self.bus_repo,
             assets=self.asset_repo,

@@ -16,7 +16,18 @@ from src.tools.serialization import simplify_type, un_simplify_type
 class Phase(IntEnum):
     CONSTRUCTION = 0
     SNEAKY_TRICKS = 1
-    DA_AUCTION = 2
+    BIDDING = 2
+    DA_AUCTION = 3
+
+    def __str__(self) -> str:
+        return f"<{self.__class__.__name__}.{self.name}>"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    @property
+    def nice_name(self) -> str:
+        return self.name.replace("_", " ").lower()
 
     def get_next(self) -> Self:
         next_index = (self.value + 1) % len(Phase)
