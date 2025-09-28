@@ -3,7 +3,7 @@ import pandas as pd
 
 from src.app.simple_front_end.plotting.po_rect import ShapePlotObject
 from src.models.colors import Color
-from src.models.geometry import Shape, ShapeType, Point
+from src.models.geometry import Point, Shape, ShapeType
 
 
 def make_table(values: pd.DataFrame, colors: pd.DataFrame, rect: Shape) -> list[ShapePlotObject]:

@@ -2,9 +2,9 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol, Self, runtime_checkable, TypeVar
+from typing import Protocol, Self, TypeVar, runtime_checkable
 
-from src.tools.typing import T, IntId
+from src.tools.typing import IntId, T
 
 type Primitive = int | float | str | bool
 type SimpleDict = dict[str, Primitive]
@@ -34,7 +34,7 @@ def serialize(x: Serializable) -> str:
     return json.dumps(x.to_simple_dict())
 
 
-def deserialize(x: str, cls: type[GenericSerializable]) -> GenericSerializable:
+def deserialize[GenericSerializable: Serializable](x: str, cls: type[GenericSerializable]) -> GenericSerializable:
     return cls.from_simple_dict(json.loads(x))
 
 

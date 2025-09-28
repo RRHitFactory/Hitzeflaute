@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Optional
 
 import numpy as np
 from plotly.graph_objs import Scatter
 
-from src.app.simple_front_end.layout_planner import Socket, LayoutPlanner
+from src.app.simple_front_end.layout_planner import LayoutPlanner, Socket
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
 from src.app.simple_front_end.plotting.po_rect import render_shape
 from src.models.buses import Bus
@@ -22,7 +21,7 @@ class PlotBus(PlotObject):
     length: float = 5.0
 
     @property
-    def centre_text(self) -> Optional[str]:
+    def centre_text(self) -> str | None:
         return None
 
     @property

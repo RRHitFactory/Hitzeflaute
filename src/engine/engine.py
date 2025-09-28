@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal
 
 from src.engine.finance import FinanceCalculator
 from src.engine.market_coupling import MarketCouplingCalculator
@@ -7,19 +7,19 @@ from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
-    UpdateBidRequest,
-    EndTurn,
-    UpdateBidResponse,
-    ConcludePhase,
-    ToGameMessage,
-    FromGameMessage,
+    AuctionClearedMessage,
     BuyRequest,
     BuyResponse,
-    T_Id,
-    AuctionClearedMessage,
+    ConcludePhase,
+    EndTurn,
+    FromGameMessage,
     GameToPlayerMessage,
     OperateLineRequest,
     OperateLineResponse,
+    T_Id,
+    ToGameMessage,
+    UpdateBidRequest,
+    UpdateBidResponse,
 )
 
 
@@ -167,7 +167,7 @@ class Engine:
         def make_response(
             result: Literal["success", "no_change", "failure"],
             text: str,
-            new_game_state: Optional[GameState] = None,
+            new_game_state: GameState | None = None,
         ) -> tuple[GameState, list[OperateLineResponse]]:
             if new_game_state is None:
                 new_game_state = game_state

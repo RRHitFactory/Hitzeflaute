@@ -1,19 +1,20 @@
 import math
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from itertools import combinations, count
-from typing import Optional, Generator
 
 import numpy as np
 
-from src.models.assets import AssetRepo, AssetInfo, AssetId, AssetType
-from src.models.buses import BusRepo, Bus, BusSocketManager
+from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
+from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
 from src.models.geometry import Point, Shape
-from src.models.ids import GameId, PlayerId, BusId
+from src.models.ids import BusId, GameId, PlayerId
 from src.models.player import Player, PlayerRepo
-from src.models.transmission import TransmissionRepo, TransmissionInfo, TransmissionId
+from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
+from src.tools.random_choice import random_choice, random_choice_multi
 
 
 class BusTopologyMaker:
@@ -48,7 +49,7 @@ class BusTopologyMaker:
             n_points_in_x=n_bins,
             n_points_in_y=n_bins,
         )
-        selection = np.random.choice(grid_layout.points, n_buses, replace=False)
+        selection = random_choice_multi(grid_layout.points, n_buses, replace=False)
         return selection
 
     @classmethod
@@ -100,7 +101,7 @@ class TransmissionTopologyMaker:
         connections = []
         possible_connections = TransmissionTopologyMaker._get_bus_combinations(bus_repo)
         for _ in range(n_connections):
-            bus1, bus2 = np.random.choice(possible_connections, replace=False)
+            bus1, bus2 = random_choice(possible_connections, replace=False)
             connections.append({"bus1": BusId(bus1), "bus2": BusId(bus2)})
         return connections
 
@@ -198,7 +199,7 @@ class BaseGameInitializer(ABC):
         self,
         game_id: GameId,
         player_names: list[str],
-        player_colors: Optional[list[str]] = None,
+        player_colors: list[str] | None = None,
     ) -> GameState:
         """
         Create a new game state with the given game ID and settings.
@@ -257,6 +258,8 @@ class BaseGameInitializer(ABC):
         :param transmission_repo: The TransmissionRepo containing all transmission lines.
         :return: A TransmissionRepo with no islanded buses.
         """
+        generator = np.random.default_rng()
+
         additional_connections = []
         for bus in bus_repo:
             if len(transmission_repo.get_all_at_bus(bus.id)) == 0:
@@ -268,12 +271,12 @@ class BaseGameInitializer(ABC):
                         owner_player=PlayerId.get_npc(),  # NPC owns all initial transmissions
                         bus1=id_bus1,
                         bus2=id_bus2,
-                        reactance=np.random.uniform(0.1, 1.0),  # Random reactance for each transmission
-                        capacity=np.random.uniform(10, 100),  # Random capacity for each transmission
+                        reactance=generator.uniform(0.1, 1.0),  # Random reactance for each transmission
+                        capacity=generator.uniform(10, 100),  # Random capacity for each transmission
                         health=5,
-                        fixed_operating_cost=np.random.uniform(0.01, 0.1),
+                        fixed_operating_cost=generator.uniform(0.01, 0.1),
                         is_for_sale=True,
-                        minimum_acquisition_price=np.random.uniform(10, 100),  # Random purchase cost for each transmission
+                        minimum_acquisition_price=generator.uniform(10, 100),  # Random purchase cost for each transmission
                     )
                 )
         if not additional_connections:
@@ -371,6 +374,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                 )
             )
 
+        generator = np.random.default_rng()
         # Create the rest of the assets for NPC
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
@@ -387,7 +391,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                     minimum_acquisition_price=self.settings.initial_funds / 4,
                     fixed_operating_cost=self.settings.initial_funds / 20,
                     marginal_cost=self.settings.initial_funds / 20,
-                    bid_price=np.random.uniform(
+                    bid_price=generator.uniform(
                         self.settings.initial_funds / 20,
                         self.settings.initial_funds / 2,
                     ),
@@ -420,17 +424,19 @@ class DefaultGameInitializer(BaseGameInitializer):
             socket_manager.use_socket(bus1)
             socket_manager.use_socket(bus2)
 
+            generator = np.random.default_rng()
+
             line = TransmissionInfo(
                 id=next(t_id_iter),
                 owner_player=PlayerId.get_npc(),  # NPC owns all initial transmissions
                 bus1=bus_pair["bus1"],
                 bus2=bus_pair["bus2"],
-                reactance=np.random.uniform(0.1, 1.0),  # Random reactance for each transmission
-                capacity=np.random.uniform(10, 100),  # Random capacity for each transmission
+                reactance=generator.uniform(0.1, 1.0),  # Random reactance for each transmission
+                capacity=generator.uniform(10, 100),  # Random capacity for each transmission
                 health=5,
-                fixed_operating_cost=np.random.uniform(0.01, 0.1),
+                fixed_operating_cost=generator.uniform(0.01, 0.1),
                 is_for_sale=True,
-                minimum_acquisition_price=np.random.uniform(10, 100),  # Random purchase cost for each transmission
+                minimum_acquisition_price=generator.uniform(10, 100),  # Random purchase cost for each transmission
             )
             lines.append(line)
 

@@ -1,11 +1,9 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import TypeVar, Optional
-from typing import Union, Literal
-from typing import TypeVar, Generic, Union, Literal
+from typing import Literal, TypeVar
 
 from src.models.game_state import GameState, Phase
-from src.models.ids import PlayerId, AssetId, TransmissionId
+from src.models.ids import AssetId, PlayerId, TransmissionId
 
 
 @dataclass(frozen=True)
@@ -46,9 +44,9 @@ class GameToPlayerMessage(Message, ABC):
         return str(self)
 
 
-type ToGameMessage = Union[PlayerToGameMessage, InternalMessage]
-type FromGameMessage = Union[InternalMessage, GameToPlayerMessage]
-T_Id = TypeVar("T_Id", bound=Union[AssetId, TransmissionId])
+type ToGameMessage = PlayerToGameMessage | InternalMessage
+type FromGameMessage = InternalMessage | GameToPlayerMessage
+T_Id = TypeVar("T_Id", bound=AssetId | TransmissionId)
 
 
 @dataclass(frozen=True)
@@ -153,4 +151,4 @@ class PlayerEliminatedMessage(GameToPlayerMessage):
 
 @dataclass(frozen=True)
 class GameOverMessage(GameToPlayerMessage):
-    winner_id: Optional[PlayerId]
+    winner_id: PlayerId | None

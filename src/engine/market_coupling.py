@@ -1,6 +1,5 @@
 import logging
 import warnings
-from typing import Optional
 
 import pandas as pd
 import pypsa
@@ -126,7 +125,7 @@ class MarketCouplingCalculator:
         return df
 
     @classmethod
-    def _tidy_df(cls, df: pd.DataFrame, column_name: Optional[str] = None) -> pd.DataFrame:
+    def _tidy_df(cls, df: pd.DataFrame, column_name: str | None = None) -> pd.DataFrame:
         df = df.copy()
         df.rename(columns=cls.get_game_id, inplace=True)
         df.index = df.index.rename("time")

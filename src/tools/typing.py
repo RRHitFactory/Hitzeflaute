@@ -18,7 +18,7 @@ class IntId(int):
     def __eq__(self, other: "IntId") -> bool:
         if not isinstance(other, IntId):
             return NotImplemented
-        if not (type(self) == type(other)):
+        if type(self) is not type(other):
             return False
         return int(self) == int(other)
 

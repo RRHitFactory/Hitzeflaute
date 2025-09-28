@@ -1,17 +1,16 @@
 import numpy as np
 
 from src.models.game_state import GameState
-from src.models.ids import AssetId, TransmissionId, PlayerId
+from src.models.ids import AssetId, PlayerId, TransmissionId
 from src.models.message import (
-    GameUpdate,
-    IceCreamMeltedMessage,
     AssetWornMessage,
-    TransmissionWornMessage,
-    LoadsDeactivatedMessage,
     BuyResponse,
-    T_Id,
-    PlayerEliminatedMessage,
     GameOverMessage,
+    IceCreamMeltedMessage,
+    LoadsDeactivatedMessage,
+    PlayerEliminatedMessage,
+    T_Id,
+    TransmissionWornMessage,
 )
 from src.models.transmission import TransmissionInfo
 
@@ -51,7 +50,7 @@ class Referee:
             )
             return [failed_response]
 
-        if not purchase_id in purchase_repo_ids:
+        if purchase_id not in purchase_repo_ids:
             return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
         purchase_obj = purchase_repo[purchase_id]
 
