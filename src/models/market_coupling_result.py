@@ -7,7 +7,10 @@ from src.tools.serialization import SimpleDict
 
 class MarketCouplingResult:
     def __init__(
-        self, bus_prices: pd.DataFrame, transmission_flows: pd.DataFrame, assets_dispatch: pd.DataFrame
+        self,
+        bus_prices: pd.DataFrame,
+        transmission_flows: pd.DataFrame,
+        assets_dispatch: pd.DataFrame,
     ) -> None:
         self._bus_prices = bus_prices
         self._transmission_flows = transmission_flows
@@ -16,9 +19,7 @@ class MarketCouplingResult:
         self._validate()
 
     def _validate(self) -> None:
-        assert (
-            self.market_time_units.name == "time"
-        ), f"Expected time index to have name 'time', but got '{self.market_time_units.name}'"
+        assert self.market_time_units.name == "time", f"Expected time index to have name 'time', but got '{self.market_time_units.name}'"
 
         dfs_and_expectations = [
             (self.bus_prices, "Bus"),
@@ -28,17 +29,11 @@ class MarketCouplingResult:
         for df, expected_name in dfs_and_expectations:
             assert isinstance(df, pd.DataFrame), f"Expected a DataFrame, but got {type(df)}"
             assert df.index.equals(self.market_time_units)
-            assert (
-                df.columns.name == expected_name
-            ), f"Expected DataFrame columns to be named '{expected_name}', but got '{df.columns.name}'"
+            assert df.columns.name == expected_name, f"Expected DataFrame columns to be named '{expected_name}', but got '{df.columns.name}'"
 
         market_time_units = self._bus_prices.index
-        assert self._transmission_flows.index.equals(
-            market_time_units
-        ), "Transmission flows index does not match bus prices index"
-        assert self._assets_dispatch.index.equals(
-            market_time_units
-        ), "Assets dispatch index does not match bus prices index"
+        assert self._transmission_flows.index.equals(market_time_units), "Transmission flows index does not match bus prices index"
+        assert self._assets_dispatch.index.equals(market_time_units), "Assets dispatch index does not match bus prices index"
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}>"

@@ -54,12 +54,18 @@ class TestColors(TestCase):
         self.assertEqual(black.calculate_distance_factor(other=white), 1.0)
 
         mid_distance = black.calculate_distance_factor(other=red)
-        self.assertTrue(0.4 < mid_distance < 0.6, f"Expected mid distance to be around 0.5, got {mid_distance}")
+        self.assertTrue(
+            0.4 < mid_distance < 0.6,
+            f"Expected mid distance to be around 0.5, got {mid_distance}",
+        )
         self.assertEqual(black.calculate_distance_factor(other=green), mid_distance)
         self.assertEqual(black.calculate_distance_factor(other=blue), mid_distance)
 
         other_distance = white.calculate_distance_factor(other=red)
-        self.assertTrue(0.7 < other_distance < 0.9, f"Expected other distance to be around 0.8, got {other_distance}")
+        self.assertTrue(
+            0.7 < other_distance < 0.9,
+            f"Expected other distance to be around 0.8, got {other_distance}",
+        )
         self.assertEqual(white.calculate_distance_factor(other=green), other_distance)
         self.assertEqual(white.calculate_distance_factor(other=blue), other_distance)
 

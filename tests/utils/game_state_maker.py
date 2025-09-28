@@ -12,7 +12,12 @@ from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionRepo
 from src.tools.random_choice import random_choice, random_choice_multi
-from tests.utils.repo_maker import PlayerRepoMaker, BusRepoMaker, AssetRepoMaker, TransmissionRepoMaker
+from tests.utils.repo_maker import (
+    PlayerRepoMaker,
+    BusRepoMaker,
+    AssetRepoMaker,
+    TransmissionRepoMaker,
+)
 
 
 class MarketResultMaker:
@@ -41,7 +46,9 @@ class MarketResultMaker:
         tx_columns = pd.Index([t.as_int() for t in transmission_repo.transmission_ids], name="Line")
         tx_data = np.random.rand(n_timesteps, len(tx_columns))
         congested_ids = random_choice_multi(
-            transmission_repo.transmission_ids, size=n_random_congested_transmissions, replace=False
+            transmission_repo.transmission_ids,
+            size=n_random_congested_transmissions,
+            replace=False,
         )
         for id in congested_ids:
             tx_data[:, id] = transmission_repo[id].capacity
@@ -52,7 +59,9 @@ class MarketResultMaker:
         assets_dispatch = pd.DataFrame(index=market_time_units, columns=asset_columns, data=asset_data)
 
         return MarketCouplingResult(
-            bus_prices=bus_prices, transmission_flows=transmission_flows, assets_dispatch=assets_dispatch
+            bus_prices=bus_prices,
+            transmission_flows=transmission_flows,
+            assets_dispatch=assets_dispatch,
         )
 
 

@@ -26,7 +26,6 @@ class Referee:
     # BEFORE MARKET COUPLING
     @classmethod
     def validate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
-
         if isinstance(purchase_id, AssetId):
             purchase_type = "asset"
             purchase_repo = gs.assets
@@ -65,8 +64,9 @@ class Referee:
         return []
 
     @staticmethod
-    def deactivate_loads_of_players_in_debt(gs: GameState) -> tuple[GameState, list[LoadsDeactivatedMessage]]:
-
+    def deactivate_loads_of_players_in_debt(
+        gs: GameState,
+    ) -> tuple[GameState, list[LoadsDeactivatedMessage]]:
         def deactivate_player_loads(game_state: GameState, loads: list[AssetId]) -> GameState:
             asset_repo = game_state.assets.batch_deactivate(loads)
             return game_state.update(assets=asset_repo)
@@ -94,10 +94,7 @@ class Referee:
 
     @staticmethod
     def melt_ice_creams(gs: GameState) -> tuple[GameState, list[IceCreamMeltedMessage]]:
-
-        def generate_melted_ice_cream_messages(
-            new_gs: GameState, asset_ids: list[AssetId]
-        ) -> list[IceCreamMeltedMessage]:
+        def generate_melted_ice_cream_messages(new_gs: GameState, asset_ids: list[AssetId]) -> list[IceCreamMeltedMessage]:
             return [
                 IceCreamMeltedMessage(
                     player_id=new_gs.assets[asset_id].owner_player,
@@ -129,7 +126,9 @@ class Referee:
         return new_gs, msgs
 
     @staticmethod
-    def wear_congested_transmission(gs: GameState) -> tuple[GameState, list[TransmissionWornMessage]]:
+    def wear_congested_transmission(
+        gs: GameState,
+    ) -> tuple[GameState, list[TransmissionWornMessage]]:
         transmission_repo = gs.transmission
         flows = gs.market_coupling_result.transmission_flows
 
@@ -148,8 +147,7 @@ class Referee:
             TransmissionWornMessage(
                 player_id=new_gs.transmission[transmission_id].owner_player,
                 transmission_id=transmission_id,
-                message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand "
-                f"{new_gs.transmission[transmission_id].health} more congested periods.",
+                message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand {new_gs.transmission[transmission_id].health} more congested periods.",
             )
             for transmission_id in congested_transmissions
         ]
@@ -157,7 +155,9 @@ class Referee:
         return new_gs, msgs
 
     @staticmethod
-    def wear_non_freezer_assets(gs: GameState) -> tuple[GameState, list[AssetWornMessage]]:
+    def wear_non_freezer_assets(
+        gs: GameState,
+    ) -> tuple[GameState, list[AssetWornMessage]]:
         asset_repo = gs.assets
         wearable_assets = gs.assets._filter({"is_freezer": False})
         melted_ids: list[AssetId] = []
@@ -186,7 +186,9 @@ class Referee:
         return new_gs, warn_asset_messages
 
     @staticmethod
-    def eliminate_players(gs: GameState) -> tuple[GameState, list[PlayerEliminatedMessage]]:
+    def eliminate_players(
+        gs: GameState,
+    ) -> tuple[GameState, list[PlayerEliminatedMessage]]:
         new_gs = gs
         eliminated_player_ids = []
 

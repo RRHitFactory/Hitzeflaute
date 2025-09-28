@@ -48,7 +48,10 @@ class TestReferee(TestCase):
 
         for freezer_id in unpowered_freezer_ids:
             if game_state.assets[freezer_id].health > 1:
-                self.assertLess(new_game_state.assets[freezer_id].health, game_state.assets[freezer_id].health)
+                self.assertLess(
+                    new_game_state.assets[freezer_id].health,
+                    game_state.assets[freezer_id].health,
+                )
             else:
                 self.assertFalse(new_game_state.assets[freezer_id].is_active)
                 self.assertEqual(new_game_state.assets[freezer_id].health, 0)
@@ -83,7 +86,10 @@ class TestReferee(TestCase):
 
         for transmission in congested_transmissions:
             if transmission.health > 1:
-                self.assertLess(new_game_state.transmission[transmission.id].health, transmission.health)
+                self.assertLess(
+                    new_game_state.transmission[transmission.id].health,
+                    transmission.health,
+                )
             else:
                 self.assertFalse(new_game_state.transmission[transmission.id].is_active)
                 self.assertEqual(new_game_state.transmission[transmission.id].health, 0)
@@ -117,9 +123,7 @@ class TestReferee(TestCase):
         # get the first asset for sale
         asset = game_state.assets._filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
         # get the first transmission for sale
-        transmission = game_state.transmission._filter(
-            {"is_for_sale": True, "owner_player": PlayerId.get_npc()}
-        ).as_objs()[0]
+        transmission = game_state.transmission._filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
 
         self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, asset.id)) == 1)
         self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, transmission.id)) == 1)

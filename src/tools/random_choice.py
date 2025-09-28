@@ -3,7 +3,7 @@ from typing import TypeVar, Optional
 import numpy as np
 from numpy.random import Generator
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 def random_choice_multi(x: list[T], size: int, generator: Optional[Generator] = None, **kwargs) -> list[T]:

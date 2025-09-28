@@ -10,11 +10,5 @@ class TestPlotNetwork(TestCase):
         player_repo = PlayerRepoMaker.make_quick()
         bus_repo = BusRepoMaker.make_quick(n_npc_buses=0)
         transmission_repo = TransmissionRepoMaker.make_quick(players=player_repo.player_ids, buses=bus_repo, n=2)
-        game_state = (
-            GameStateMaker()
-            .add_player_repo(player_repo=player_repo)
-            .add_bus_repo(bus_repo=bus_repo)
-            .add_transmission_repo(transmission_repo=transmission_repo)
-            .make()
-        )
+        game_state = GameStateMaker().add_player_repo(player_repo=player_repo).add_bus_repo(bus_repo=bus_repo).add_transmission_repo(transmission_repo=transmission_repo).make()
         GridPlotter().make_figure(game_state=game_state).show()

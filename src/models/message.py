@@ -77,7 +77,12 @@ class UpdateBidRequest(PlayerToGameMessage):
     bid_price: float
 
     def make_response(self, success: bool, message: str) -> UpdateBidResponse:
-        return UpdateBidResponse(player_id=self.player_id, asset_id=self.asset_id, success=success, message=message)
+        return UpdateBidResponse(
+            player_id=self.player_id,
+            asset_id=self.asset_id,
+            success=success,
+            message=message,
+        )
 
 
 @dataclass(frozen=True)
@@ -91,7 +96,12 @@ class BuyRequest[T_Id](PlayerToGameMessage):
     purchase_id: T_Id
 
     def make_response(self, success: bool, message: str) -> BuyResponse[T_Id]:
-        return BuyResponse(player_id=self.player_id, success=success, purchase_id=self.purchase_id, message=message)
+        return BuyResponse(
+            player_id=self.player_id,
+            success=success,
+            purchase_id=self.purchase_id,
+            message=message,
+        )
 
 
 @dataclass(frozen=True)

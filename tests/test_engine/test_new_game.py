@@ -46,5 +46,7 @@ class TestDefaultGameInitializer(TestCase):
             bus = game_state.buses[bus_id]
             self.assertIsInstance(bus, Bus)
             self.assertGreater(
-                len(game_state.transmission.get_all_at_bus(bus_id)), 0, f"Bus {bus_id} should be connected"
+                len(game_state.transmission.get_all_at_bus(bus_id)),
+                0,
+                f"Bus {bus_id} should be connected",
             )

@@ -28,14 +28,16 @@ class TestGameState(TestCase):
         game_state_2 = game_state_2.update(**dict_vars)
         self.assertEqual(game_state_1, game_state_2)
 
-        dict_vars_incorrect = {**dict_vars, 'hello': 'world'}
+        dict_vars_incorrect = {**dict_vars, "hello": "world"}
         with self.assertRaises(
-            AssertionError, msg='GameState.update() should not accept keys not in the GameState attributes.'
+            AssertionError,
+            msg="GameState.update() should not accept keys not in the GameState attributes.",
         ):
             game_state_2.update(**dict_vars_incorrect)
 
-        repeated_attributes = [dict_vars['players'], dict_vars['players']]
+        repeated_attributes = [dict_vars["players"], dict_vars["players"]]
         with self.assertRaises(
-            ValueError, msg='GameState.update() should not accept repeated attributes as arguments.'
+            ValueError,
+            msg="GameState.update() should not accept repeated attributes as arguments.",
         ):
             game_state_2.update(*repeated_attributes)
