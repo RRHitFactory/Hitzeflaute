@@ -12,7 +12,7 @@ from src.models.message import ErrorMessage, GameStateMessage, InfoMessage, Load
 
 # In-memory storage for active games and player connections
 active_games: dict[str, GameManager] = {}
-player_connections: dict[PlayerId, websockets.WebSocketServerProtocol] = {}
+player_connections: dict[PlayerId, websockets.ServerProtocol] = {}
 player_game_map: dict[PlayerId, str] = {}  # Map player ID to game ID
 
 
