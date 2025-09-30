@@ -3,11 +3,11 @@ from enum import IntEnum
 from functools import cached_property
 from typing import Self
 
+from randcraft import make_normal
+
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.ids import AssetId, BusId, PlayerId
-from src.models.random_variable import RandomVariable
-from src.models.random_variable.constructors import make_normal
 from src.tools.serialization import simplify_type
 
 
@@ -88,9 +88,7 @@ class AssetRepo(LdcRepo[AssetInfo]):
 
     def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
         assets = self._filter({"owner_player": player_id, "is_freezer": True})
-        return assets.as_objs()[
-            0
-        ]  # TODO: to make the game more fun, players should be allowed to have multiple freezers
+        return assets.as_objs()[0]  # TODO: to make the game more fun, players should be allowed to have multiple freezers
 
     def get_remaining_ice_creams(self, player_id: PlayerId) -> int:
         freezers = self.get_all_for_player(player_id).only_freezers

@@ -1,11 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Optional
 
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.geometry import Point
-from src.models.ids import PlayerId, BusId
-from src.tools.random_choice import random_choice_multi, random_choice
+from src.models.ids import BusId, PlayerId
+from src.tools.random_choice import random_choice, random_choice_multi
 
 
 @dataclass(frozen=True)
@@ -72,9 +71,7 @@ class BusSocketManager:
     def __init__(self, starting_sockets: dict[BusId, int]) -> None:
         self._sockets: dict[BusId, int] = starting_sockets
         assert all(isinstance(k, BusId) for k in self._sockets.keys()), "All keys must be BusId"
-        assert all(
-            isinstance(v, int) and v >= 0 for v in self._sockets.values()
-        ), "All values must be non-negative integers"
+        assert all(isinstance(v, int) and v >= 0 for v in self._sockets.values()), "All values must be non-negative integers"
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}>"
@@ -97,15 +94,13 @@ class BusSocketManager:
     def get_buses_with_free_sockets(self, n: int, use: bool = False) -> list[BusId]:
         assert n > 0, "Number of buses requested must be positive"
         if n > len(self.free_buses):
-            raise BusFullException(
-                f"Requested {n} buses, but only {len(self.free_buses)} buses with free sockets available."
-            )
+            raise BusFullException(f"Requested {n} buses, but only {len(self.free_buses)} buses with free sockets available.")
         buses = random_choice_multi(x=self.free_buses, size=n, replace=False)
         if use:
             [self.use_socket(b) for b in buses]
         return buses
 
-    def get_bus_with_free_socket(self, use: bool = False, excluding: Optional[BusId] = None) -> BusId:
+    def get_bus_with_free_socket(self, use: bool = False, excluding: BusId | None = None) -> BusId:
         if excluding is not None:
             usable_buses = [b for b in self.free_buses if b != excluding]
             if not len(usable_buses):

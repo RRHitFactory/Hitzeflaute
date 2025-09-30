@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Self, TypeVar
 
-from src.tools.serialization import simplify_type, un_simplify_type, SimpleDict
+from src.tools.serialization import SimpleDict, simplify_type, un_simplify_type
 
 
 @dataclass(frozen=True)
@@ -19,7 +19,8 @@ class LightDc:
     @classmethod
     def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
         init_dict = {
-            k: un_simplify_type(x=simple_dict[k], t=v.type) for k, v in cls.__dataclass_fields__.items()  # noqa
+            k: un_simplify_type(x=simple_dict[k], t=v.type)
+            for k, v in cls.__dataclass_fields__.items()  # noqa
         }
         return cls(**init_dict)  # noqa
 

@@ -1,23 +1,23 @@
 import math
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from itertools import combinations, count
-from typing import Optional, Generator
 
 import numpy as np
 
-from src.models.assets import AssetRepo, AssetInfo, AssetId, AssetType
-from src.models.buses import BusRepo, Bus, BusSocketManager
+from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
+from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
 from src.models.geometry import Point, Shape
-from src.models.ids import GameId, PlayerId, BusId
+from src.models.ids import BusId, GameId, PlayerId
 from src.models.player import Player, PlayerRepo
-from src.models.transmission import TransmissionRepo, TransmissionInfo, TransmissionId
+from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
+from src.tools.random_choice import random_choice, random_choice_multi
 
 
 class BusTopologyMaker:
-
     @staticmethod
     def make_line(n_buses: int, length: int) -> list[Point]:
         line_layout = Shape.make_line(start=Point(x=0.0, y=0.0), end=Point(x=length, y=0.0), n_points=n_buses)
@@ -25,7 +25,10 @@ class BusTopologyMaker:
 
     @staticmethod
     def make_grid(
-        n_buses_per_row: int, n_buses_per_col: int, x_range: float = 10.0, y_range: float = 10.0
+        n_buses_per_row: int,
+        n_buses_per_col: int,
+        x_range: float = 10.0,
+        y_range: float = 10.0,
     ) -> list[Point]:
         grid_layout = Shape.make_grid(
             start_corner=Point(x=0.0, y=0.0),
@@ -40,16 +43,18 @@ class BusTopologyMaker:
     def make_random(n_buses: int, x_range: float = 10.0, y_range: float = 10.0) -> list[Point]:
         n_bins = n_buses
         grid_layout = Shape.make_grid(
-            start_corner=Point(x=0.0, y=0.0), width=x_range, height=y_range, n_points_in_x=n_bins, n_points_in_y=n_bins
+            start_corner=Point(x=0.0, y=0.0),
+            width=x_range,
+            height=y_range,
+            n_points_in_x=n_bins,
+            n_points_in_y=n_bins,
         )
-        selection = np.random.choice(grid_layout.points, n_buses, replace=False)
+        selection = random_choice_multi(grid_layout.points, n_buses, replace=False)
         return selection
 
     @classmethod
     def make_regular_polygon(cls, n_buses: int, radius: float = 10.0) -> list[Point]:
-        circle_layout = Shape.make_regular_polygon(
-            center=Point(x=0.0, y=0.0), radius=radius, n_points=n_buses, closed=False
-        )
+        circle_layout = Shape.make_regular_polygon(center=Point(x=0.0, y=0.0), radius=radius, n_points=n_buses, closed=False)
         return circle_layout.points
 
     @classmethod
@@ -58,7 +63,10 @@ class BusTopologyMaker:
         layered_polygon_layout = Shape.make_empty()
         for i in range(n_layers):
             layered_polygon_layout += Shape.make_regular_polygon(
-                center=Point(x=0.0, y=0.0), radius=radius * (i + 1) / n_layers, n_points=n_buses_per_layer, closed=False
+                center=Point(x=0.0, y=0.0),
+                radius=radius * (i + 1) / n_layers,
+                n_points=n_buses_per_layer,
+                closed=False,
             )
         return layered_polygon_layout.points[:n_buses]
 
@@ -80,7 +88,7 @@ class TransmissionTopologyMaker:
         :param bus_repo: BusRepo containing the buses in the game.
         :return: List of dictionaries containing bus connections.
         """
-        return [{'bus1': bus_repo.bus_ids[i], 'bus2': bus_repo.bus_ids[i + 1]} for i in range(len(bus_repo))]
+        return [{"bus1": bus_repo.bus_ids[i], "bus2": bus_repo.bus_ids[i + 1]} for i in range(len(bus_repo))]
 
     @staticmethod
     def make_random(bus_repo: BusRepo, n_connections: int) -> list[dict[str, BusId]]:
@@ -93,8 +101,8 @@ class TransmissionTopologyMaker:
         connections = []
         possible_connections = TransmissionTopologyMaker._get_bus_combinations(bus_repo)
         for _ in range(n_connections):
-            bus1, bus2 = np.random.choice(possible_connections, replace=False)
-            connections.append({'bus1': BusId(bus1), 'bus2': BusId(bus2)})
+            bus1, bus2 = random_choice(possible_connections, replace=False)
+            connections.append({"bus1": BusId(bus1), "bus2": BusId(bus2)})
         return connections
 
     @staticmethod
@@ -109,9 +117,14 @@ class TransmissionTopologyMaker:
         n_buses = len(bus_repo)
         for i in range(n_buses):
             if (i + 1) % n_buses_per_row != 0:  # Connect to the right bus
-                connections.append({'bus1': bus_repo.bus_ids[i], 'bus2': bus_repo.bus_ids[i + 1]})
+                connections.append({"bus1": bus_repo.bus_ids[i], "bus2": bus_repo.bus_ids[i + 1]})
             if i + n_buses_per_row < n_buses:  # Connect to the bus below
-                connections.append({'bus1': bus_repo.bus_ids[i], 'bus2': bus_repo.bus_ids[i + n_buses_per_row]})
+                connections.append(
+                    {
+                        "bus1": bus_repo.bus_ids[i],
+                        "bus2": bus_repo.bus_ids[i + n_buses_per_row],
+                    }
+                )
         return connections
 
     @staticmethod
@@ -136,11 +149,11 @@ class TransmissionTopologyMaker:
                 upper_layer_bus_idx = (layer + 1) * n_buses_per_layer + i
 
                 if i + 1 < n_buses_per_layer and cw_bus_idx < n_buses:
-                    connections.append({'bus1': bus1, 'bus2': bus_repo.bus_ids[cw_bus_idx]})
+                    connections.append({"bus1": bus1, "bus2": bus_repo.bus_ids[cw_bus_idx]})
                 if i % n_buses_per_layer == 0 and ccw_bus_idx < n_buses:
-                    connections.append({'bus1': bus1, 'bus2': bus_repo.bus_ids[ccw_bus_idx]})
+                    connections.append({"bus1": bus1, "bus2": bus_repo.bus_ids[ccw_bus_idx]})
                 if layer + 1 < n_layers and upper_layer_bus_idx < n_buses:
-                    connections.append({'bus1': bus1, 'bus2': bus_repo.bus_ids[upper_layer_bus_idx]})
+                    connections.append({"bus1": bus1, "bus2": bus_repo.bus_ids[upper_layer_bus_idx]})
 
         return connections
 
@@ -156,13 +169,16 @@ class TransmissionTopologyMaker:
         connections = []
         for bus in bus_repo:
             distances = [
-                (other_bus, np.linalg.norm(np.array([bus.x, bus.y]) - np.array([other_bus.x, other_bus.y])))
+                (
+                    other_bus,
+                    np.linalg.norm(np.array([bus.x, bus.y]) - np.array([other_bus.x, other_bus.y])),
+                )
                 for other_bus in bus_repo
                 if other_bus.id != bus.id
             ]
             closest_buses = sorted(distances, key=lambda x: x[1])[:n_connections]
             for other_bus, _ in closest_buses:
-                connections.append({'bus1': bus.id, 'bus2': other_bus.id})
+                connections.append({"bus1": bus.id, "bus2": other_bus.id})
         return connections
 
 
@@ -180,7 +196,10 @@ class BaseGameInitializer(ABC):
         self.settings = settings
 
     def create_new_game(
-        self, game_id: GameId, player_names: list[str], player_colors: Optional[list[str]] = None
+        self,
+        game_id: GameId,
+        player_names: list[str],
+        player_colors: list[str] | None = None,
     ) -> GameState:
         """
         Create a new game state with the given game ID and settings.
@@ -239,6 +258,8 @@ class BaseGameInitializer(ABC):
         :param transmission_repo: The TransmissionRepo containing all transmission lines.
         :return: A TransmissionRepo with no islanded buses.
         """
+        generator = np.random.default_rng()
+
         additional_connections = []
         for bus in bus_repo:
             if len(transmission_repo.get_all_at_bus(bus.id)) == 0:
@@ -250,14 +271,12 @@ class BaseGameInitializer(ABC):
                         owner_player=PlayerId.get_npc(),  # NPC owns all initial transmissions
                         bus1=id_bus1,
                         bus2=id_bus2,
-                        reactance=np.random.uniform(0.1, 1.0),  # Random reactance for each transmission
-                        capacity=np.random.uniform(10, 100),  # Random capacity for each transmission
+                        reactance=generator.uniform(0.1, 1.0),  # Random reactance for each transmission
+                        capacity=generator.uniform(10, 100),  # Random capacity for each transmission
                         health=5,
-                        fixed_operating_cost=np.random.uniform(0.01, 0.1),
+                        fixed_operating_cost=generator.uniform(0.01, 0.1),
                         is_for_sale=True,
-                        minimum_acquisition_price=np.random.uniform(
-                            10, 100
-                        ),  # Random purchase cost for each transmission
+                        minimum_acquisition_price=generator.uniform(10, 100),  # Random purchase cost for each transmission
                     )
                 )
         if not additional_connections:
@@ -300,7 +319,6 @@ class DefaultGameInitializer(BaseGameInitializer):
     """
 
     def _create_bus_repo(self, player_repo: PlayerRepo) -> BusRepo:
-
         topology = BusTopologyMaker.make_layered_polygon(
             n_buses=self.settings.n_buses,
             n_buses_per_layer=player_repo.n_human_players,
@@ -356,6 +374,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                 )
             )
 
+        generator = np.random.default_rng()
         # Create the rest of the assets for NPC
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
@@ -372,7 +391,10 @@ class DefaultGameInitializer(BaseGameInitializer):
                     minimum_acquisition_price=self.settings.initial_funds / 4,
                     fixed_operating_cost=self.settings.initial_funds / 20,
                     marginal_cost=self.settings.initial_funds / 20,
-                    bid_price=np.random.uniform(self.settings.initial_funds / 20, self.settings.initial_funds / 2),
+                    bid_price=generator.uniform(
+                        self.settings.initial_funds / 20,
+                        self.settings.initial_funds / 2,
+                    ),
                     is_freezer=False,
                     health=5,
                 )
@@ -380,11 +402,11 @@ class DefaultGameInitializer(BaseGameInitializer):
         return AssetRepo(assets)
 
     def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> TransmissionRepo:
-        topology = TransmissionTopologyMaker.make_spiderweb(
-            bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players
-        )
+        topology = TransmissionTopologyMaker.make_spiderweb(bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players)
 
-        def transmission_id_iterator(start: int = 1) -> Generator[TransmissionId, None, None]:
+        def transmission_id_iterator(
+            start: int = 1,
+        ) -> Generator[TransmissionId, None, None]:
             for i in count(start):
                 yield TransmissionId(i)
 
@@ -402,17 +424,19 @@ class DefaultGameInitializer(BaseGameInitializer):
             socket_manager.use_socket(bus1)
             socket_manager.use_socket(bus2)
 
+            generator = np.random.default_rng()
+
             line = TransmissionInfo(
                 id=next(t_id_iter),
                 owner_player=PlayerId.get_npc(),  # NPC owns all initial transmissions
                 bus1=bus_pair["bus1"],
                 bus2=bus_pair["bus2"],
-                reactance=np.random.uniform(0.1, 1.0),  # Random reactance for each transmission
-                capacity=np.random.uniform(10, 100),  # Random capacity for each transmission
+                reactance=generator.uniform(0.1, 1.0),  # Random reactance for each transmission
+                capacity=generator.uniform(10, 100),  # Random capacity for each transmission
                 health=5,
-                fixed_operating_cost=np.random.uniform(0.01, 0.1),
+                fixed_operating_cost=generator.uniform(0.01, 0.1),
                 is_for_sale=True,
-                minimum_acquisition_price=np.random.uniform(10, 100),  # Random purchase cost for each transmission
+                minimum_acquisition_price=generator.uniform(10, 100),  # Random purchase cost for each transmission
             )
             lines.append(line)
 

@@ -1,12 +1,12 @@
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
 import numpy as np
 from numpy.random import Generator
 
 from src.models.buses import Bus
 from src.models.game_state import GameState
-from src.models.ids import AssetId, TransmissionId, BusId
+from src.models.ids import AssetId, BusId, TransmissionId
 from src.tools.random_choice import random_choice
 
 type SocketSide = Literal["tr", "bl"]  # Top Right or Bottom Left
@@ -38,7 +38,7 @@ class Socket:
 
 
 class SocketProvider:
-    def __init__(self, bus: Bus, random_generator: Optional[Generator] = None) -> None:
+    def __init__(self, bus: Bus, random_generator: Generator | None = None) -> None:
         """
         :param bus: The bus containing the sockets
         :param random_generator: Optionally provide a random generator for reproducibility.
@@ -60,12 +60,12 @@ class SocketProvider:
     def __repr__(self) -> str:
         return "<SocketProvider>"
 
-    def get_n_sockets_free(self, side: Optional[SocketSide] = None) -> int:
+    def get_n_sockets_free(self, side: SocketSide | None = None) -> int:
         if side is None:
             return len(self._sockets["tr"]) + len(self._sockets["bl"])
         return len(self._sockets[side])
 
-    def get_socket(self, preferred_side: Optional[SocketSide] = None) -> Socket:
+    def get_socket(self, preferred_side: SocketSide | None = None) -> Socket:
         if self.get_n_sockets_free() == 0:
             raise IndexError("No remaining sockets available.")
 
@@ -97,9 +97,7 @@ class SocketProvider:
 
 class LayoutPlanner:
     @classmethod
-    def get_sockets_for_assets_and_transmission(
-        cls, game_state: GameState
-    ) -> tuple[dict[AssetId, Socket], dict[TransmissionId, tuple[Socket, Socket]]]:
+    def get_sockets_for_assets_and_transmission(cls, game_state: GameState) -> tuple[dict[AssetId, Socket], dict[TransmissionId, tuple[Socket, Socket]]]:
         """
         :param game_state:
         :return:

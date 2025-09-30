@@ -3,7 +3,7 @@ import pandas as pd
 
 from src.app.simple_front_end.plotting.po_rect import ShapePlotObject
 from src.models.colors import Color
-from src.models.geometry import Shape, ShapeType, Point
+from src.models.geometry import Point, Shape, ShapeType
 
 
 def make_table(values: pd.DataFrame, colors: pd.DataFrame, rect: Shape) -> list[ShapePlotObject]:
@@ -25,7 +25,9 @@ def make_table(values: pd.DataFrame, colors: pd.DataFrame, rect: Shape) -> list[
             color = Color.from_string(colors.iloc[i, j])
 
             shape = Shape.make_rectangle(
-                bottom_left=Point(x=x_min, y=y_min), top_right=Point(x=x_max, y=y_max), closed=True
+                bottom_left=Point(x=x_min, y=y_min),
+                top_right=Point(x=x_max, y=y_max),
+                closed=True,
             )
 
             main_rect = ShapePlotObject(

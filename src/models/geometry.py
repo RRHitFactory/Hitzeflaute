@@ -1,7 +1,8 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
-from typing import Self, Optional, Iterable
+from typing import Self
 
 import numpy as np
 
@@ -66,7 +67,7 @@ class ShapeType(Enum):
 
 
 class Shape:
-    def __init__(self, points: list[Point], shape_type: Optional[ShapeType] = None) -> None:
+    def __init__(self, points: list[Point], shape_type: ShapeType | None = None) -> None:
         if shape_type is None:
             if len(points) == 0:
                 shape_type = ShapeType.EMPTY
@@ -181,9 +182,7 @@ class Shape:
         assert n_points >= 3, "At least 3 points are required to create a regular polygon."
 
         angles = np.linspace(0, 2 * np.pi, n_points)
-        polygon_points = [
-            center + Point(x=float(radius * np.cos(angle)), y=float(radius * np.sin(angle))) for angle in angles
-        ]
+        polygon_points = [center + Point(x=float(radius * np.cos(angle)), y=float(radius * np.sin(angle))) for angle in angles]
         match n_points:
             case 3:
                 return cls(points=polygon_points, shape_type=ShapeType.TRIANGLE)
@@ -197,11 +196,16 @@ class Shape:
 
     @classmethod
     def make_grid(
-        cls, start_corner: Point, width: float, height: float, n_points_in_x: int = 10, n_points_in_y: int = 10
+        cls,
+        start_corner: Point,
+        width: float,
+        height: float,
+        n_points_in_x: int = 10,
+        n_points_in_y: int = 10,
     ) -> Self:
         x_values = np.linspace(start_corner.x, start_corner.x + width, n_points_in_x)
         y_values = np.linspace(start_corner.y, start_corner.y + height, n_points_in_y)
-        numpy_grid = np.meshgrid(x_values, y_values, indexing='ij')
+        numpy_grid = np.meshgrid(x_values, y_values, indexing="ij")
         grid_points = [Point(x=float(x), y=float(y)) for x, y in zip(numpy_grid[0].flatten(), numpy_grid[1].flatten())]
         return cls(points=grid_points, shape_type=ShapeType.GRID)
 

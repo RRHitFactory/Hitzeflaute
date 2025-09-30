@@ -4,7 +4,7 @@ from src.app.game_repo.base import BaseGameStateRepo
 from src.directories import game_cache_dir
 from src.models.game_state import GameState
 from src.models.ids import GameId
-from src.tools.serialization import serialize, deserialize
+from src.tools.serialization import deserialize, serialize
 
 
 class FileGameStateRepo(BaseGameStateRepo):
@@ -33,7 +33,7 @@ class FileGameStateRepo(BaseGameStateRepo):
         path = self.game_id_to_file_path(game_id)
         if not path.exists():
             raise FileNotFoundError(f"Game with ID {game_id} does not exist.")
-        with open(path, "r") as file:
+        with open(path) as file:
             data = file.read()
         return deserialize(x=data, cls=GameState)
 

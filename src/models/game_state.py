@@ -1,15 +1,15 @@
 from dataclasses import dataclass, replace
 from enum import IntEnum
 from functools import cached_property
-from typing import Self, Optional
+from typing import Self
 
-from src.models.assets import AssetRepo, AssetInfo
-from src.models.buses import BusRepo, BusFullException
+from src.models.assets import AssetInfo, AssetRepo
+from src.models.buses import BusFullException, BusRepo
 from src.models.game_settings import GameSettings
-from src.models.ids import PlayerId, GameId, BusId, Round
+from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
-from src.models.transmission import TransmissionRepo, TransmissionInfo
+from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.serialization import simplify_type, un_simplify_type
 
 
@@ -46,7 +46,7 @@ class GameState:
     buses: BusRepo
     assets: AssetRepo
     transmission: TransmissionRepo
-    market_coupling_result: Optional[MarketCouplingResult]
+    market_coupling_result: MarketCouplingResult | None
     round: Round = Round(1)
 
     def __post_init__(self) -> None:
@@ -88,7 +88,11 @@ class GameState:
     def start_all_turns(self) -> Self:
         return self.update(self.players.start_all_turns())
 
-    def update(self, *new_attributes: GameStateAttributes, **kw_new_attributes: GameStateAttributes) -> Self:
+    def update(
+        self,
+        *new_attributes: GameStateAttributes,
+        **kw_new_attributes: GameStateAttributes,
+    ) -> Self:
         assert kw_new_attributes.keys() <= vars(self).keys()
         map_new_attributes = {**kw_new_attributes}
 
@@ -126,9 +130,7 @@ class GameState:
             "buses": self.buses.to_simple_dict(),
             "assets": self.assets.to_simple_dict(),
             "transmission": self.transmission.to_simple_dict(),
-            "market_coupling_result": (
-                self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None
-            ),
+            "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
             "round": self.round,
         }
 
@@ -142,10 +144,6 @@ class GameState:
             buses=BusRepo.from_simple_dict(simple_dict["buses"]),
             assets=AssetRepo.from_simple_dict(simple_dict["assets"]),
             transmission=TransmissionRepo.from_simple_dict(simple_dict["transmission"]),
-            market_coupling_result=(
-                MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"])
-                if simple_dict.get("market_coupling_result")
-                else None
-            ),
+            market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
             round=simple_dict["round"],
         )
