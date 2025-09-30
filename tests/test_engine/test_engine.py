@@ -35,9 +35,7 @@ class TestAssets(TestCase):
 
     def test_buy_asset_message(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()
-        rich_player = Player(
-            id=PlayerId(100), name="Rich player", color=Color("black"), money=1000000, is_having_turn=True
-        )
+        rich_player = Player(id=PlayerId(100), name="Rich player", color=Color("black"), money=1000000, is_having_turn=True)
         player_repo += rich_player
         game_state = GameStateMaker().add_player_repo(player_repo).make()
 
@@ -73,9 +71,7 @@ class TestAssets(TestCase):
 
     def test_buy_transmission_message(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()
-        rich_player = Player(
-            id=PlayerId(100), name="Rich player", color=Color("black"), money=1000000, is_having_turn=True
-        )
+        rich_player = Player(id=PlayerId(100), name="Rich player", color=Color("black"), money=1000000, is_having_turn=True)
         player_repo += rich_player
         game_state = GameStateMaker().add_player_repo(player_repo).make()
 
@@ -132,13 +128,7 @@ class TestAssets(TestCase):
         transmission_repo += my_line
         transmission_repo += not_my_line
 
-        game_state = (
-            GameStateMaker()
-            .add_player_repo(player_repo)
-            .add_bus_repo(bus_repo)
-            .add_transmission_repo(transmission_repo)
-            .make()
-        )
+        game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_transmission_repo(transmission_repo).make()
 
         # Test operating a line that I own
         open_request = OperateLineRequest(player_id=player.id, transmission_id=my_line.id, action="open")

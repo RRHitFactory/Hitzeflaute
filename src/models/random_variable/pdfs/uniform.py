@@ -63,7 +63,7 @@ class UniformDistributionFunction(ProbabilityDistributionFunction):
         low_high_range = self._high - self._low
         start, end = self._get_plot_range()
         data = pd.Series(index=[start, self._low, self._high, end], data=[0, 1 / low_high_range, 0, 0])
-        data.plot(ax=ax, drawstyle='steps-post')
+        data.plot(ax=ax, drawstyle="steps-post")
 
     def plot_cdf_on_axis(self, ax: Axes) -> None:
         start, end = self._get_plot_range()

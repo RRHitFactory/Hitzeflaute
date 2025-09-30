@@ -46,9 +46,7 @@ class Color:
             c = int(x[5:7], 16)
         else:
             assert len(x) == 3, f"{color_model.upper()} tuple must have exactly three elements. Received {x}."
-            assert all(
-                isinstance(value, int) for value in x
-            ), f"{color_model.upper()} values must be integers. Received {x}."
+            assert all(isinstance(value, int) for value in x), f"{color_model.upper()} values must be integers. Received {x}."
             a, b, c = x
 
         abc = (a, b, c)
@@ -143,7 +141,7 @@ def get_contrasting_color(color: Color) -> Color:
 
 
 def get_random_player_colors(n: int) -> list[Color]:
-    color_map = colormaps.get_cmap('hsv')
+    color_map = colormaps.get_cmap("hsv")
     colors_np = [color_map(i / n) for i in range(n)]
 
     def convert_color(color: tuple[float, float, float, float]) -> Color:

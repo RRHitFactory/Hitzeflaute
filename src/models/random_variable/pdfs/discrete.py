@@ -47,15 +47,11 @@ class DiscreteDistributionFunction(ProbabilityDistributionFunction):
         x = float(x)
         if x == 0.0:
             return DiracDeltaDistributionFunction(value=0.0)
-        return DiscreteDistributionFunction(
-            values=[float(v * x) for v in self._values], probabilities=self._probabilities.tolist()
-        )
+        return DiscreteDistributionFunction(values=[float(v * x) for v in self._values], probabilities=self._probabilities.tolist())
 
     def add_constant(self, x: float) -> Self:
         x = float(x)
-        return DiscreteDistributionFunction(
-            values=[float(v + x) for v in self._values], probabilities=self._probabilities.tolist()
-        )
+        return DiscreteDistributionFunction(values=[float(v + x) for v in self._values], probabilities=self._probabilities.tolist())
 
     def sample_numpy(self, n: int) -> np.ndarray:
         return np.random.choice(self._values, size=n, p=self._probabilities)
@@ -78,8 +74,8 @@ class DiscreteDistributionFunction(ProbabilityDistributionFunction):
 
     def plot_pdf_on_axis(self, ax: Axes) -> None:
         for x, p in zip(self._values, self._probabilities):
-            ax.vlines(x, 0, p, colors='C0', linewidth=2)
-            ax.scatter(x, p, color='C0', s=50, zorder=5)
+            ax.vlines(x, 0, p, colors="C0", linewidth=2)
+            ax.scatter(x, p, color="C0", s=50, zorder=5)
         return
 
     def plot_cdf_on_axis(self, ax: Axes) -> None:
@@ -87,7 +83,7 @@ class DiscreteDistributionFunction(ProbabilityDistributionFunction):
         min_plot, max_plot = self._get_plot_range()
         cumulative_prob = np.concatenate(([0.0], cumulative_prob, [1.0]))
         values = np.concatenate(([min_plot], self._values, [max_plot]))
-        ax.step(values, cumulative_prob, where='post')
+        ax.step(values, cumulative_prob, where="post")
 
 
 class DiracDeltaDistributionFunction(DiscreteDistributionFunction):

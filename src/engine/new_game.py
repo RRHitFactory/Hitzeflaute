@@ -17,16 +17,13 @@ from src.models.transmission import TransmissionRepo, TransmissionInfo, Transmis
 
 
 class BusTopologyMaker:
-
     @staticmethod
     def make_line(n_buses: int, length: int) -> list[Point]:
         line_layout = Shape.make_line(start=Point(x=0.0, y=0.0), end=Point(x=length, y=0.0), n_points=n_buses)
         return line_layout.points
 
     @staticmethod
-    def make_grid(
-        n_buses_per_row: int, n_buses_per_col: int, x_range: float = 10.0, y_range: float = 10.0
-    ) -> list[Point]:
+    def make_grid(n_buses_per_row: int, n_buses_per_col: int, x_range: float = 10.0, y_range: float = 10.0) -> list[Point]:
         grid_layout = Shape.make_grid(
             start_corner=Point(x=0.0, y=0.0),
             width=x_range,
@@ -39,17 +36,13 @@ class BusTopologyMaker:
     @staticmethod
     def make_random(n_buses: int, x_range: float = 10.0, y_range: float = 10.0) -> list[Point]:
         n_bins = n_buses
-        grid_layout = Shape.make_grid(
-            start_corner=Point(x=0.0, y=0.0), width=x_range, height=y_range, n_points_in_x=n_bins, n_points_in_y=n_bins
-        )
+        grid_layout = Shape.make_grid(start_corner=Point(x=0.0, y=0.0), width=x_range, height=y_range, n_points_in_x=n_bins, n_points_in_y=n_bins)
         selection = np.random.choice(grid_layout.points, n_buses, replace=False)
         return selection
 
     @classmethod
     def make_regular_polygon(cls, n_buses: int, radius: float = 10.0) -> list[Point]:
-        circle_layout = Shape.make_regular_polygon(
-            center=Point(x=0.0, y=0.0), radius=radius, n_points=n_buses, closed=False
-        )
+        circle_layout = Shape.make_regular_polygon(center=Point(x=0.0, y=0.0), radius=radius, n_points=n_buses, closed=False)
         return circle_layout.points
 
     @classmethod
@@ -57,9 +50,7 @@ class BusTopologyMaker:
         n_layers = math.ceil(n_buses / n_buses_per_layer)
         layered_polygon_layout = Shape.make_empty()
         for i in range(n_layers):
-            layered_polygon_layout += Shape.make_regular_polygon(
-                center=Point(x=0.0, y=0.0), radius=radius * (i + 1) / n_layers, n_points=n_buses_per_layer, closed=False
-            )
+            layered_polygon_layout += Shape.make_regular_polygon(center=Point(x=0.0, y=0.0), radius=radius * (i + 1) / n_layers, n_points=n_buses_per_layer, closed=False)
         return layered_polygon_layout.points[:n_buses]
 
 
@@ -80,7 +71,7 @@ class TransmissionTopologyMaker:
         :param bus_repo: BusRepo containing the buses in the game.
         :return: List of dictionaries containing bus connections.
         """
-        return [{'bus1': bus_repo.bus_ids[i], 'bus2': bus_repo.bus_ids[i + 1]} for i in range(len(bus_repo))]
+        return [{"bus1": bus_repo.bus_ids[i], "bus2": bus_repo.bus_ids[i + 1]} for i in range(len(bus_repo))]
 
     @staticmethod
     def make_random(bus_repo: BusRepo, n_connections: int) -> list[dict[str, BusId]]:
@@ -94,7 +85,7 @@ class TransmissionTopologyMaker:
         possible_connections = TransmissionTopologyMaker._get_bus_combinations(bus_repo)
         for _ in range(n_connections):
             bus1, bus2 = np.random.choice(possible_connections, replace=False)
-            connections.append({'bus1': BusId(bus1), 'bus2': BusId(bus2)})
+            connections.append({"bus1": BusId(bus1), "bus2": BusId(bus2)})
         return connections
 
     @staticmethod
@@ -109,9 +100,9 @@ class TransmissionTopologyMaker:
         n_buses = len(bus_repo)
         for i in range(n_buses):
             if (i + 1) % n_buses_per_row != 0:  # Connect to the right bus
-                connections.append({'bus1': bus_repo.bus_ids[i], 'bus2': bus_repo.bus_ids[i + 1]})
+                connections.append({"bus1": bus_repo.bus_ids[i], "bus2": bus_repo.bus_ids[i + 1]})
             if i + n_buses_per_row < n_buses:  # Connect to the bus below
-                connections.append({'bus1': bus_repo.bus_ids[i], 'bus2': bus_repo.bus_ids[i + n_buses_per_row]})
+                connections.append({"bus1": bus_repo.bus_ids[i], "bus2": bus_repo.bus_ids[i + n_buses_per_row]})
         return connections
 
     @staticmethod
@@ -136,11 +127,11 @@ class TransmissionTopologyMaker:
                 upper_layer_bus_idx = (layer + 1) * n_buses_per_layer + i
 
                 if i + 1 < n_buses_per_layer and cw_bus_idx < n_buses:
-                    connections.append({'bus1': bus1, 'bus2': bus_repo.bus_ids[cw_bus_idx]})
+                    connections.append({"bus1": bus1, "bus2": bus_repo.bus_ids[cw_bus_idx]})
                 if i % n_buses_per_layer == 0 and ccw_bus_idx < n_buses:
-                    connections.append({'bus1': bus1, 'bus2': bus_repo.bus_ids[ccw_bus_idx]})
+                    connections.append({"bus1": bus1, "bus2": bus_repo.bus_ids[ccw_bus_idx]})
                 if layer + 1 < n_layers and upper_layer_bus_idx < n_buses:
-                    connections.append({'bus1': bus1, 'bus2': bus_repo.bus_ids[upper_layer_bus_idx]})
+                    connections.append({"bus1": bus1, "bus2": bus_repo.bus_ids[upper_layer_bus_idx]})
 
         return connections
 
@@ -155,14 +146,10 @@ class TransmissionTopologyMaker:
         # TODO: Autogenerated by Github Copilot, needs review
         connections = []
         for bus in bus_repo:
-            distances = [
-                (other_bus, np.linalg.norm(np.array([bus.x, bus.y]) - np.array([other_bus.x, other_bus.y])))
-                for other_bus in bus_repo
-                if other_bus.id != bus.id
-            ]
+            distances = [(other_bus, np.linalg.norm(np.array([bus.x, bus.y]) - np.array([other_bus.x, other_bus.y]))) for other_bus in bus_repo if other_bus.id != bus.id]
             closest_buses = sorted(distances, key=lambda x: x[1])[:n_connections]
             for other_bus, _ in closest_buses:
-                connections.append({'bus1': bus.id, 'bus2': other_bus.id})
+                connections.append({"bus1": bus.id, "bus2": other_bus.id})
         return connections
 
 
@@ -179,9 +166,7 @@ class BaseGameInitializer(ABC):
         """
         self.settings = settings
 
-    def create_new_game(
-        self, game_id: GameId, player_names: list[str], player_colors: Optional[list[str]] = None
-    ) -> GameState:
+    def create_new_game(self, game_id: GameId, player_names: list[str], player_colors: Optional[list[str]] = None) -> GameState:
         """
         Create a new game state with the given game ID and settings.
         :param game_id: Unique identifier for the game.
@@ -255,9 +240,7 @@ class BaseGameInitializer(ABC):
                         health=5,
                         fixed_operating_cost=np.random.uniform(0.01, 0.1),
                         is_for_sale=True,
-                        minimum_acquisition_price=np.random.uniform(
-                            10, 100
-                        ),  # Random purchase cost for each transmission
+                        minimum_acquisition_price=np.random.uniform(10, 100),  # Random purchase cost for each transmission
                     )
                 )
         if not additional_connections:
@@ -300,7 +283,6 @@ class DefaultGameInitializer(BaseGameInitializer):
     """
 
     def _create_bus_repo(self, player_repo: PlayerRepo) -> BusRepo:
-
         topology = BusTopologyMaker.make_layered_polygon(
             n_buses=self.settings.n_buses,
             n_buses_per_layer=player_repo.n_human_players,
@@ -380,9 +362,7 @@ class DefaultGameInitializer(BaseGameInitializer):
         return AssetRepo(assets)
 
     def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> TransmissionRepo:
-        topology = TransmissionTopologyMaker.make_spiderweb(
-            bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players
-        )
+        topology = TransmissionTopologyMaker.make_spiderweb(bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players)
 
         def transmission_id_iterator(start: int = 1) -> Generator[TransmissionId, None, None]:
             for i in count(start):

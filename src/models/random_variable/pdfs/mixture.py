@@ -39,14 +39,10 @@ class MixtureDistributionFunction(ProbabilityDistributionFunction):
     @cached_property
     def statistics(self) -> Statistics:
         mean = sum_uncertain_floats(pdf.statistics.mean * weight for pdf, weight in zip(self.pdfs, self.probabilities))
-        expectation_of_x_squared = sum_uncertain_floats(
-            pdf.statistics.expectation_of_x_squared * weight for pdf, weight in zip(self.pdfs, self.probabilities)
-        )
+        expectation_of_x_squared = sum_uncertain_floats(pdf.statistics.expectation_of_x_squared * weight for pdf, weight in zip(self.pdfs, self.probabilities))
         variance = expectation_of_x_squared - mean.apply(lambda x: x**2)
 
-        extreme_values = [pdf.statistics.min_value for pdf in self.pdfs] + [
-            pdf.statistics.max_value for pdf in self.pdfs
-        ]
+        extreme_values = [pdf.statistics.min_value for pdf in self.pdfs] + [pdf.statistics.max_value for pdf in self.pdfs]
         min_value = min(extreme_values, key=lambda x: x.value)
         max_value = max(extreme_values, key=lambda x: x.value)
 
@@ -76,9 +72,7 @@ class MixtureDistributionFunction(ProbabilityDistributionFunction):
         return MixtureDistributionFunction(pdfs=[pdf.scale(x) for pdf in self.pdfs], probabilities=self.probabilities)
 
     def add_constant(self, x: float) -> Self:
-        return MixtureDistributionFunction(
-            pdfs=[pdf.add_constant(x) for pdf in self.pdfs], probabilities=self.probabilities
-        )
+        return MixtureDistributionFunction(pdfs=[pdf.add_constant(x) for pdf in self.pdfs], probabilities=self.probabilities)
 
     def sample_numpy(self, n: int) -> np.ndarray:
         pdf_choices = np.random.choice(len(self.pdfs), size=n, p=self.probabilities)

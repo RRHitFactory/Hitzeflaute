@@ -117,9 +117,7 @@ class TestReferee(TestCase):
         # get the first asset for sale
         asset = game_state.assets._filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
         # get the first transmission for sale
-        transmission = game_state.transmission._filter(
-            {"is_for_sale": True, "owner_player": PlayerId.get_npc()}
-        ).as_objs()[0]
+        transmission = game_state.transmission._filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
 
         self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, asset.id)) == 1)
         self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, transmission.id)) == 1)

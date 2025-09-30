@@ -42,9 +42,7 @@ class Joystick:
     def __init__(self, game_id: GameId) -> None:
         self._message_handler = MessageHandler(joystick=self)
         self._plotter = GridPlotter(html_path=game_cache_dir / "plot.html")
-        self._game_manager = GameManager(
-            game_repo=self.get_game_repo(), game_engine=Engine(), front_end=self._message_handler
-        )
+        self._game_manager = GameManager(game_repo=self.get_game_repo(), game_engine=Engine(), front_end=self._message_handler)
         self._game_id = game_id
         self._current_player_id = PlayerId.get_npc()
         self.change_player()

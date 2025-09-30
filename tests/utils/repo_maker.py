@@ -138,12 +138,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         players: list[PlayerId] | PlayerRepo | None = None,
         bus_repo: Optional[BusRepo] = None,
     ) -> AssetRepo:
-        return (
-            cls(players=players, bus_repo=bus_repo)
-            .add_n_random(n_normal_assets)
-            .add_asset(owner=PlayerId.get_npc(), is_for_sale=True)
-            .make()
-        )
+        return cls(players=players, bus_repo=bus_repo).add_n_random(n_normal_assets).add_asset(owner=PlayerId.get_npc(), is_for_sale=True).make()
 
     def __init__(self, players: list[PlayerId] | PlayerRepo | None = None, bus_repo: Optional[BusRepo] = None) -> None:
         super().__init__()
@@ -401,15 +396,9 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
             reactance=reactance if reactance is not None else float(np.random.rand() * 10 + 1),
             capacity=capacity if capacity is not None else float(np.random.rand() * 100 + 50),
             health=health if health is not None else int(np.random.randint(1, 6)),
-            fixed_operating_cost=(
-                fixed_operating_cost if fixed_operating_cost is not None else float(np.random.rand() * 100)
-            ),
+            fixed_operating_cost=(fixed_operating_cost if fixed_operating_cost is not None else float(np.random.rand() * 100)),
             is_for_sale=is_for_sale if is_for_sale is not None else random_choice([True, False]),
-            minimum_acquisition_price=(
-                minimum_acquisition_price
-                if minimum_acquisition_price is not None
-                else float(np.random.rand() * 1000) if random_choice([True, False]) else 0.0
-            ),
+            minimum_acquisition_price=(minimum_acquisition_price if minimum_acquisition_price is not None else float(np.random.rand() * 1000) if random_choice([True, False]) else 0.0),
             is_active=is_active if is_active is not None else True,
         )
 

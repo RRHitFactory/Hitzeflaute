@@ -12,9 +12,7 @@ from src.models.random_variable.pdfs.base import ProbabilityDistributionFunction
 
 
 class AnonymousDistributionFunction(ProbabilityDistributionFunction):
-    def __init__(
-        self, sampler: Callable[[int], np.ndarray], n_samples: int = 10000, statistics: Optional[Statistics] = None
-    ) -> None:
+    def __init__(self, sampler: Callable[[int], np.ndarray], n_samples: int = 10000, statistics: Optional[Statistics] = None) -> None:
         self._sampler = sampler
         self._n_samples = n_samples
         self._external_statistics = statistics
@@ -122,8 +120,8 @@ class AnonymousDistributionFunction(ProbabilityDistributionFunction):
             # Plot as discrete
             for x, c in zip(unique_samples, counts):
                 p = c / len(samples)
-                ax.vlines(x, 0, p, colors='C0', linewidth=2)
-                ax.scatter(x, p, color='C0', s=50, zorder=5)
+                ax.vlines(x, 0, p, colors="C0", linewidth=2)
+                ax.scatter(x, p, color="C0", s=50, zorder=5)
             return
 
         # Plot as continuous
@@ -134,7 +132,7 @@ class AnonymousDistributionFunction(ProbabilityDistributionFunction):
         ser.loc[: self.min_value] = 0.0
         ser.loc[self.max_value :] = 0.0
         ser = ser / (ser.sum() * step_size)
-        ser.plot(ax=ax, linestyle='dashed')
+        ser.plot(ax=ax, linestyle="dashed")
 
     def plot_cdf_on_axis(self, ax: Axes) -> None:
         start, end = self._get_plot_range()
@@ -142,5 +140,5 @@ class AnonymousDistributionFunction(ProbabilityDistributionFunction):
         x_values = np.concatenate(([start], x_values, [end]))
         cumulative_probs = np.concatenate(([0], cumulative_probs, [1]))
 
-        ax.step(x_values, cumulative_probs, where='post')
+        ax.step(x_values, cumulative_probs, where="post")
         ax.set_xlim(start, end)

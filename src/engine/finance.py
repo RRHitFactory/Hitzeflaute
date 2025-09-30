@@ -10,14 +10,12 @@ class NetCashflow(float): ...  # This is a simple wrapper around float to repres
 
 
 class FinanceCalculator:
-
     @staticmethod
     def compute_assets_cashflow(
         assets: AssetRepo,
         assets_dispatch: dict[AssetId, float],
         bus_prices: dict[BusId, float],
     ) -> NetCashflow:
-
         operative_cashflow = 0.0
         market_cashflow = 0.0
 
@@ -35,7 +33,6 @@ class FinanceCalculator:
         transmission_flows: dict[TransmissionId, float],
         bus_prices: dict[BusId, float],
     ) -> NetCashflow:
-
         congestion_payments = 0.0
 
         for line in transmission_repo:
@@ -50,7 +47,6 @@ class FinanceCalculator:
         game_state: GameState,
         market_coupling_result: MarketCouplingResult,
     ) -> dict[PlayerId, NetCashflow]:
-
         # TODO: Modify to handle multiple timesteps in the future
         assets_dispatch: dict[AssetId, float] = market_coupling_result.assets_dispatch.loc[0, :].to_dict()
         transmission_flows: dict[TransmissionId, float] = market_coupling_result.transmission_flows.loc[0, :].to_dict()
@@ -58,7 +54,6 @@ class FinanceCalculator:
 
         cashflows: dict[PlayerId, NetCashflow] = {}
         for player in game_state.players:
-
             cashflows[player.id] = FinanceCalculator.compute_assets_cashflow(
                 assets=game_state.assets.get_all_for_player(player.id, only_active=True),
                 assets_dispatch=assets_dispatch,
@@ -72,10 +67,7 @@ class FinanceCalculator:
         return cashflows
 
     @staticmethod
-    def validate_bid_for_asset(
-        player_assets: AssetRepo, asset_id_to_validate: AssetId, bid_to_validate: float, player_money: float
-    ) -> bool:
-
+    def validate_bid_for_asset(player_assets: AssetRepo, asset_id_to_validate: AssetId, bid_to_validate: float, player_money: float) -> bool:
         expected_market_cashflow = 0.0
 
         for asset in player_assets:

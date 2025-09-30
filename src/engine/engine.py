@@ -60,7 +60,6 @@ class Engine:
         game_state: GameState,
         msg: ConcludePhase,
     ) -> tuple[GameState, list[GameToPlayerMessage]]:
-
         if msg.phase == Phase.CONSTRUCTION:
             new_game_state, msgs = cls._process_construction_phase(game_state)
         elif msg.phase == Phase.DA_AUCTION:
@@ -83,7 +82,6 @@ class Engine:
         game_state: GameState,
         msg: UpdateBidRequest,
     ) -> tuple[GameState, list[UpdateBidResponse]]:
-
         list_failed_response = cls._validate_update_bid(gs=game_state, msg=msg)
         if list_failed_response:
             return game_state, list_failed_response
@@ -106,10 +104,7 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[AssetId],
     ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
-
-        list_failed_response = Referee.validate_purchase(
-            gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id
-        )
+        list_failed_response = Referee.validate_purchase(gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id)
         if list_failed_response:
             return game_state, list_failed_response
 
@@ -130,22 +125,15 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[TransmissionId],
     ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
-
-        list_failed_response = Referee.validate_purchase(
-            gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id
-        )
+        list_failed_response = Referee.validate_purchase(gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id)
         if list_failed_response:
             return game_state, list_failed_response
 
         transmission = game_state.transmission[msg.purchase_id]
 
         message = f"Player {msg.player_id} successfully bought transmission {transmission.id}."
-        new_players = game_state.players.subtract_money(
-            player_id=msg.player_id, amount=transmission.minimum_acquisition_price
-        )
-        new_transmission = game_state.transmission.change_owner(
-            transmission_id=transmission.id, new_owner=msg.player_id
-        )
+        new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=transmission.minimum_acquisition_price)
+        new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=msg.player_id)
 
         new_game_state = game_state.update(players=new_players, transmission=new_transmission)
 
@@ -158,10 +146,7 @@ class Engine:
         game_state: GameState,
         msg: OperateLineRequest,
     ) -> tuple[GameState, list[OperateLineResponse]]:
-
-        def make_response(
-            result: Literal["success", "no_change", "failure"], text: str, new_game_state: Optional[GameState] = None
-        ) -> tuple[GameState, list[OperateLineResponse]]:
+        def make_response(result: Literal["success", "no_change", "failure"], text: str, new_game_state: Optional[GameState] = None) -> tuple[GameState, list[OperateLineResponse]]:
             if new_game_state is None:
                 new_game_state = game_state
             response = OperateLineResponse(player_id=msg.player_id, request=msg, result=result, message=text)
@@ -179,9 +164,7 @@ class Engine:
                 return make_response(result="no_change", text="Transmission line is already open.")
             else:
                 new_state = game_state.update(transmission=game_state.transmission.open_line(line.id))
-                return make_response(
-                    result="success", text="Transmission line opened successfully.", new_game_state=new_state
-                )
+                return make_response(result="success", text="Transmission line opened successfully.", new_game_state=new_state)
 
         assert msg.action == "close"
         if line.is_closed:
@@ -215,13 +198,10 @@ class Engine:
 
     @classmethod
     def _process_day_ahead_auction_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
-
         new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
 
         market_result = MarketCouplingCalculator.run(game_state=new_game_state)
-        new_game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(
-            game_state=new_game_state, market_coupling_result=market_result
-        )
+        new_game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(game_state=new_game_state, market_coupling_result=market_result)
 
         new_game_state, ice_cream_msgs = Referee.melt_ice_creams(new_game_state)
         new_game_state, transmission_msgs = Referee.wear_congested_transmission(new_game_state)
@@ -229,15 +209,7 @@ class Engine:
         new_game_state, eliminated_player_msgs = Referee.eliminate_players(gs=new_game_state)
         new_game_state, game_over_msg = Referee.check_game_over(gs=new_game_state)
 
-        msgs = (
-            msgs_load_deactivation
-            + msgs_auction_cashflows
-            + ice_cream_msgs
-            + transmission_msgs
-            + asset_msgs
-            + eliminated_player_msgs
-            + game_over_msg
-        )
+        msgs = msgs_load_deactivation + msgs_auction_cashflows + ice_cream_msgs + transmission_msgs + asset_msgs + eliminated_player_msgs + game_over_msg
 
         return new_game_state, msgs
 
@@ -247,9 +219,7 @@ class Engine:
         market_coupling_result: MarketCouplingResult,
     ) -> tuple[GameState, list[AuctionClearedMessage]]:
         player_repo = game_state.players
-        cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(
-            game_state=game_state, market_coupling_result=market_coupling_result
-        )
+        cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=market_coupling_result)
 
         for player_id, net_cashflow in cashflows.items():
             player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
@@ -275,7 +245,6 @@ class Engine:
 
     @classmethod
     def _validate_purchase(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
-
         if isinstance(msg.purchase_id, AssetId):
             purchase_type = "asset"
             purchase_repo = gs.assets
@@ -315,7 +284,6 @@ class Engine:
 
     @classmethod
     def _validate_update_bid(cls, gs: GameState, msg: UpdateBidRequest) -> list[UpdateBidResponse]:
-
         def make_failed_response(failed_message: str) -> list[UpdateBidResponse]:
             failed_response = UpdateBidResponse(
                 player_id=msg.player_id,
@@ -338,13 +306,9 @@ class Engine:
             return make_failed_response(f"Player {player.id} cannot bid on asset {asset.id} as they do not own it.")
 
         if not (min_bid <= msg.bid_price <= max_bid):
-            return make_failed_response(
-                f"Bid price {msg.bid_price} is not within the allowed range " f"[{min_bid}, {max_bid}]."
-            )
+            return make_failed_response(f"Bid price {msg.bid_price} is not within the allowed range [{min_bid}, {max_bid}].")
 
         if not FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
-            return make_failed_response(
-                f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}."
-            )
+            return make_failed_response(f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}.")
 
         return []

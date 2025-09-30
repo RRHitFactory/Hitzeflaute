@@ -24,8 +24,8 @@ class NormalDistributionFunction(ProbabilityDistributionFunction):
         return Statistics(
             mean=Uncertainty(value=self._mean, is_certain=True),
             variance=Uncertainty(value=self._std_dev**2, is_certain=True),
-            min_value=Uncertainty(value=float('-inf'), is_certain=True),
-            max_value=Uncertainty(value=float('inf'), is_certain=True),
+            min_value=Uncertainty(value=float("-inf"), is_certain=True),
+            max_value=Uncertainty(value=float("inf"), is_certain=True),
         )
 
     def scale(self, x: float) -> Self | DiracDeltaDistributionFunction:

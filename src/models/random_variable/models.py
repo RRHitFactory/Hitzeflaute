@@ -67,9 +67,7 @@ class Statistics:
     min_value: Uncertainty[float]
     max_value: Uncertainty[float]
 
-    def get(
-        self, name: Literal["mean", "variance", "std_dev", "min_value", "max_value"], certain: bool = False
-    ) -> float:
+    def get(self, name: Literal["mean", "variance", "std_dev", "min_value", "max_value"], certain: bool = False) -> float:
         uncertainty = {
             "mean": self.mean,
             "variance": self.variance,

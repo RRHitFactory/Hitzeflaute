@@ -40,9 +40,7 @@ class MarketResultMaker:
 
         tx_columns = pd.Index([t.as_int() for t in transmission_repo.transmission_ids], name="Line")
         tx_data = np.random.rand(n_timesteps, len(tx_columns))
-        congested_ids = random_choice_multi(
-            transmission_repo.transmission_ids, size=n_random_congested_transmissions, replace=False
-        )
+        congested_ids = random_choice_multi(transmission_repo.transmission_ids, size=n_random_congested_transmissions, replace=False)
         for id in congested_ids:
             tx_data[:, id] = transmission_repo[id].capacity
         transmission_flows = pd.DataFrame(index=market_time_units, columns=tx_columns, data=tx_data)
@@ -51,9 +49,7 @@ class MarketResultMaker:
         asset_data = np.random.rand(n_timesteps, len(asset_columns))
         assets_dispatch = pd.DataFrame(index=market_time_units, columns=asset_columns, data=asset_data)
 
-        return MarketCouplingResult(
-            bus_prices=bus_prices, transmission_flows=transmission_flows, assets_dispatch=assets_dispatch
-        )
+        return MarketCouplingResult(bus_prices=bus_prices, transmission_flows=transmission_flows, assets_dispatch=assets_dispatch)
 
 
 class GameStateMaker:

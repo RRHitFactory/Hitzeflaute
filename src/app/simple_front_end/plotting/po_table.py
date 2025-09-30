@@ -24,9 +24,7 @@ def make_table(values: pd.DataFrame, colors: pd.DataFrame, rect: Shape) -> list[
             value = str(values.iloc[i, j])
             color = Color.from_string(colors.iloc[i, j])
 
-            shape = Shape.make_rectangle(
-                bottom_left=Point(x=x_min, y=y_min), top_right=Point(x=x_max, y=y_max), closed=True
-            )
+            shape = Shape.make_rectangle(bottom_left=Point(x=x_min, y=y_min), top_right=Point(x=x_max, y=y_max), closed=True)
 
             main_rect = ShapePlotObject(
                 fill_color=color,

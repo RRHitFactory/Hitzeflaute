@@ -97,9 +97,7 @@ class SocketProvider:
 
 class LayoutPlanner:
     @classmethod
-    def get_sockets_for_assets_and_transmission(
-        cls, game_state: GameState
-    ) -> tuple[dict[AssetId, Socket], dict[TransmissionId, tuple[Socket, Socket]]]:
+    def get_sockets_for_assets_and_transmission(cls, game_state: GameState) -> tuple[dict[AssetId, Socket], dict[TransmissionId, tuple[Socket, Socket]]]:
         """
         :param game_state:
         :return:

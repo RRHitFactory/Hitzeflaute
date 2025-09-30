@@ -115,9 +115,7 @@ class GameState:
             "buses": self.buses.to_simple_dict(),
             "assets": self.assets.to_simple_dict(),
             "transmission": self.transmission.to_simple_dict(),
-            "market_coupling_result": (
-                self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None
-            ),
+            "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
             "round": self.round,
         }
 
@@ -131,10 +129,6 @@ class GameState:
             buses=BusRepo.from_simple_dict(simple_dict["buses"]),
             assets=AssetRepo.from_simple_dict(simple_dict["assets"]),
             transmission=TransmissionRepo.from_simple_dict(simple_dict["transmission"]),
-            market_coupling_result=(
-                MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"])
-                if simple_dict.get("market_coupling_result")
-                else None
-            ),
+            market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
             round=simple_dict["round"],
         )

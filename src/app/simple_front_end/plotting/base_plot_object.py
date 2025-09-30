@@ -52,10 +52,7 @@ class PlotObject(ABC):
         if not self.allow_hover_text:
             return None
 
-        hover_template = (
-            f"<b>{self.title}</b><br><br>"
-            f"{"<br>".join([f"<b>{k}</b>: {v}" for k, v in self.data_dict.items()])}<extra></extra>"
-        )
+        hover_template = f"<b>{self.title}</b><br><br>{'<br>'.join([f'<b>{k}</b>: {v}' for k, v in self.data_dict.items()])}<extra></extra>"
         marker = go.Scatter(
             x=[p.x for p in self.hover_text_locations],
             y=[p.y for p in self.hover_text_locations],

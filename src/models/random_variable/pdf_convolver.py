@@ -92,9 +92,7 @@ class PdfConvolver:
         return NormalDistributionFunction(mean=new_mean, std_dev=new_variance**0.5)
 
     @classmethod
-    def convolve_with_discrete(
-        cls, pdf_a: T_Pdf, discrete: DiscreteDistributionFunction
-    ) -> Union[T_Pdf, MixtureDistributionFunction]:
+    def convolve_with_discrete(cls, pdf_a: T_Pdf, discrete: DiscreteDistributionFunction) -> Union[T_Pdf, MixtureDistributionFunction]:
         assert isinstance(discrete, DiscreteDistributionFunction)
 
         # Shortcut for dirac delta

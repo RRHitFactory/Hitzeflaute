@@ -62,12 +62,12 @@ class ProbabilityDistributionFunction(ABC):
             else:
                 self.plot_pdf_on_axis(ax)
                 ax.set_title("PDF")
-            ax.set_xlabel('x')
+            ax.set_xlabel("x")
             ax.set_xlim(self._get_plot_range())
-            ax.set_ylabel('P(X<=x)' if is_cumulative else 'P(X=x)')
+            ax.set_ylabel("P(X<=x)" if is_cumulative else "P(X=x)")
             for item in v_lines:
                 pos, color, label = item
-                ax.axvline(pos, color=color, label=label, linestyle='--', linewidth=1)
+                ax.axvline(pos, color=color, label=label, linestyle="--", linewidth=1)
             ax.legend()
             ax.grid(True)
 

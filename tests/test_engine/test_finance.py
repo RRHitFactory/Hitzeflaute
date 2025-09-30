@@ -42,8 +42,7 @@ class TestFinanceCalculator(TestCase):
             sign = asset.cashflow_sign
             self.assertAlmostEqual(
                 asset_cashflow,
-                sign * (bus_prices[asset.bus] - asset.marginal_cost) * assets_dispatch[asset.id]
-                - asset.fixed_operating_cost,
+                sign * (bus_prices[asset.bus] - asset.marginal_cost) * assets_dispatch[asset.id] - asset.fixed_operating_cost,
             )
 
     def test_compute_transmission_cashflow(self):
@@ -54,9 +53,7 @@ class TestFinanceCalculator(TestCase):
         transmission_repo = game_state.transmission
         for transmission in transmission_repo:
             single_transmission_repo = transmission_repo._filter({"id": transmission.id})
-            transmission_cashflow = FinanceCalculator.compute_transmission_cashflow(
-                single_transmission_repo, transmission_flows, bus_prices
-            )
+            transmission_cashflow = FinanceCalculator.compute_transmission_cashflow(single_transmission_repo, transmission_flows, bus_prices)
             price_spread = bus_prices[transmission.bus1] - bus_prices[transmission.bus2]
             self.assertAlmostEqual(transmission_cashflow, transmission_flows[transmission.id] * price_spread)
 

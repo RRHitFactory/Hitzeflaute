@@ -13,7 +13,8 @@ from src.models.ids import PlayerId
 # In-memory storage for active games and player connections
 active_games: Dict[str, GameManager] = {}
 player_connections: Dict[PlayerId, websockets.WebSocketServerProtocol] = {}
-player_game_map: Dict[PlayerId, str] = {} # Map player ID to game ID
+player_game_map: Dict[PlayerId, str] = {}  # Map player ID to game ID
+
 
 async def register_player(websocket, data: RegisterPlayer):
     """Registers a new player and sends back their assigned ID."""
@@ -22,6 +23,7 @@ async def register_player(websocket, data: RegisterPlayer):
     await websocket.send(json.dumps(InfoMessage(message=f"Registered with ID: {player_id.id}").dict()))
     print(f"Player registered: {player_id}")
 
+
 async def load_game(websocket, player_id: PlayerId, data: LoadGame):
     """Loads a game for a player."""
     game_id = data.game_id
@@ -29,14 +31,14 @@ async def load_game(websocket, player_id: PlayerId, data: LoadGame):
         # In a real application, you would load the game state from a file or database
         # For this prototype, we'll create a new game if it doesn't exist
         print(f"Game {game_id} not found. Creating a new one.")
-        engine = Engine() # You might need to pass initial settings here
-        active_games[game_id] = GameManager(engine) # Pass a way to save/load later
+        engine = Engine()  # You might need to pass initial settings here
+        active_games[game_id] = GameManager(engine)  # Pass a way to save/load later
         # Add the player to the new game (this logic might need adjustment based on your GameManager)
         # For now, assume adding a player is implicit or handled by GameManager
-        active_games[game_id].add_player(player_id) # Assuming GameManager has this method
+        active_games[game_id].add_player(player_id)  # Assuming GameManager has this method
     else:
         # Add the player to an existing game
-        active_games[game_id].add_player(player_id) # Assuming GameManager has this method
+        active_games[game_id].add_player(player_id)  # Assuming GameManager has this method
 
     player_game_map[player_id] = game_id
     game_manager = active_games[game_id]
@@ -57,8 +59,8 @@ async def handle_player_action(websocket, player_id: PlayerId, data: PlayerActio
 
     # Check if it's the player's turn
     if game_manager.game_state.current_player != player_id:
-         await websocket.send(json.dumps(ErrorMessage(message="It's not your turn.").dict()))
-         return
+        await websocket.send(json.dumps(ErrorMessage(message="It's not your turn.").dict()))
+        return
 
     # Process the action using the GameManager
     try:
@@ -67,7 +69,7 @@ async def handle_player_action(websocket, player_id: PlayerId, data: PlayerActio
         if data.action_type == "build":
             result = game_manager.build_asset(player_id, data.payload)
         elif data.action_type == "transmit":
-             result = game_manager.transmit_power(player_id, data.payload)
+            result = game_manager.transmit_power(player_id, data.payload)
         elif data.action_type == "end_turn":
             result = game_manager.end_turn(player_id)
         else:
@@ -98,11 +100,13 @@ async def send_game_state_to_player(player_id: PlayerId, game_state: GameState):
         except Exception as e:
             print(f"Error sending game state to player {player_id}: {e}")
 
+
 async def broadcast_game_state(game_id: str, game_state: GameState):
     """Sends the current game state to all players in a specific game."""
     player_ids_in_game = [pid for pid, gid in player_game_map.items() if gid == game_id]
     for player_id in player_ids_in_game:
         await send_game_state_to_player(player_id, game_state)
+
 
 async def handler(websocket):
     """Handles incoming websocket connections and messages."""
@@ -156,6 +160,7 @@ async def main():
     async with websockets.serve(handler, "localhost", port):
         print(f"Websocket server started on ws://localhost:{port}")
         await asyncio.Future()  # Run forever
+
 
 if __name__ == "__main__":
     asyncio.run(main())
