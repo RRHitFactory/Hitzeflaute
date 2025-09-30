@@ -1,19 +1,19 @@
 import math
 from abc import ABC, abstractmethod
+from collections.abc import Generator
 from itertools import combinations, count
-from typing import Optional, Generator
 
 import numpy as np
 
-from src.models.assets import AssetRepo, AssetInfo, AssetId, AssetType
-from src.models.buses import BusRepo, Bus, BusSocketManager
+from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
+from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
 from src.models.geometry import Point, Shape
-from src.models.ids import GameId, PlayerId, BusId
+from src.models.ids import BusId, GameId, PlayerId
 from src.models.player import Player, PlayerRepo
-from src.models.transmission import TransmissionRepo, TransmissionInfo, TransmissionId
+from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
 
 
 class BusTopologyMaker:
@@ -166,7 +166,7 @@ class BaseGameInitializer(ABC):
         """
         self.settings = settings
 
-    def create_new_game(self, game_id: GameId, player_names: list[str], player_colors: Optional[list[str]] = None) -> GameState:
+    def create_new_game(self, game_id: GameId, player_names: list[str], player_colors: list[str] | None = None) -> GameState:
         """
         Create a new game state with the given game ID and settings.
         :param game_id: Unique identifier for the game.

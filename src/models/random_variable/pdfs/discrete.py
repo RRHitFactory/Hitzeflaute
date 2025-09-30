@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import Self, Optional
+from typing import Self
 
 import numpy as np
 from matplotlib.axes import Axes
@@ -9,7 +9,7 @@ from src.models.random_variable.pdfs.base import ProbabilityDistributionFunction
 
 
 class DiscreteDistributionFunction(ProbabilityDistributionFunction):
-    def __init__(self, values: list[float], probabilities: Optional[list[float]] = None) -> None:
+    def __init__(self, values: list[float], probabilities: list[float] | None = None) -> None:
         if probabilities is None:
             probabilities = [1.0 / len(values)] * len(values)
         assert len(values) == len(probabilities), "Values and probabilities must have the same length."

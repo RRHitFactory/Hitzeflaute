@@ -1,8 +1,9 @@
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import numpy as np
 
 from src.models.random_variable import RandomVariable
+
 from .pdfs import *
 
 __all__ = [
@@ -14,7 +15,7 @@ __all__ = [
 ]
 
 
-def make_discrete(values: list[float], probabilities: Optional[list[float]] = None) -> RandomVariable:
+def make_discrete(values: list[float], probabilities: list[float] | None = None) -> RandomVariable:
     # If probabilities are not provided, equal probabilities are assumed
     return RandomVariable(pdf=DiscreteDistributionFunction(values=values, probabilities=probabilities))
 

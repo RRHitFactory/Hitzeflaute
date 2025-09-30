@@ -1,7 +1,8 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
-from typing import Self, Optional, Iterable
+from typing import Self
 
 import numpy as np
 
@@ -66,7 +67,7 @@ class ShapeType(Enum):
 
 
 class Shape:
-    def __init__(self, points: list[Point], shape_type: Optional[ShapeType] = None) -> None:
+    def __init__(self, points: list[Point], shape_type: ShapeType | None = None) -> None:
         if shape_type is None:
             if len(points) == 0:
                 shape_type = ShapeType.EMPTY

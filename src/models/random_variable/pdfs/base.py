@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Literal, TypeVar, Self
+from typing import Literal, Self, TypeVar
 
 import matplotlib.pyplot as plt
 import numpy as np

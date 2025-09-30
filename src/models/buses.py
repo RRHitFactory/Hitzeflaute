@@ -1,11 +1,10 @@
 from dataclasses import dataclass, field
-from typing import Optional
 
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.geometry import Point
-from src.models.ids import PlayerId, BusId
-from src.tools.random_choice import random_choice_multi, random_choice
+from src.models.ids import BusId, PlayerId
+from src.tools.random_choice import random_choice, random_choice_multi
 
 
 @dataclass(frozen=True)
@@ -101,7 +100,7 @@ class BusSocketManager:
             [self.use_socket(b) for b in buses]
         return buses
 
-    def get_bus_with_free_socket(self, use: bool = False, excluding: Optional[BusId] = None) -> BusId:
+    def get_bus_with_free_socket(self, use: bool = False, excluding: BusId | None = None) -> BusId:
         if excluding is not None:
             usable_buses = [b for b in self.free_buses if b != excluding]
             if not len(usable_buses):

@@ -1,13 +1,10 @@
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
+from collections.abc import Callable, Iterable, Iterator
 from typing import (
     Any,
-    Iterator,
-    Callable,
-    overload,
     Literal,
-    Optional,
-    Iterable,
     TypeVar,
+    overload,
 )
 
 import numpy as np
@@ -129,7 +126,7 @@ class LdcRepo[T_LightDc](ABC):
         self,
         condition: Condition,
         operator: Operator,
-        condition_2: Optional[Condition] = None,
+        condition_2: Condition | None = None,
     ) -> pd.Series:
         """
         :param condition: Either
@@ -170,7 +167,7 @@ class LdcRepo[T_LightDc](ABC):
         self: T,
         condition: Condition,
         operator: Operator = None,
-        condition_2: Optional[Condition] = None,
+        condition_2: Condition | None = None,
     ) -> T:
         """
         Returns a copy of the repo filtered using the given condition
@@ -184,7 +181,7 @@ class LdcRepo[T_LightDc](ABC):
         self: T,
         condition: Condition,
         operator: Operator = None,
-        condition_2: Optional[Condition] = None,
+        condition_2: Condition | None = None,
     ) -> T:
         """
         Returns a copy of the repo with elements deleted using the given condition

@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Self, Callable
+from typing import Self
 
 from src.models.colors import Color
 from src.models.data.ldc_repo import LdcRepo

@@ -1,6 +1,7 @@
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TypeVar, Callable, Literal, Iterable
+from typing import Literal, TypeVar
 
 T = TypeVar("T")
 

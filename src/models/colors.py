@@ -1,6 +1,6 @@
 import colorsys
 from functools import cached_property
-from typing import Union, Literal, Self
+from typing import Literal, Self
 
 import numpy as np
 from matplotlib import colormaps
@@ -9,7 +9,7 @@ from matplotlib import colormaps
 class Color:
     def __init__(
         self,
-        x: Union[str, tuple[int, int, int], Literal["red", "green", "blue", "black", "gray", "white"]] = "black",
+        x: str | tuple[int, int, int] | Literal["red", "green", "blue", "black", "gray", "white"] = "black",
         color_model: Literal["rgb", "hsv", "hls"] = "rgb",
     ):
         """

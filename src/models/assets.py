@@ -6,7 +6,6 @@ from typing import Self
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.ids import AssetId, BusId, PlayerId
-from src.models.random_variable import RandomVariable
 from src.models.random_variable.constructors import make_normal
 from src.tools.serialization import simplify_type
 

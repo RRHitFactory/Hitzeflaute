@@ -1,8 +1,7 @@
-from typing import Union
 
 import numpy as np
 
-from src.models.random_variable.models import Statistics, sum_uncertain_floats, sort_uncertainties
+from src.models.random_variable.models import Statistics, sort_uncertainties, sum_uncertain_floats
 from src.models.random_variable.pdfs.anonymous import AnonymousDistributionFunction
 from src.models.random_variable.pdfs.base import (
     ProbabilityDistributionFunction,
@@ -92,7 +91,7 @@ class PdfConvolver:
         return NormalDistributionFunction(mean=new_mean, std_dev=new_variance**0.5)
 
     @classmethod
-    def convolve_with_discrete(cls, pdf_a: T_Pdf, discrete: DiscreteDistributionFunction) -> Union[T_Pdf, MixtureDistributionFunction]:
+    def convolve_with_discrete(cls, pdf_a: T_Pdf, discrete: DiscreteDistributionFunction) -> T_Pdf | MixtureDistributionFunction:
         assert isinstance(discrete, DiscreteDistributionFunction)
 
         # Shortcut for dirac delta

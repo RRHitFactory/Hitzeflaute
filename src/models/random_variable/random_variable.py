@@ -1,9 +1,10 @@
-from typing import TypeVar, Self, Union, Optional
+from typing import Self, TypeVar, Union
 
 import numpy as np
 
 from src.models.random_variable.models import Statistics
 from src.models.random_variable.pdf_convolver import PdfConvolver
+
 from .pdfs import *
 
 __all__ = ["RandomVariable"]
@@ -100,6 +101,6 @@ class RandomVariable:
         return self.__mul__(1.0 / factor)
 
     @classmethod
-    def mix_rvs(cls, rvs: list["RandomVariable"], probabilities: Optional[list[float]] = None) -> Self:
+    def mix_rvs(cls, rvs: list["RandomVariable"], probabilities: list[float] | None = None) -> Self:
         pdfs = [rv.pdf for rv in rvs]
         return RandomVariable(pdf=MixtureDistributionFunction(pdfs=pdfs, probabilities=probabilities))

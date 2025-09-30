@@ -2,9 +2,9 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol, Self, runtime_checkable, TypeVar
+from typing import Protocol, Self, TypeVar, runtime_checkable
 
-from src.tools.typing import T, IntId
+from src.tools.typing import IntId, T
 
 type Primitive = int | float | str | bool
 type SimpleDict = dict[str, Primitive]

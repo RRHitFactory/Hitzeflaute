@@ -1,18 +1,17 @@
 from dataclasses import dataclass, field
-from typing import Optional
 
 import plotly.graph_objects as go
 from plotly.graph_objs import Scatter
 
 from src.app.simple_front_end.plotting.base_plot_object import PlotObject
-from src.models.colors import get_contrasting_color, Color
+from src.models.colors import Color, get_contrasting_color
 from src.models.geometry import Point, Shape
 
 
 def render_shape(
     shape: Shape,
-    fill_color: Optional[Color] = None,
-    centre_text: Optional[str] = None,
+    fill_color: Color | None = None,
+    centre_text: str | None = None,
     outline_width: float = 0.0,
     outline_color: Color = Color("black"),
 ) -> Scatter:
@@ -58,8 +57,8 @@ def render_shape(
 class ShapePlotObject(PlotObject):
     title_text: str
     shape: Shape
-    fill_color: Optional[Color] = None
-    centre_text: Optional[str] = None
+    fill_color: Color | None = None
+    centre_text: str | None = None
     outline_width: float = 0.0
     outline_color: Color = field(default_factory=Color)
     hover_data: dict[str, str] = field(default_factory=dict)

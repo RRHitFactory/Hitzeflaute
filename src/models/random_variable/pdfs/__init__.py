@@ -1,6 +1,6 @@
-from .base import ProbabilityDistributionFunction
-from .discrete import DiscreteDistributionFunction, DiracDeltaDistributionFunction
 from .anonymous import AnonymousDistributionFunction
+from .base import ProbabilityDistributionFunction
+from .discrete import DiracDeltaDistributionFunction, DiscreteDistributionFunction
 from .mixture import MixtureDistributionFunction
 from .normal import NormalDistributionFunction
 from .uniform import UniformDistributionFunction

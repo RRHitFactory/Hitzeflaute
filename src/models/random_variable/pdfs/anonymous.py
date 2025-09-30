@@ -1,5 +1,6 @@
+from collections.abc import Callable
 from functools import cached_property
-from typing import Callable, Optional, Self
+from typing import Self
 
 import numpy as np
 import pandas as pd
@@ -12,7 +13,7 @@ from src.models.random_variable.pdfs.base import ProbabilityDistributionFunction
 
 
 class AnonymousDistributionFunction(ProbabilityDistributionFunction):
-    def __init__(self, sampler: Callable[[int], np.ndarray], n_samples: int = 10000, statistics: Optional[Statistics] = None) -> None:
+    def __init__(self, sampler: Callable[[int], np.ndarray], n_samples: int = 10000, statistics: Statistics | None = None) -> None:
         self._sampler = sampler
         self._n_samples = n_samples
         self._external_statistics = statistics

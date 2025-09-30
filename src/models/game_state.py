@@ -1,15 +1,15 @@
 from dataclasses import dataclass, replace
 from enum import IntEnum
 from functools import cached_property
-from typing import Self, Optional
+from typing import Self
 
-from src.models.assets import AssetRepo, AssetInfo
-from src.models.buses import BusRepo, BusFullException
+from src.models.assets import AssetInfo, AssetRepo
+from src.models.buses import BusFullException, BusRepo
 from src.models.game_settings import GameSettings
-from src.models.ids import PlayerId, GameId, BusId, Round
+from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
-from src.models.transmission import TransmissionRepo, TransmissionInfo
+from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.serialization import simplify_type, un_simplify_type
 
 
@@ -35,7 +35,7 @@ class GameState:
     buses: BusRepo
     assets: AssetRepo
     transmission: TransmissionRepo
-    market_coupling_result: Optional[MarketCouplingResult]
+    market_coupling_result: MarketCouplingResult | None
     round: Round = Round(1)
 
     def __post_init__(self) -> None:
