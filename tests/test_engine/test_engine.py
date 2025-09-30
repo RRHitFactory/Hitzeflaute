@@ -1,32 +1,31 @@
-from typing import Callable
 from unittest import TestCase
 
 from src.engine.engine import Engine
 from src.models.colors import Color
-from src.models.ids import PlayerId, AssetId, TransmissionId
+from src.models.game_state import GameState, Phase
+from src.models.ids import AssetId, PlayerId, TransmissionId
 from src.models.message import (
-    PlayerToGameMessage,
+    AssetWornMessage,
     BuyRequest,
     BuyResponse,
+    IceCreamMeltedMessage,
     OperateLineRequest,
     OperateLineResponse,
-    IceCreamMeltedMessage,
+    PlayerToGameMessage,
     TransmissionWornMessage,
-    AssetWornMessage,
 )
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
-from src.models.game_state import GameState, Phase
 from tests.utils.comparisons import (
     assert_game_states_are_equal,
     assert_game_states_are_not_equal,
 )
 from tests.utils.game_state_maker import (
-    GameStateMaker,
     AssetRepoMaker,
+    GameStateMaker,
     MarketResultMaker,
 )
-from tests.utils.repo_maker import PlayerRepoMaker, BusRepoMaker, TransmissionRepoMaker
+from tests.utils.repo_maker import BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
 
 
 class DummyMessage(PlayerToGameMessage):
@@ -117,7 +116,7 @@ class TestAssets(TestCase):
         transmission_repo += my_line
         transmission_repo += not_my_line
 
-        game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_transmission_repo(transmission_repo).make()
+        game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_transmission_repo(transmission_repo).add_phase(Phase.SNEAKY_TRICKS).make()
 
         # Test operating a line that I own
         open_request = OperateLineRequest(player_id=player.id, transmission_id=my_line.id, action="open")

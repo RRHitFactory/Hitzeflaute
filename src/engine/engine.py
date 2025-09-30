@@ -60,9 +60,7 @@ class Engine:
         game_state: GameState,
         msg: ConcludePhase,
     ) -> tuple[GameState, list[GameToPlayerMessage]]:
-        if msg.phase == Phase.CONSTRUCTION:
-            new_game_state, msgs = cls._process_construction_phase(game_state)
-        elif msg.phase == Phase.DA_AUCTION:
+        if msg.phase == Phase.DA_AUCTION:
             new_game_state, msgs = cls._process_day_ahead_auction_phase(game_state)
         else:
             new_game_state, msgs = game_state, []
