@@ -64,13 +64,11 @@ class Engine:
             new_game_state, msgs = cls._process_construction_phase(game_state)
         elif msg.phase == Phase.DA_AUCTION:
             new_game_state, msgs = cls._process_day_ahead_auction_phase(game_state)
-        elif msg.phase == Phase.SNEAKY_TRICKS:
-            new_game_state, msgs = cls._process_sneaky_tricks_phase(game_state)
         else:
-            raise NotImplementedError(f"Phase {msg.phase} not implemented.")
+            new_game_state, msgs = game_state, []
 
         new_game_state = new_game_state.update(
-            phase=new_game_state.phase.get_next(),
+            phase=msg.new_phase,
             players=new_game_state.players.start_all_turns(),
             round=new_game_state.round + 1 if new_game_state.phase.get_next().value == 0 else new_game_state.round,
         )
@@ -82,6 +80,13 @@ class Engine:
         game_state: GameState,
         msg: UpdateBidRequest,
     ) -> tuple[GameState, list[UpdateBidResponse]]:
+        if game_state.phase != Phase.BIDDING:
+            response = msg.make_response(
+                success=False,
+                message=f"You can only update bids during the {Phase.BIDDING.nice_name} phase",
+            )
+            return game_state, [response]
+
         list_failed_response = cls._validate_update_bid(gs=game_state, msg=msg)
         if list_failed_response:
             return game_state, list_failed_response
@@ -104,19 +109,26 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[AssetId],
     ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
+        if game_state.phase != Phase.CONSTRUCTION:
+            response = msg.make_response(
+                success=False,
+                message=f"You can only buy assets during the {Phase.CONSTRUCTION.nice_name} phase",
+            )
+            return game_state, [response]
+
         list_failed_response = Referee.validate_purchase(gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id)
         if list_failed_response:
             return game_state, list_failed_response
 
         asset = game_state.assets[msg.purchase_id]
 
-        message = f"Player {msg.player_id} successfully bought asset {asset.id}."
         new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=asset.minimum_acquisition_price)
         new_assets = game_state.assets.change_owner(asset_id=asset.id, new_owner=msg.player_id)
 
         new_game_state = game_state.update(players=new_players, assets=new_assets)
 
-        response = BuyResponse(player_id=msg.player_id, success=True, message=message, purchase_id=asset.id)
+        message = f"Player {msg.player_id} successfully bought asset {asset.id}."
+        response = msg.make_response(success=True, message=message)
         return new_game_state, [response]
 
     @classmethod
@@ -125,19 +137,27 @@ class Engine:
         game_state: GameState,
         msg: BuyRequest[TransmissionId],
     ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
+        if game_state.phase != Phase.CONSTRUCTION:
+            response = msg.make_response(
+                success=False,
+                message=f"You can only buy transmission during the {Phase.CONSTRUCTION.nice_name} phase",
+            )
+            return game_state, [response]
+
         list_failed_response = Referee.validate_purchase(gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id)
         if list_failed_response:
             return game_state, list_failed_response
 
         transmission = game_state.transmission[msg.purchase_id]
 
-        message = f"Player {msg.player_id} successfully bought transmission {transmission.id}."
         new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=transmission.minimum_acquisition_price)
         new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=msg.player_id)
 
         new_game_state = game_state.update(players=new_players, transmission=new_transmission)
 
-        response = BuyResponse(player_id=msg.player_id, success=True, message=message, purchase_id=transmission.id)
+        message = f"Player {msg.player_id} successfully bought transmission {transmission.id}."
+        response = msg.make_response(success=True, message=message)
+
         return new_game_state, [response]
 
     @classmethod
@@ -146,11 +166,21 @@ class Engine:
         game_state: GameState,
         msg: OperateLineRequest,
     ) -> tuple[GameState, list[OperateLineResponse]]:
-        def make_response(result: Literal["success", "no_change", "failure"], text: str, new_game_state: GameState | None = None) -> tuple[GameState, list[OperateLineResponse]]:
+        def make_response(
+            result: Literal["success", "no_change", "failure"],
+            text: str,
+            new_game_state: GameState | None = None,
+        ) -> tuple[GameState, list[OperateLineResponse]]:
             if new_game_state is None:
                 new_game_state = game_state
             response = OperateLineResponse(player_id=msg.player_id, request=msg, result=result, message=text)
             return new_game_state, [response]
+
+        if game_state.phase != Phase.SNEAKY_TRICKS:
+            return make_response(
+                result="failure",
+                text=f"You can only operate lines during the {Phase.SNEAKY_TRICKS.nice_name} phase.",
+            )
 
         if msg.transmission_id not in game_state.transmission.transmission_ids:
             return make_response(result="failure", text="Transmission does not exist.")
@@ -164,14 +194,22 @@ class Engine:
                 return make_response(result="no_change", text="Transmission line is already open.")
             else:
                 new_state = game_state.update(transmission=game_state.transmission.open_line(line.id))
-                return make_response(result="success", text="Transmission line opened successfully.", new_game_state=new_state)
+                return make_response(
+                    result="success",
+                    text="Transmission line opened successfully.",
+                    new_game_state=new_state,
+                )
 
         assert msg.action == "close"
         if line.is_closed:
             return make_response(result="no_change", text="Transmission line is already closed.")
 
         new_state = game_state.update(transmission=game_state.transmission.close_line(line.id))
-        return make_response(result="success", text="Transmission line closed successfully.", new_game_state=new_state)
+        return make_response(
+            result="success",
+            text="Transmission line closed successfully.",
+            new_game_state=new_state,
+        )
 
     @classmethod
     def handle_end_turn_message(
@@ -185,16 +223,6 @@ class Engine:
             return game_state, [ConcludePhase(phase=game_state.phase)]
         else:
             return game_state, []
-
-    @classmethod
-    def _process_construction_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
-        new_game_state = game_state
-        return new_game_state, []
-
-    @classmethod
-    def _process_sneaky_tricks_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
-        new_game_state = game_state
-        return new_game_state, []
 
     @classmethod
     def _process_day_ahead_auction_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:

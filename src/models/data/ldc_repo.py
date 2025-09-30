@@ -7,9 +7,9 @@ from typing import (
     overload,
 )
 
-import numpy as np
 import pandas as pd
 
+from src.tools.random_choice import random_choice
 from src.tools.serialization import simplify_type
 from src.tools.typing import T
 
@@ -99,7 +99,7 @@ class LdcRepo[T_LightDc](ABC):
     def get_random(self) -> T_LightDc:
         if len(self) == 0:
             raise ValueError("Cannot get a random item from an empty repo")
-        random_index = np.random.choice(self.df.index)
+        random_index = random_choice(self.df.index)
         return self[random_index]
 
     # UPDATE

@@ -123,7 +123,9 @@ class Referee:
         return new_gs, msgs
 
     @staticmethod
-    def wear_congested_transmission(gs: GameState) -> tuple[GameState, list[TransmissionWornMessage]]:
+    def wear_congested_transmission(
+        gs: GameState,
+    ) -> tuple[GameState, list[TransmissionWornMessage]]:
         transmission_repo = gs.transmission
         flows = gs.market_coupling_result.transmission_flows
 
@@ -150,7 +152,9 @@ class Referee:
         return new_gs, msgs
 
     @staticmethod
-    def wear_non_freezer_assets(gs: GameState) -> tuple[GameState, list[AssetWornMessage]]:
+    def wear_non_freezer_assets(
+        gs: GameState,
+    ) -> tuple[GameState, list[AssetWornMessage]]:
         asset_repo = gs.assets
         wearable_assets = gs.assets._filter({"is_freezer": False})
         melted_ids: list[AssetId] = []
@@ -179,7 +183,9 @@ class Referee:
         return new_gs, warn_asset_messages
 
     @staticmethod
-    def eliminate_players(gs: GameState) -> tuple[GameState, list[PlayerEliminatedMessage]]:
+    def eliminate_players(
+        gs: GameState,
+    ) -> tuple[GameState, list[PlayerEliminatedMessage]]:
         new_gs = gs
         eliminated_player_ids = []
 

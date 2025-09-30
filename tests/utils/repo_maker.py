@@ -140,7 +140,11 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
     ) -> AssetRepo:
         return cls(players=players, bus_repo=bus_repo).add_n_random(n_normal_assets).add_asset(owner=PlayerId.get_npc(), is_for_sale=True).make()
 
-    def __init__(self, players: list[PlayerId] | PlayerRepo | None = None, bus_repo: Optional[BusRepo] = None) -> None:
+    def __init__(
+        self,
+        players: list[PlayerId] | PlayerRepo | None = None,
+        bus_repo: Optional[BusRepo] = None,
+    ) -> None:
         super().__init__()
         if players is None:
             players = [PlayerId(i) for i in range(3)]
@@ -294,7 +298,11 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         maker = cls(players=players, buses=buses)
         return maker.add_n_random(n).make()
 
-    def __init__(self, players: list[PlayerId] | PlayerRepo | None = None, buses: Optional[BusRepo] = None) -> None:
+    def __init__(
+        self,
+        players: list[PlayerId] | PlayerRepo | None = None,
+        buses: Optional[BusRepo] = None,
+    ) -> None:
         super().__init__()
         if players is None:
             players = [PlayerId(i) for i in range(3)]

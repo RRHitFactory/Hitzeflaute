@@ -17,8 +17,15 @@ from src.models.message import (
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
 from src.models.game_state import GameState, Phase
-from tests.utils.comparisons import assert_game_states_are_equal, assert_game_states_are_not_equal
-from tests.utils.game_state_maker import GameStateMaker, AssetRepoMaker, MarketResultMaker
+from tests.utils.comparisons import (
+    assert_game_states_are_equal,
+    assert_game_states_are_not_equal,
+)
+from tests.utils.game_state_maker import (
+    GameStateMaker,
+    AssetRepoMaker,
+    MarketResultMaker,
+)
 from tests.utils.repo_maker import PlayerRepoMaker, BusRepoMaker, TransmissionRepoMaker
 
 
@@ -37,25 +44,16 @@ class TestAssets(TestCase):
         player_repo = PlayerRepoMaker.make_quick()
         rich_player = Player(id=PlayerId(100), name="Rich player", color=Color("black"), money=1000000, is_having_turn=True)
         player_repo += rich_player
-        game_state = GameStateMaker().add_player_repo(player_repo).make()
+        game_state = GameStateMaker().add_player_repo(player_repo).add_phase(Phase.CONSTRUCTION).make()
 
         is_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": True}).asset_ids
         not_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": False}).asset_ids
 
-        def assert_fails_with_message_matching(request: BuyRequest, x: Callable[[str], bool]) -> None:
-            new_game_state, msgs = Engine.handle_message(game_state=game_state, msg=request)
-            self.assertEqual(len(msgs), 1)
-            message = msgs[0]
-            self.assertIsInstance(message, BuyResponse)
-            self.assertFalse(message.success)
-            self.assertTrue(x(message.message))
-            assert_game_states_are_equal(game_state1=game_state, game_state2=new_game_state)
-
         msg = BuyRequest(player_id=rich_player.id, purchase_id=AssetId(-5))
-        assert_fails_with_message_matching(request=msg, x=lambda s: "asset" in s.lower())
+        self.assert_fails_with(game_state=game_state, request=msg, x="asset")
 
         msg = BuyRequest(player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
-        assert_fails_with_message_matching(request=msg, x=lambda s: "for sale" in s.lower())
+        self.assert_fails_with(game_state=game_state, request=msg, x="for sale")
 
         msg = BuyRequest(player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
@@ -73,25 +71,16 @@ class TestAssets(TestCase):
         player_repo = PlayerRepoMaker.make_quick()
         rich_player = Player(id=PlayerId(100), name="Rich player", color=Color("black"), money=1000000, is_having_turn=True)
         player_repo += rich_player
-        game_state = GameStateMaker().add_player_repo(player_repo).make()
+        game_state = GameStateMaker().add_player_repo(player_repo).add_phase(Phase.CONSTRUCTION).make()
 
         is_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": True}).transmission_ids
         not_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": False}).transmission_ids
 
-        def assert_fails_with_message_matching(request: BuyRequest, x: Callable[[str], bool]) -> None:
-            new_game_state, msgs = Engine.handle_message(game_state=game_state, msg=request)
-            self.assertEqual(len(msgs), 1)
-            message = msgs[0]
-            self.assertIsInstance(message, BuyResponse)
-            self.assertFalse(message.success)
-            self.assertTrue(x(message.message))
-            assert_game_states_are_equal(game_state1=game_state, game_state2=new_game_state)
-
         msg = BuyRequest(player_id=rich_player.id, purchase_id=TransmissionId(-5))
-        assert_fails_with_message_matching(request=msg, x=lambda s: "transmission" in s.lower())
+        self.assert_fails_with(game_state=game_state, request=msg, x="transmission")
 
         msg = BuyRequest(player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
-        assert_fails_with_message_matching(request=msg, x=lambda s: "for sale" in s.lower())
+        self.assert_fails_with(game_state=game_state, request=msg, x="for sale")
 
         msg = BuyRequest(player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
@@ -137,6 +126,7 @@ class TestAssets(TestCase):
         self.assertEqual(len(responses), 1)
         response = responses[0]
         self.assertIsInstance(response, OperateLineResponse)
+        print(response)
         self.assertEqual(response.result, "success")
         self.assertEqual(game_state.transmission[my_line.id].is_open, True)
 
@@ -178,6 +168,10 @@ class TestAssets(TestCase):
         self.assertEqual(game_state.transmission[not_my_line.id].is_open, False)
 
     def test_apply_rules_after_market_coupling(self):
+        # TODO Fix this test. The market coupling result created in this test is not actually used, a new market
+        # market coupling result is calculated in the market coupling phase based on the random game state.
+        # Either the market coupling calculation should be mocked, or the test should be adjusted to guarantee that
+        # market coupling will result in the desired outcome.
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker.make_quick(3)
@@ -211,3 +205,12 @@ class TestAssets(TestCase):
         self.assertGreater(len(melt_ice_cream_msgs), 0)
         self.assertGreater(len(wear_transmission_msgs), 0)
         self.assertGreater(len(wear_asset_msgs), 0)
+
+    def assert_fails_with(self, game_state: GameState, request: BuyRequest, x: str) -> None:
+        new_game_state, msgs = Engine.handle_message(game_state=game_state, msg=request)
+        self.assertEqual(len(msgs), 1)
+        message = msgs[0]
+        self.assertIsInstance(message, BuyResponse)
+        self.assertFalse(message.success)
+        self.assertTrue(x in message.message.lower())
+        assert_game_states_are_equal(game_state1=game_state, game_state2=new_game_state)

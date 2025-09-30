@@ -12,7 +12,12 @@ from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionRepo
 from src.tools.random_choice import random_choice, random_choice_multi
-from tests.utils.repo_maker import PlayerRepoMaker, BusRepoMaker, AssetRepoMaker, TransmissionRepoMaker
+from tests.utils.repo_maker import (
+    PlayerRepoMaker,
+    BusRepoMaker,
+    AssetRepoMaker,
+    TransmissionRepoMaker,
+)
 
 
 class MarketResultMaker:
@@ -117,7 +122,7 @@ class GameStateMaker:
         return GameState(
             game_id=self.game_id,
             game_settings=self.game_settings,
-            phase=Phase.CONSTRUCTION,
+            phase=self.phase,
             players=self.player_repo,
             buses=self.bus_repo,
             assets=self.asset_repo,

@@ -20,7 +20,13 @@ class Player(LightDc):
 
     @classmethod
     def make_npc(cls) -> "Player":
-        return cls(id=PlayerId.get_npc(), name="NPC", color=Color("black"), money=0.0, is_having_turn=False)
+        return cls(
+            id=PlayerId.get_npc(),
+            name="NPC",
+            color=Color("black"),
+            money=0.0,
+            is_having_turn=False,
+        )
 
 
 class PlayerRepo(LdcRepo[Player]):

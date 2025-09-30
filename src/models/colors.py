@@ -145,6 +145,9 @@ def get_random_player_colors(n: int) -> list[Color]:
     colors_np = [color_map(i / n) for i in range(n)]
 
     def convert_color(color: tuple[float, float, float, float]) -> Color:
-        return Color(x=(round(color[0] * 255), int(color[1] * 255), int(color[2] * 255)), color_model="rgb")
+        return Color(
+            x=(round(color[0] * 255), int(color[1] * 255), int(color[2] * 255)),
+            color_model="rgb",
+        )
 
     return [convert_color(color) for color in colors_np]

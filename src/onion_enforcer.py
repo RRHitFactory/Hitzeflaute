@@ -111,7 +111,12 @@ class File(Importable):
 
 
 def check_repo() -> None:
-    module_hierarchy = [Module("app"), Module("engine"), Module("models"), Module("tools")]
+    module_hierarchy = [
+        Module("app"),
+        Module("engine"),
+        Module("models"),
+        Module("tools"),
+    ]
     rules: list[ProjectStructureRule] = []
 
     for k in range(len(module_hierarchy) - 1):

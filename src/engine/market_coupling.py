@@ -90,7 +90,10 @@ class MarketCouplingCalculator:
         logging.getLogger("linopy").setLevel(logging.ERROR)
         logging.getLogger("pypsa").setLevel(logging.ERROR)
         with warnings.catch_warnings(action="ignore"):
-            res = network.optimize(solver_name="highs", solver_options={"log_to_console": False, "output_flag": False})
+            res = network.optimize(
+                solver_name="highs",
+                solver_options={"log_to_console": False, "output_flag": False},
+            )
         if res[1] != "optimal":
             raise OptimizationError(
                 game_state=game_state,

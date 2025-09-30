@@ -34,7 +34,7 @@ def serialize(x: Serializable) -> str:
     return json.dumps(x.to_simple_dict())
 
 
-def deserialize(x: str, cls: type[GenericSerializable]) -> GenericSerializable:
+def deserialize[GenericSerializable: Serializable](x: str, cls: type[GenericSerializable]) -> GenericSerializable:
     return cls.from_simple_dict(json.loads(x))
 
 

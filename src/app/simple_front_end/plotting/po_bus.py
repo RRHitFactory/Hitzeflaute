@@ -36,10 +36,16 @@ class PlotBus(PlotObject):
     def hover_text_locations(self) -> list[Point]:
         points = [self.centre]
         if self.is_horizontal:
-            points += [Point(x=self.shape.min_x, y=self.centre.y), Point(x=self.shape.max_x, y=self.centre.y)]
+            points += [
+                Point(x=self.shape.min_x, y=self.centre.y),
+                Point(x=self.shape.max_x, y=self.centre.y),
+            ]
             return points
         else:
-            points += [Point(x=self.centre.x, y=self.shape.max_y), Point(x=self.centre.x, y=self.shape.min_y)]
+            points += [
+                Point(x=self.centre.x, y=self.shape.max_y),
+                Point(x=self.centre.x, y=self.shape.min_y),
+            ]
             return points
 
     @property
@@ -93,4 +99,9 @@ class PlotBus(PlotObject):
         return Shape.make_rectangle(bottom_left=dl, top_right=ur, closed=True)
 
     def render_shape(self) -> Scatter:
-        return render_shape(shape=self.shape, fill_color=self.color, centre_text=self.centre_text, outline_width=0.0)
+        return render_shape(
+            shape=self.shape,
+            fill_color=self.color,
+            centre_text=self.centre_text,
+            outline_width=0.0,
+        )
