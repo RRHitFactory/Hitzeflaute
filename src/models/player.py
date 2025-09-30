@@ -1,6 +1,7 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Self, Callable
+from typing import Self
 
 from src.models.colors import Color
 from src.models.data.ldc_repo import LdcRepo
@@ -19,7 +20,13 @@ class Player(LightDc):
 
     @classmethod
     def make_npc(cls) -> "Player":
-        return cls(id=PlayerId.get_npc(), name="NPC", color=Color("black"), money=0.0, is_having_turn=False)
+        return cls(
+            id=PlayerId.get_npc(),
+            name="NPC",
+            color=Color("black"),
+            money=0.0,
+            is_having_turn=False,
+        )
 
 
 class PlayerRepo(LdcRepo[Player]):

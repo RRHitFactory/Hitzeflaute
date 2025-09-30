@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
-from typing import Union, Optional
+from typing import Union
 
 from src.directories import src_dir
 
@@ -36,7 +36,7 @@ class ProjectStructureRule:
     def __repr__(self) -> str:
         return f"{self.upper} > {self.lower}"
 
-    def find_issue(self) -> Optional[OnionIssue]:
+    def find_issue(self) -> OnionIssue | None:
         import_names = self.upper.get_import_names()
 
         if isinstance(self.lower, Module):
@@ -111,7 +111,12 @@ class File(Importable):
 
 
 def check_repo() -> None:
-    module_hierarchy = [Module("app"), Module("engine"), Module("models"), Module("tools")]
+    module_hierarchy = [
+        Module("app"),
+        Module("engine"),
+        Module("models"),
+        Module("tools"),
+    ]
     rules: list[ProjectStructureRule] = []
 
     for k in range(len(module_hierarchy) - 1):

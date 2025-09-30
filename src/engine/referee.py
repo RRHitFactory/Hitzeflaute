@@ -1,17 +1,16 @@
 import numpy as np
 
 from src.models.game_state import GameState
-from src.models.ids import AssetId, TransmissionId, PlayerId
+from src.models.ids import AssetId, PlayerId, TransmissionId
 from src.models.message import (
-    GameUpdate,
-    IceCreamMeltedMessage,
     AssetWornMessage,
-    TransmissionWornMessage,
-    LoadsDeactivatedMessage,
     BuyResponse,
-    T_Id,
-    PlayerEliminatedMessage,
     GameOverMessage,
+    IceCreamMeltedMessage,
+    LoadsDeactivatedMessage,
+    PlayerEliminatedMessage,
+    T_Id,
+    TransmissionWornMessage,
 )
 from src.models.transmission import TransmissionInfo
 
@@ -51,7 +50,7 @@ class Referee:
             )
             return [failed_response]
 
-        if not purchase_id in purchase_repo_ids:
+        if purchase_id not in purchase_repo_ids:
             return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
         purchase_obj = purchase_repo[purchase_id]
 
@@ -124,7 +123,9 @@ class Referee:
         return new_gs, msgs
 
     @staticmethod
-    def wear_congested_transmission(gs: GameState) -> tuple[GameState, list[TransmissionWornMessage]]:
+    def wear_congested_transmission(
+        gs: GameState,
+    ) -> tuple[GameState, list[TransmissionWornMessage]]:
         transmission_repo = gs.transmission
         flows = gs.market_coupling_result.transmission_flows
 
@@ -151,7 +152,9 @@ class Referee:
         return new_gs, msgs
 
     @staticmethod
-    def wear_non_freezer_assets(gs: GameState) -> tuple[GameState, list[AssetWornMessage]]:
+    def wear_non_freezer_assets(
+        gs: GameState,
+    ) -> tuple[GameState, list[AssetWornMessage]]:
         asset_repo = gs.assets
         wearable_assets = gs.assets._filter({"is_freezer": False})
         melted_ids: list[AssetId] = []
@@ -180,7 +183,9 @@ class Referee:
         return new_gs, warn_asset_messages
 
     @staticmethod
-    def eliminate_players(gs: GameState) -> tuple[GameState, list[PlayerEliminatedMessage]]:
+    def eliminate_players(
+        gs: GameState,
+    ) -> tuple[GameState, list[PlayerEliminatedMessage]]:
         new_gs = gs
         eliminated_player_ids = []
 

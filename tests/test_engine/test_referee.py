@@ -48,7 +48,10 @@ class TestReferee(TestCase):
 
         for freezer_id in unpowered_freezer_ids:
             if game_state.assets[freezer_id].health > 1:
-                self.assertLess(new_game_state.assets[freezer_id].health, game_state.assets[freezer_id].health)
+                self.assertLess(
+                    new_game_state.assets[freezer_id].health,
+                    game_state.assets[freezer_id].health,
+                )
             else:
                 self.assertFalse(new_game_state.assets[freezer_id].is_active)
                 self.assertEqual(new_game_state.assets[freezer_id].health, 0)
@@ -83,7 +86,10 @@ class TestReferee(TestCase):
 
         for transmission in congested_transmissions:
             if transmission.health > 1:
-                self.assertLess(new_game_state.transmission[transmission.id].health, transmission.health)
+                self.assertLess(
+                    new_game_state.transmission[transmission.id].health,
+                    transmission.health,
+                )
             else:
                 self.assertFalse(new_game_state.transmission[transmission.id].is_active)
                 self.assertEqual(new_game_state.transmission[transmission.id].health, 0)

@@ -1,19 +1,19 @@
 import asyncio
 import json
-import websockets
 import uuid
-from typing import Dict, Any
+
+import websockets
 
 from src.app.game_manager import GameManager
 from src.engine.engine import Engine
 from src.models.game_state import GameState
-from src.models.message import Message, MessageType, RegisterPlayer, LoadGame, PlayerAction, GameStateMessage, ErrorMessage, InfoMessage
 from src.models.ids import PlayerId
+from src.models.message import ErrorMessage, GameStateMessage, InfoMessage, LoadGame, Message, MessageType, PlayerAction, RegisterPlayer
 
 # In-memory storage for active games and player connections
-active_games: Dict[str, GameManager] = {}
-player_connections: Dict[PlayerId, websockets.WebSocketServerProtocol] = {}
-player_game_map: Dict[PlayerId, str] = {}  # Map player ID to game ID
+active_games: dict[str, GameManager] = {}
+player_connections: dict[PlayerId, websockets.ServerProtocol] = {}
+player_game_map: dict[PlayerId, str] = {}  # Map player ID to game ID
 
 
 async def register_player(websocket, data: RegisterPlayer):

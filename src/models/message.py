@@ -1,11 +1,9 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import TypeVar, Optional
-from typing import Union, Literal
-from typing import TypeVar, Generic, Union, Literal
+from typing import Literal, TypeVar
 
 from src.models.game_state import GameState, Phase
-from src.models.ids import PlayerId, AssetId, TransmissionId
+from src.models.ids import AssetId, PlayerId, TransmissionId
 
 
 @dataclass(frozen=True)
@@ -46,25 +44,23 @@ class GameToPlayerMessage(Message, ABC):
         return str(self)
 
 
-type ToGameMessage = Union[PlayerToGameMessage, InternalMessage]
-type FromGameMessage = Union[InternalMessage, GameToPlayerMessage]
-T_Id = TypeVar("T_Id", bound=Union[AssetId, TransmissionId])
+type ToGameMessage = PlayerToGameMessage | InternalMessage
+type FromGameMessage = InternalMessage | GameToPlayerMessage
+T_Id = TypeVar("T_Id", bound=AssetId | TransmissionId)
 
 
 @dataclass(frozen=True)
 class ConcludePhase(InternalMessage):
     phase: Phase
 
+    @property
+    def new_phase(self) -> Phase:
+        return self.phase.get_next()
+
 
 @dataclass(frozen=True)
 class GameUpdate(GameToPlayerMessage):
     game_state: GameState
-
-
-@dataclass(frozen=True)
-class UpdateBidRequest(PlayerToGameMessage):
-    asset_id: AssetId
-    bid_price: float
 
 
 @dataclass(frozen=True)
@@ -74,14 +70,36 @@ class UpdateBidResponse(GameToPlayerMessage):
 
 
 @dataclass(frozen=True)
-class BuyRequest[T_Id](PlayerToGameMessage):
-    purchase_id: T_Id
+class UpdateBidRequest(PlayerToGameMessage):
+    asset_id: AssetId
+    bid_price: float
+
+    def make_response(self, success: bool, message: str) -> UpdateBidResponse:
+        return UpdateBidResponse(
+            player_id=self.player_id,
+            asset_id=self.asset_id,
+            success=success,
+            message=message,
+        )
 
 
 @dataclass(frozen=True)
 class BuyResponse[T_Id](GameToPlayerMessage):
     success: bool
     purchase_id: T_Id
+
+
+@dataclass(frozen=True)
+class BuyRequest[T_Id](PlayerToGameMessage):
+    purchase_id: T_Id
+
+    def make_response(self, success: bool, message: str) -> BuyResponse[T_Id]:
+        return BuyResponse(
+            player_id=self.player_id,
+            success=success,
+            purchase_id=self.purchase_id,
+            message=message,
+        )
 
 
 @dataclass(frozen=True)
@@ -133,4 +151,4 @@ class PlayerEliminatedMessage(GameToPlayerMessage):
 
 @dataclass(frozen=True)
 class GameOverMessage(GameToPlayerMessage):
-    winner_id: Optional[PlayerId]
+    winner_id: PlayerId | None

@@ -6,7 +6,12 @@ from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.assets import AssetType
 from tests.utils.game_state_maker import GameStateMaker
 from tests.utils.infeasibility_catcher import infeasibility_catcher
-from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
+from tests.utils.repo_maker import (
+    AssetRepoMaker,
+    BusRepoMaker,
+    PlayerRepoMaker,
+    TransmissionRepoMaker,
+)
 
 
 class TestMarketCoupling(TestCase):
@@ -25,7 +30,13 @@ class TestMarketCoupling(TestCase):
         # add generators
         for bid_price in [10.0, 20.0, 30.0, 80.0]:
             # cheap bus
-            asset_maker.add_asset(cat="Generator", power_std=0, bid_price=bid_price, bus=bus_repo[0].id, is_active=True)
+            asset_maker.add_asset(
+                cat="Generator",
+                power_std=0,
+                bid_price=bid_price,
+                bus=bus_repo[0].id,
+                is_active=True,
+            )
             # expensive bus
             asset_maker.add_asset(cat="Generator", power_std=0, bid_price=bid_price * 3, bus=bus_repo[1].id, is_active=True)
             # inactive generator
@@ -110,7 +121,11 @@ class TestMarketCoupling(TestCase):
 
         all_assets = game_state.assets.asset_ids
         dispatched_assets = market_result.assets_dispatch.columns.tolist()
-        self.assertSetEqual(set(all_assets), set(dispatched_assets), "Not all assets appear in the market results.")
+        self.assertSetEqual(
+            set(all_assets),
+            set(dispatched_assets),
+            "Not all assets appear in the market results.",
+        )
 
         all_transmissions = game_state.transmission.transmission_ids
         transmission_flows = market_result.transmission_flows.columns.tolist()

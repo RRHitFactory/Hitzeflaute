@@ -1,7 +1,8 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
-from typing import Self, Optional, Iterable
+from typing import Self
 
 import numpy as np
 
@@ -66,7 +67,7 @@ class ShapeType(Enum):
 
 
 class Shape:
-    def __init__(self, points: list[Point], shape_type: Optional[ShapeType] = None) -> None:
+    def __init__(self, points: list[Point], shape_type: ShapeType | None = None) -> None:
         if shape_type is None:
             if len(points) == 0:
                 shape_type = ShapeType.EMPTY
@@ -194,7 +195,14 @@ class Shape:
         return cls(points=polygon_points, shape_type=ShapeType.CIRCLE)
 
     @classmethod
-    def make_grid(cls, start_corner: Point, width: float, height: float, n_points_in_x: int = 10, n_points_in_y: int = 10) -> Self:
+    def make_grid(
+        cls,
+        start_corner: Point,
+        width: float,
+        height: float,
+        n_points_in_x: int = 10,
+        n_points_in_y: int = 10,
+    ) -> Self:
         x_values = np.linspace(start_corner.x, start_corner.x + width, n_points_in_x)
         y_values = np.linspace(start_corner.y, start_corner.y + height, n_points_in_y)
         numpy_grid = np.meshgrid(x_values, y_values, indexing="ij")

@@ -1,22 +1,33 @@
 from dataclasses import dataclass, replace
 from enum import IntEnum
 from functools import cached_property
-from typing import Self, Optional
+from typing import Self
 
-from src.models.assets import AssetRepo, AssetInfo
-from src.models.buses import BusRepo, BusFullException
+from src.models.assets import AssetInfo, AssetRepo
+from src.models.buses import BusFullException, BusRepo
 from src.models.game_settings import GameSettings
-from src.models.ids import PlayerId, GameId, BusId, Round
+from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
-from src.models.transmission import TransmissionRepo, TransmissionInfo
+from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.serialization import simplify_type, un_simplify_type
 
 
 class Phase(IntEnum):
     CONSTRUCTION = 0
     SNEAKY_TRICKS = 1
-    DA_AUCTION = 2
+    BIDDING = 2
+    DA_AUCTION = 3
+
+    def __str__(self) -> str:
+        return f"<{self.__class__.__name__}.{self.name}>"
+
+    def __repr__(self) -> str:
+        return str(self)
+
+    @property
+    def nice_name(self) -> str:
+        return self.name.replace("_", " ").lower()
 
     def get_next(self) -> Self:
         next_index = (self.value + 1) % len(Phase)
@@ -35,7 +46,7 @@ class GameState:
     buses: BusRepo
     assets: AssetRepo
     transmission: TransmissionRepo
-    market_coupling_result: Optional[MarketCouplingResult]
+    market_coupling_result: MarketCouplingResult | None
     round: Round = Round(1)
 
     def __post_init__(self) -> None:
@@ -77,7 +88,11 @@ class GameState:
     def start_all_turns(self) -> Self:
         return self.update(self.players.start_all_turns())
 
-    def update(self, *new_attributes: GameStateAttributes, **kw_new_attributes: GameStateAttributes) -> Self:
+    def update(
+        self,
+        *new_attributes: GameStateAttributes,
+        **kw_new_attributes: GameStateAttributes,
+    ) -> Self:
         assert kw_new_attributes.keys() <= vars(self).keys()
         map_new_attributes = {**kw_new_attributes}
 

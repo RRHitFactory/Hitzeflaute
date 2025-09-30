@@ -6,12 +6,12 @@ from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
 from src.models.ids import GameId
 from src.models.message import (
+    FromGameMessage,
     GameToPlayerMessage,
+    GameUpdate,
+    InternalMessage,
     PlayerToGameMessage,
     ToGameMessage,
-    InternalMessage,
-    FromGameMessage,
-    GameUpdate,
 )
 
 

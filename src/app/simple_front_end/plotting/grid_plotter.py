@@ -42,7 +42,12 @@ class GridPlotter:
                 showlegend=False,
                 hovermode="closest",
                 margin=dict(b=0, l=0, r=0, t=0),
-                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False, scaleanchor="y"),
+                xaxis=dict(
+                    showgrid=False,
+                    zeroline=False,
+                    showticklabels=False,
+                    scaleanchor="y",
+                ),
                 yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
                 paper_bgcolor="white",
                 plot_bgcolor="white",
@@ -155,7 +160,12 @@ class GridPlotter:
 
         shapes = make_table(values=player_df, colors=color_df, rect=legend_rect)
 
-        y_points = np.linspace(start=legend_rect.max_y, stop=legend_rect.min_y, num=len(player_df) + 1, endpoint=True)
+        y_points = np.linspace(
+            start=legend_rect.max_y,
+            stop=legend_rect.min_y,
+            num=len(player_df) + 1,
+            endpoint=True,
+        )
         y_midpoints = (y_points[1:] + y_points[:-1]) / 2
 
         x = legend_rect.max_x + 1.0

@@ -1,27 +1,25 @@
-from typing import Optional
-
 from src.app.game_manager import GameManager
 from src.app.game_repo.file_game_repo import FileGameStateRepo
 from src.app.simple_front_end.plotting.grid_plotter import GridPlotter
 from src.directories import game_cache_dir
 from src.engine.engine import Engine
 from src.models.game_state import GameState
-from src.models.ids import GameId, PlayerId, AssetId, TransmissionId
+from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
 from src.models.message import (
-    GameToPlayerMessage,
-    PlayerToGameMessage,
     BuyRequest,
     EndTurn,
-    OperateLineRequest,
-    UpdateBidRequest,
+    GameToPlayerMessage,
     GameUpdate,
+    OperateLineRequest,
+    PlayerToGameMessage,
+    UpdateBidRequest,
 )
 from src.tools.random_choice import random_choice
 
 
 class MessageHandler:
     def __init__(self, joystick: "Joystick") -> None:
-        self._last_state: Optional[GameState] = None
+        self._last_state: GameState | None = None
         self._joystick = joystick
 
     def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None:
@@ -92,7 +90,10 @@ class Joystick:
         self._send_message(message)
 
     def buy_transmission(self, transmission_id: int) -> None:
-        message = BuyRequest(player_id=self._current_player_id, purchase_id=TransmissionId(transmission_id))
+        message = BuyRequest(
+            player_id=self._current_player_id,
+            purchase_id=TransmissionId(transmission_id),
+        )
         self._send_message(message)
 
     def open_line(self, transmission_id: int) -> None:
@@ -106,7 +107,11 @@ class Joystick:
         self._send_message(message)
 
     def update_bid(self, asset_id: int, new_bid: float) -> None:
-        message = UpdateBidRequest(player_id=self._current_player_id, asset_id=AssetId(asset_id), bid_price=new_bid)
+        message = UpdateBidRequest(
+            player_id=self._current_player_id,
+            asset_id=AssetId(asset_id),
+            bid_price=new_bid,
+        )
         self._send_message(message)
 
     def end_turn(self) -> None:

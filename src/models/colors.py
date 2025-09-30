@@ -1,6 +1,6 @@
 import colorsys
 from functools import cached_property
-from typing import Union, Literal, Self
+from typing import Literal, Self
 
 import numpy as np
 from matplotlib import colormaps
@@ -9,7 +9,7 @@ from matplotlib import colormaps
 class Color:
     def __init__(
         self,
-        x: Union[str, tuple[int, int, int], Literal["red", "green", "blue", "black", "gray", "white"]] = "black",
+        x: str | tuple[int, int, int] | Literal["red", "green", "blue", "black", "gray", "white"] = "black",
         color_model: Literal["rgb", "hsv", "hls"] = "rgb",
     ):
         """
@@ -145,6 +145,9 @@ def get_random_player_colors(n: int) -> list[Color]:
     colors_np = [color_map(i / n) for i in range(n)]
 
     def convert_color(color: tuple[float, float, float, float]) -> Color:
-        return Color(x=(round(color[0] * 255), int(color[1] * 255), int(color[2] * 255)), color_model="rgb")
+        return Color(
+            x=(round(color[0] * 255), int(color[1] * 255), int(color[2] * 255)),
+            color_model="rgb",
+        )
 
     return [convert_color(color) for color in colors_np]

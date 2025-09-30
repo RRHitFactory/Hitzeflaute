@@ -4,7 +4,7 @@ from typing import Self
 
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
-from src.models.ids import TransmissionId, BusId, PlayerId
+from src.models.ids import BusId, PlayerId, TransmissionId
 from src.tools.serialization import simplify_type
 
 

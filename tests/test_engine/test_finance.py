@@ -55,7 +55,10 @@ class TestFinanceCalculator(TestCase):
             single_transmission_repo = transmission_repo._filter({"id": transmission.id})
             transmission_cashflow = FinanceCalculator.compute_transmission_cashflow(single_transmission_repo, transmission_flows, bus_prices)
             price_spread = bus_prices[transmission.bus1] - bus_prices[transmission.bus2]
-            self.assertAlmostEqual(transmission_cashflow, transmission_flows[transmission.id] * price_spread)
+            self.assertAlmostEqual(
+                transmission_cashflow,
+                transmission_flows[transmission.id] * price_spread,
+            )
 
     def test_validate_bid_based_on_expected_loads_cost(self):
         game_state, _ = self.create_game_state_and_market_coupling_result()
