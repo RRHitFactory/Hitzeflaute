@@ -1,7 +1,7 @@
 # Project stuff
-src/game_cache/*.json
-src/game_cache/*.html
-tests/bad_states/*.json
+back_end/src/game_cache/*.json
+back_end/src/game_cache/*.html
+back_end/tests/bad_states/*.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
