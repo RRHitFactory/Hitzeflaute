@@ -12,18 +12,18 @@ const GameStatus: React.FC<GameStatusProps> = ({ phase, round }) => {
     const phaseInfo = getPhaseInfo(phase)
 
     return (
-        <div className="flex items-center justify-center w-full">
-            {/* Left side - Round text (right aligned to center) */}
-            <div className="flex-1 text-right pr-2">
-                <span className="text-sm text-gray-600 font-medium">
+        <div className="flex items-center w-80">
+            {/* Left half - Round info */}
+            <div className="w-20 flex justify-start">
+                <span className="text-sm text-gray-600 font-medium whitespace-nowrap">
                     Round {round}
                 </span>
             </div>
 
-            {/* Right side - Phase text (left aligned from center) */}
-            <div className="flex-1 text-left pl-2">
+            {/* Right half - Phase info */}
+            <div className="w-80 flex justify-start">
                 <div
-                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${phaseInfo.color} cursor-help`}
+                    className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${phaseInfo.color} cursor-help whitespace-nowrap`}
                     title={phaseInfo.description}
                 >
                     {phaseInfo.displayName} Phase

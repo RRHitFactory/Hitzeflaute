@@ -28,6 +28,10 @@ jobs:
       with:
         # Install a specific version of uv.
         version: "0.8.16"
+    
+    - name: Change directory to back_end
+      run: cd back_end
+      shell: bash
 
     - name: Install the project
       run: uv sync --locked --all-extras --dev
