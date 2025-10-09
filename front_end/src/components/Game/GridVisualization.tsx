@@ -6,6 +6,7 @@ import InfoPanel from './InfoPanel'
 import BusComponent from './Bus'
 import AssetComponent from './Asset'
 import TransmissionLineComponent from './TransmissionLine'
+import ConfirmationDialog from '../UI/ConfirmationDialog'
 
 interface GridVisualizationProps {
     gameState: GameState
@@ -24,6 +25,13 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 }) => {
     const [hoveredElement, setHoveredElement] = useState<HoverableElement | null>(null)
     const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 })
+    const [confirmationDialog, setConfirmationDialog] = useState<{
+        isOpen: boolean
+        type: 'asset' | 'line'
+        id: string
+        title: string
+        price: number
+    }>({ isOpen: false, type: 'asset', id: '', title: '', price: 0 })
 
     const handleElementHover = (element: HoverableElement, event: React.MouseEvent) => {
         const svgRect = event.currentTarget.closest('svg')?.getBoundingClientRect()
@@ -96,6 +104,48 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         return player?.money || 0
     }
 
+    // Handle purchase confirmation for assets
+    const handleAssetPurchaseRequest = (assetId: string) => {
+        const asset = gameState.assets.find(a => a.id === assetId)
+        if (asset) {
+            setConfirmationDialog({
+                isOpen: true,
+                type: 'asset',
+                id: assetId,
+                title: `${asset.asset_type === 'GENERATOR' ? 'Gen' : 'Load'}${asset.id}`,
+                price: asset.minimum_acquisition_price
+            })
+        }
+    }
+
+    // Handle purchase confirmation for transmission lines
+    const handleLinePurchaseRequest = (lineId: string) => {
+        const line = gameState.transmissionLines.find(l => l.id === lineId)
+        if (line) {
+            setConfirmationDialog({
+                isOpen: true,
+                type: 'line',
+                id: lineId,
+                title: `Line${line.id}`,
+                price: line.minimum_acquisition_price
+            })
+        }
+    }
+
+    // Handle confirmation dialog actions
+    const handleConfirmPurchase = () => {
+        if (confirmationDialog.type === 'asset' && onPurchaseAsset) {
+            onPurchaseAsset(confirmationDialog.id)
+        } else if (confirmationDialog.type === 'line' && onPurchaseTransmissionLine) {
+            onPurchaseTransmissionLine(confirmationDialog.id)
+        }
+        setConfirmationDialog({ isOpen: false, type: 'asset', id: '', title: '', price: 0 })
+    }
+
+    const handleCancelPurchase = () => {
+        setConfirmationDialog({ isOpen: false, type: 'asset', id: '', title: '', price: 0 })
+    }
+
     return (
         <div className="relative w-full h-96 bg-gray-50 rounded-lg border overflow-hidden">
             <svg
@@ -119,7 +169,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                             onHover={handleElementHover}
                             onLeave={handleMouseLeave}
                             isPurchasable={isPurchasable}
-                            onPurchase={onPurchaseTransmissionLine}
+                            onPurchase={handleLinePurchaseRequest}
                             playerMoney={getCurrentPlayerMoney()}
                         />
                     )
@@ -156,10 +206,11 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                                 onHover={handleElementHover}
                                 onLeave={handleMouseLeave}
                                 isPurchasable={isPurchasable}
-                                onPurchase={onPurchaseAsset}
+                                onPurchase={handleAssetPurchaseRequest}
                                 playerMoney={getCurrentPlayerMoney()}
                                 isBiddable={isAssetBiddable(asset)}
                                 onBid={onBidAsset}
+                                currentPlayer={currentPlayer}
                             />
                         )
                     })
@@ -173,6 +224,17 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                     position={hoverPosition}
                 />
             )}
+
+            {/* Purchase Confirmation Dialog */}
+            <ConfirmationDialog
+                isOpen={confirmationDialog.isOpen}
+                title={`Purchase ${confirmationDialog.title}`}
+                message={`Are you sure you want to purchase ${confirmationDialog.title} for $${confirmationDialog.price.toLocaleString()}?`}
+                confirmText="Purchase"
+                cancelText="Cancel"
+                onConfirm={handleConfirmPurchase}
+                onCancel={handleCancelPurchase}
+            />
         </div>
     )
 }

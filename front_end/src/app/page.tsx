@@ -170,7 +170,7 @@ export default function Home() {
 
         if (!asset || !player) return
         if (player.money < asset.minimum_acquisition_price) {
-            alert(`Not enough money! Need $${asset.minimum_acquisition_price.toLocaleString()}, have $${player.money.toLocaleString()}`)
+            alert(`Not enough money! You need $${asset.minimum_acquisition_price.toLocaleString()}, but you only have $${player.money.toLocaleString()}`)
             return
         }
 

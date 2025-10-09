@@ -15,6 +15,7 @@ interface AssetProps {
     playerMoney?: number
     isBiddable?: boolean
     onBid?: (assetId: string, newBidPrice: number) => void
+    currentPlayer?: string
 }
 
 const AssetComponent: React.FC<AssetProps> = ({
@@ -28,7 +29,8 @@ const AssetComponent: React.FC<AssetProps> = ({
     onPurchase,
     playerMoney = 0,
     isBiddable = false,
-    onBid
+    onBid,
+    currentPlayer
 }) => {
     const formatMoney = (amount: number) => `$${amount.toLocaleString()}`
     const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`
@@ -44,6 +46,11 @@ const AssetComponent: React.FC<AssetProps> = ({
             'Owner': owner.name,
             'Expected Power': `${asset.power_expected.toFixed(0)} MW`,
             'Marginal Cost': formatPrice(asset.marginal_cost)
+        }
+
+        // Show current bid price if asset is owned by current player
+        if (currentPlayer && asset.owner_player === currentPlayer) {
+            data['Current Bid'] = formatPrice(asset.bid_price)
         }
 
         if (isPurchasable) {
