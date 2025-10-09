@@ -65,9 +65,9 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     const getLineColor = () => {
         if (line.is_open) {
             // Deactivate color similar to the Python implementation
-            return adjustColor(line.color, 0.5)
+            return adjustColor(owner.color, 0.5)
         }
-        return line.color
+        return owner.color
     }
 
     const adjustColor = (color: string, factor: number) => {

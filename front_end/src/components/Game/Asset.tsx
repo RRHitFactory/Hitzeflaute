@@ -93,7 +93,7 @@ const AssetComponent: React.FC<AssetProps> = ({
     }
 
     const getAssetColor = () => {
-        return asset.is_active ? asset.color : adjustColor(asset.color, 0.5)
+        return asset.is_active ? owner.color : adjustColor(owner.color, 0.5)
     }
 
     const adjustColor = (color: string, factor: number) => {

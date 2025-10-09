@@ -41,7 +41,7 @@ const BusComponent: React.FC<BusProps> = ({ bus, owner, onHover, onLeave }) => {
                 y={bus.y - 7}
                 width={60}
                 height={14}
-                fill={bus.color}
+                fill={owner.color}
                 stroke="#374151"
                 strokeWidth="1"
                 rx="3"
