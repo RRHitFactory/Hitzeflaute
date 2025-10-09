@@ -28,17 +28,19 @@ jobs:
       with:
         # Install a specific version of uv.
         version: "0.8.16"
-
+    
     - name: Install the project
       run: uv sync --locked --all-extras --dev
+      working-directory: ./back_end
 
     - name: Check onion architecture
-      run: |
-          uv run python -m src.onion_enforcer
+      run: uv run python -m src.onion_enforcer
+      working-directory: ./back_end
 
     - name: Lint with ruff
-      run: |
-        uv run ruff check src --output-format=full
+      run: uv run ruff check src --output-format=full
+      working-directory: ./back_end
     
     - name: Test with pytest
       run: uv run pytest tests
+      working-directory: ./back_end

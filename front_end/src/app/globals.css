@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: #ffffff;
+    --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #0a0a0a;
+        --foreground: #ededed;
+    }
+}
+
+body {
+    color: var(--foreground);
+    background: var(--background);
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+    .text-balance {
+        text-wrap: balance;
+    }
+}
+
+/* Custom styles for power grid visualization */
+.grid-container {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.bus-element {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.bus-element:hover {
+    filter: brightness(1.1);
+    stroke-width: 2;
+}
+
+.transmission-line {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.transmission-line:hover {
+    stroke-width: 3;
+}
+
+.asset-element {
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+}
+
+.asset-element:hover {
+    transform: scale(1.1);
+}
+
+.info-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(4px);
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
