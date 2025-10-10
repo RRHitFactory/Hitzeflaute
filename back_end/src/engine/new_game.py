@@ -416,7 +416,6 @@ class DefaultGameInitializer(BaseGameInitializer):
                     health=5,
                 )
             )
-
         return AssetRepo(assets)
 
     def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> TransmissionRepo:
