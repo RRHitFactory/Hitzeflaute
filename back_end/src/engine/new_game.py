@@ -374,7 +374,6 @@ class DefaultGameInitializer(BaseGameInitializer):
                 )
             )
 
-        generator = np.random.default_rng()
         # Create the rest of the assets for NPC
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
@@ -391,10 +390,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                     minimum_acquisition_price=self.settings.initial_funds / 4,
                     fixed_operating_cost=self.settings.initial_funds / 20,
                     marginal_cost=self.settings.initial_funds / 20,
-                    bid_price=generator.uniform(
-                        self.settings.initial_funds / 20,
-                        self.settings.initial_funds / 2,
-                    ),
+                    bid_price=self.settings.initial_funds / 20,
                     is_freezer=False,
                     health=5,
                 )
