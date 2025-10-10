@@ -391,10 +391,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                     minimum_acquisition_price=self.settings.initial_funds / 4,
                     fixed_operating_cost=self.settings.initial_funds / 20,
                     marginal_cost=self.settings.initial_funds / 20,
-                    bid_price=generator.uniform(
-                        self.settings.initial_funds / 20,
-                        self.settings.initial_funds / 2,
-                    ),
+                    bid_price=self.settings.initial_funds / 20,
                     is_freezer=False,
                     health=5,
                 )
