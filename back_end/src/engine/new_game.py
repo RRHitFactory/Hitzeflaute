@@ -374,7 +374,6 @@ class DefaultGameInitializer(BaseGameInitializer):
                 )
             )
 
-        generator = np.random.default_rng()
         # Create the rest of the assets for NPC
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
