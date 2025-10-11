@@ -1,10 +1,10 @@
 from unittest import TestCase
 
-from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
-from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
+from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
+from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 
 
 class TestFinanceCalculator(TestCase):
