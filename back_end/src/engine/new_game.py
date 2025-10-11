@@ -390,7 +390,28 @@ class DefaultGameInitializer(BaseGameInitializer):
                     minimum_acquisition_price=self.settings.initial_funds / 4,
                     fixed_operating_cost=self.settings.initial_funds / 20,
                     marginal_cost=self.settings.initial_funds / 20,
-                    bid_price=self.settings.initial_funds / 20,
+                    bid_price=self.settings.initial_funds / 20 * (1 + 1/60),  # bid price is slightly above marginal cost to cover expected fixed operating costs
+                    is_freezer=False,
+                    health=5,
+                )
+            )
+
+        for _ in range(self.settings.n_init_non_freezer_loads):
+            bus_id = socket_manager.get_bus_with_free_socket(use=True)
+
+            assets.append(
+                AssetInfo(
+                    id=next(asset_ids),
+                    owner_player=PlayerId.get_npc(),
+                    asset_type=AssetType.LOAD,
+                    bus=bus_id,
+                    power_expected=80.0,
+                    power_std=5,
+                    is_for_sale=True,
+                    minimum_acquisition_price=self.settings.initial_funds / 2,
+                    fixed_operating_cost=self.settings.initial_funds / 20,
+                    marginal_cost=self.settings.initial_funds / 10,  # marginal_cost of loads refer to marginal utility, thus, they will create revenue
+                    bid_price=self.settings.initial_funds / 10,
                     is_freezer=False,
                     health=5,
                 )

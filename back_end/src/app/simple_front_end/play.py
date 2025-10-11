@@ -11,9 +11,11 @@ if __name__ == "__main__":
 
     # buy one asset and one transmission line for each player
     j.buy_asset(4)
+    j.buy_asset(13)
     j.buy_transmission(4)
     j.change_player()
     j.buy_asset(5)
+    j.buy_asset(14)
     j.buy_transmission(5)
 
     for r in range(n_rounds):
