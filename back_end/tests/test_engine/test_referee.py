@@ -1,11 +1,10 @@
 from unittest import TestCase
 
-from back_end.src.models.message import IceCreamMeltedMessage
-
 from src.engine.referee import Referee
 from src.models.game_state import GameState, Phase
 from src.models.ids import PlayerId
 from src.models.market_coupling_result import MarketCouplingResult
+from src.models.message import IceCreamMeltedMessage
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 
