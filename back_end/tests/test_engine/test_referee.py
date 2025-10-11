@@ -1,19 +1,21 @@
 from unittest import TestCase
 
-from src.models.ids import PlayerId
-from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
-from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
-from src.models.game_state import GameState, Phase
-from src.models.market_coupling_result import MarketCouplingResult
+from back_end.src.models.message import IceCreamMeltedMessage
+
 from src.engine.referee import Referee
+from src.models.game_state import GameState, Phase
+from src.models.ids import PlayerId
+from src.models.market_coupling_result import MarketCouplingResult
+from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
+from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 
 
 class TestReferee(TestCase):
     @staticmethod
-    def create_game_state_and_market_coupling_result() -> tuple[GameState, MarketCouplingResult]:
+    def create_game_state_and_market_coupling_result(n_melted: int) -> tuple[GameState, MarketCouplingResult]:
         game_maker = GameStateMaker()
 
-        player_repo = PlayerRepoMaker.make_quick(3)
+        player_repo = PlayerRepoMaker.make_quick(n=max(3, n_melted))
         buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
         asset_maker = AssetRepoMaker(bus_repo=buses, players=player_repo)
 
@@ -28,22 +30,28 @@ class TestReferee(TestCase):
             asset_repo=game_state.assets,
             transmission_repo=game_state.transmission,
             n_random_congested_transmissions=2,
+            n_players_with_no_power_for_ice_cream=n_melted,
         )
         game_state = game_state.update(phase=Phase.DA_AUCTION, market_coupling_result=market_coupling_result)
 
         return game_state, market_coupling_result
 
-    def test_melt_ice_creams(self):
-        game_state, market_result = self.create_game_state_and_market_coupling_result()
+    def test_melt_ice_creams(self) -> None:
+        n_melted = 2
+        game_state, market_result = self.create_game_state_and_market_coupling_result(n_melted=n_melted)
         freezers = game_state.assets.only_freezers
         game_state = game_state.update(phase=Phase.DA_AUCTION)
 
+        t0 = market_result.assets_dispatch.index[0]
         unpowered_freezer_ids = []
         for freezer in freezers:
-            if market_result.assets_dispatch.loc[:, freezer.id].iloc[0] < freezer.power_expected:
+            if market_result.assets_dispatch.loc[t0, freezer.id] == 0.0:  # type: ignore
                 unpowered_freezer_ids.append(freezer.id)
 
         new_game_state, update_msgs = Referee.melt_ice_creams(game_state)
+        melt_messages = [msg for msg in update_msgs if isinstance(msg, IceCreamMeltedMessage)]
+
+        self.assertEqual(len(melt_messages), n_melted)
         self.assertEqual(len(update_msgs), len(unpowered_freezer_ids))
 
         for freezer_id in unpowered_freezer_ids:

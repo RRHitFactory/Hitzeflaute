@@ -186,8 +186,6 @@ class TestAssets(TestCase):
         assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=5)
         transmission = TransmissionRepoMaker.make_quick(buses=buses, players=player_repo, n=5)
 
-        player_a = player_repo.human_players[0]
-
         game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).add_transmission_repo(transmission).make()
         market_coupling_result = MarketResultMaker.make_quick(
             player_repo=player_repo,
@@ -195,7 +193,7 @@ class TestAssets(TestCase):
             asset_repo=assets,
             transmission_repo=transmission,
             n_random_congested_transmissions=2,
-            players_with_no_power_for_ice_cream=[player_a.id],
+            n_players_with_no_power_for_ice_cream=1,
         )
         new_game_state, update_msgs = Engine._run_post_clearing_book_keeping(game_state=game_state, market_result=market_coupling_result)
         melt_ice_cream_msgs = [msg for msg in update_msgs if isinstance(msg, IceCreamMeltedMessage)]

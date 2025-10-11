@@ -29,7 +29,7 @@ class MarketResultMaker:
         asset_repo: AssetRepo | None = None,
         transmission_repo: TransmissionRepo | None = None,
         n_random_congested_transmissions: int = 0,
-        players_with_no_power_for_ice_cream: list[PlayerId] | None = None,
+        n_players_with_no_power_for_ice_cream: int = 0,
     ) -> MarketCouplingResult:
         if player_repo is None:
             player_repo = PlayerRepoMaker.make_quick(3)
@@ -48,9 +48,13 @@ class MarketResultMaker:
             replace=False,
         )
         maker.set_congestied_lines(congested_ids)
-        if players_with_no_power_for_ice_cream is not None:
-            for p in players_with_no_power_for_ice_cream:
-                maker.melt_ice_cream_for_player(p)
+        if n_players_with_no_power_for_ice_cream > 0:
+            player_ids = random_choice_multi(
+                player_repo.human_player_ids,
+                size=n_players_with_no_power_for_ice_cream,
+                replace=False,
+            )
+            maker.set_players_with_unfed_freezers(player_ids)
         return maker.make()
 
     def __init__(
@@ -84,10 +88,8 @@ class MarketResultMaker:
     def set_asset_dispatch(self, asset_dispatch: pd.DataFrame) -> None:
         self._asset_dispatch = asset_dispatch
 
-    def melt_ice_cream_for_player(self, player_id: PlayerId) -> None:
-        if self._players_with_no_power_for_ice_cream is None:
-            self._players_with_no_power_for_ice_cream = []
-        self._players_with_no_power_for_ice_cream.append(player_id)
+    def set_players_with_unfed_freezers(self, player_ids: list[PlayerId]) -> None:
+        self._players_with_no_power_for_ice_cream = player_ids
 
     def make(self) -> MarketCouplingResult:
         random_gen = np.random.default_rng()
