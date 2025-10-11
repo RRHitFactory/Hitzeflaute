@@ -1,15 +1,15 @@
 from abc import abstractmethod
 from itertools import count
-from typing import Self, Literal, Optional, TypeVar
+from typing import Literal, Optional, Self, TypeVar
 
 import numpy as np
 
-from src.models.assets import AssetRepo, AssetInfo, AssetType
+from src.models.assets import AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color
-from src.models.ids import PlayerId, AssetId, BusId, TransmissionId
-from src.models.player import PlayerRepo, Player
-from src.models.transmission import TransmissionRepo, TransmissionInfo
+from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
+from src.models.player import Player, PlayerRepo
+from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.random_choice import random_choice
 
 T_RepoMaker = TypeVar("T_RepoMaker", bound="RepoMaker")
@@ -248,6 +248,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         if is_active is None:
             is_active = np.random.rand() > 0.2
 
+        assert cat is not None
         asset_type: AssetType = {
             "Generator": AssetType.GENERATOR,
             "Load": AssetType.LOAD,
