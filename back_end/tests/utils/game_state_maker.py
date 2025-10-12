@@ -47,7 +47,7 @@ class MarketResultMaker:
             size=n_random_congested_transmissions,
             replace=False,
         )
-        maker.set_congestied_lines(congested_ids)
+        maker.set_congested_lines(congested_ids)
         if n_players_with_no_power_for_ice_cream > 0:
             player_ids = random_choice_multi(
                 player_repo.human_player_ids,
@@ -82,7 +82,7 @@ class MarketResultMaker:
         assert self._congested_lines is None, "Cannot set tx flows after setting congested lines"
         self._tx_flows = tx_flows
 
-    def set_congestied_lines(self, congested_lines: list[TransmissionId]) -> None:
+    def set_congested_lines(self, congested_lines: list[TransmissionId]) -> None:
         self._congested_lines = congested_lines
 
     def set_asset_dispatch(self, asset_dispatch: pd.DataFrame) -> None:

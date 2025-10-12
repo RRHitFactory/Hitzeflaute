@@ -11,7 +11,7 @@ from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 
 class TestReferee(TestCase):
     @staticmethod
-    def create_game_state_and_market_coupling_result(n_melted: int) -> tuple[GameState, MarketCouplingResult]:
+    def create_game_state_and_market_coupling_result(n_melted: int = 0) -> tuple[GameState, MarketCouplingResult]:
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker.make_quick(n=max(3, n_melted))
