@@ -121,10 +121,18 @@ class MarketResultMaker:
             assets_dispatch = pd.DataFrame(index=market_time_units, columns=asset_columns, data=asset_data)
         else:
             assets_dispatch = self._asset_dispatch
+
+        players_with_power_for_ice_cream = set(self.player_repo.human_player_ids)
         if self._players_with_no_power_for_ice_cream is not None:
-            for player_id in self._players_with_no_power_for_ice_cream:
-                freezer = self.asset_repo.get_freezer_for_player(player_id).id
-                assets_dispatch.loc[:, freezer.as_int()] = 0.0
+            players_with_power_for_ice_cream -= set(self._players_with_no_power_for_ice_cream)
+
+        for player_id in self.player_repo.human_player_ids:
+            freezer = self.asset_repo.get_freezer_for_player(player_id)
+
+            if player_id in players_with_power_for_ice_cream:
+                assets_dispatch.loc[:, freezer.id.as_int()] = freezer.power_expected
+            else:
+                assets_dispatch.loc[:, freezer.id.as_int()] = 0.0
 
         return MarketCouplingResult(
             bus_prices=bus_prices,

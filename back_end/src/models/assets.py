@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from enum import IntEnum
 from functools import cached_property
-from typing import Self
 
-from randcraft import make_normal
+from randcraft import make_dirac, make_uniform
+from randcraft.random_variable import RandomVariable
 
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
@@ -35,13 +35,23 @@ class AssetInfo(LightDc):
     birthday: int = 1  # Round when the asset was created
 
     def __post_init__(self) -> None:
+        assert self.power_std >= 0, "Asset power standard deviation must be non-negative"
         if self.is_freezer:
             assert self.asset_type == AssetType.LOAD, "Freezer asset must be of type LOAD"
+            assert self.power_std == 0, "Freezer asset must have zero power standard deviation"
+        assert self.power_rv.get_min_value() >= 0, f"Asset power random variable must be non-negative but got {self.power_rv}"
 
     def sample_power(self) -> float:
-        rv = make_normal(mean=self.power_expected, std_dev=self.power_std)
-        result = rv.sample_one()
-        return max(0.0, result)
+        return self.power_rv.sample_one()
+
+    @cached_property
+    def power_rv(self) -> RandomVariable:
+        if self.power_std <= 1e-3:
+            return make_dirac(value=self.power_expected)
+        abs_range = self.power_std * 12 ** (-0.5)
+        low = self.power_expected - abs_range / 2
+        high = self.power_expected + abs_range / 2
+        return make_uniform(low=low, high=high)
 
     @cached_property
     def cashflow_sign(self) -> int:
@@ -59,30 +69,30 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return [AssetId(x) for x in self.df.index.tolist()]
 
     @cached_property
-    def only_active(self) -> Self:
+    def only_active(self) -> "AssetRepo":
         return self._filter({"is_active": True})
 
     @cached_property
-    def only_inactive(self) -> Self:
+    def only_inactive(self) -> "AssetRepo":
         return self._filter({"is_active": False})
 
     @cached_property
-    def only_freezers(self) -> Self:
+    def only_freezers(self) -> "AssetRepo":
         return self._filter({"is_freezer": True})
 
     @cached_property
-    def only_loads(self) -> Self:
+    def only_loads(self) -> "AssetRepo":
         return self._filter({"asset_type": AssetType.LOAD})
 
     @cached_property
-    def only_generators(self) -> Self:
+    def only_generators(self) -> "AssetRepo":
         return self._filter({"asset_type": AssetType.GENERATOR})
 
-    def get_all_assets_at_bus(self, bus_id: BusId, only_active: bool = False) -> Self:
+    def get_all_assets_at_bus(self, bus_id: BusId, only_active: bool = False) -> "AssetRepo":
         oa_filter = {"is_active": True} if only_active else {}
         return self._filter({"bus": bus_id, **oa_filter})
 
-    def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> Self:
+    def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> "AssetRepo":
         oa_filter = {"is_active": True} if only_active else {}
         return self._filter({"owner_player": player_id, **oa_filter})
 
@@ -95,18 +105,18 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return freezers.df.health.sum()
 
     # UPDATE
-    def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> Self:
+    def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> "AssetRepo":
         df = self.df.copy()
         df.loc[asset_id, "owner_player"] = simplify_type(new_owner)
         df.loc[asset_id, "is_for_sale"] = False
         return self.update_frame(df)
 
-    def update_bid_price(self, asset_id: AssetId, bid_price: float) -> Self:
+    def update_bid_price(self, asset_id: AssetId, bid_price: float) -> "AssetRepo":
         df = self.df.copy()
         df.loc[asset_id, "bid_price"] = bid_price
         return self.update_frame(df)
 
-    def _decrease_health(self, asset_id: AssetId) -> Self:
+    def _decrease_health(self, asset_id: AssetId) -> "AssetRepo":
         if self.df.loc[asset_id, "health"] > 1:
             df = self.df.copy()
             df.loc[asset_id, "health"] -= 1
@@ -117,19 +127,19 @@ class AssetRepo(LdcRepo[AssetInfo]):
             df.loc[asset_id, "is_active"] = False
             return self.update_frame(df)
 
-    def melt_ice_cream(self, asset_id: AssetId) -> Self:
+    def melt_ice_cream(self, asset_id: AssetId) -> "AssetRepo":
         assert self.df.loc[asset_id, "is_freezer"], "Only freezer assets can melt ice cream"
         return self._decrease_health(asset_id)
 
-    def wear_asset(self, asset_id: AssetId) -> Self:
+    def wear_asset(self, asset_id: AssetId) -> "AssetRepo":
         assert not self.df.loc[asset_id, "is_freezer"], "Only non-freezer assets can wear out"
         return self._decrease_health(asset_id)
 
-    def batch_deactivate(self, asset_ids: list[AssetId]) -> Self:
+    def batch_deactivate(self, asset_ids: list[AssetId]) -> "AssetRepo":
         df = self.df.copy()
         df.loc[asset_ids, "is_active"] = False
         return self.update_frame(df)
 
     # DELETE
-    def delete_for_player(self, player_id: PlayerId) -> Self:
+    def delete_for_player(self, player_id: PlayerId) -> "AssetRepo":
         return self.drop_items({"owner_player": player_id})

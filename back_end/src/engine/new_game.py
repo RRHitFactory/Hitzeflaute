@@ -199,7 +199,7 @@ class BaseGameInitializer(ABC):
         self,
         game_id: GameId,
         player_names: list[str],
-        player_colors: list[str] | None = None,
+        player_colors: list[Color] | None = None,
     ) -> GameState:
         """
         Create a new game state with the given game ID and settings.
@@ -390,7 +390,7 @@ class DefaultGameInitializer(BaseGameInitializer):
                     minimum_acquisition_price=self.settings.initial_funds / 4,
                     fixed_operating_cost=self.settings.initial_funds / 20,
                     marginal_cost=self.settings.initial_funds / 20,
-                    bid_price=self.settings.initial_funds / 20 * (1 + 1/60),  # bid price is slightly above marginal cost to cover expected fixed operating costs
+                    bid_price=self.settings.initial_funds / 20 * (1 + 1 / 60),  # bid price is slightly above marginal cost to cover expected fixed operating costs
                     is_freezer=False,
                     health=5,
                 )
