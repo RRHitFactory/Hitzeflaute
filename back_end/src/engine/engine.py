@@ -227,17 +227,23 @@ class Engine:
         new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
 
         market_result = MarketCouplingCalculator.run(game_state=new_game_state)
-        new_game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(game_state=new_game_state, market_coupling_result=market_result)
 
-        new_game_state, ice_cream_msgs = Referee.melt_ice_creams(new_game_state)
-        new_game_state, transmission_msgs = Referee.wear_congested_transmission(new_game_state)
-        new_game_state, asset_msgs = Referee.wear_non_freezer_assets(new_game_state)
-        new_game_state, eliminated_player_msgs = Referee.eliminate_players(gs=new_game_state)
-        new_game_state, game_over_msg = Referee.check_game_over(gs=new_game_state)
+        new_game_state, new_msgs = cls._run_post_clearing_book_keeping(game_state=new_game_state, market_result=market_result)
 
-        msgs = msgs_load_deactivation + msgs_auction_cashflows + ice_cream_msgs + transmission_msgs + asset_msgs + eliminated_player_msgs + game_over_msg
+        return new_game_state, msgs_load_deactivation + new_msgs
 
-        return new_game_state, msgs
+    @classmethod
+    def _run_post_clearing_book_keeping(cls, game_state: GameState, market_result: MarketCouplingResult) -> tuple[GameState, list[GameToPlayerMessage]]:
+        game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(game_state=game_state, market_coupling_result=market_result)
+        game_state, ice_cream_msgs = Referee.melt_ice_creams(game_state)
+        game_state, transmission_msgs = Referee.wear_congested_transmission(game_state)
+        game_state, asset_msgs = Referee.wear_non_freezer_assets(game_state)
+        game_state, eliminated_player_msgs = Referee.eliminate_players(gs=game_state)
+        game_state, game_over_msg = Referee.check_game_over(gs=game_state)
+
+        msgs = msgs_auction_cashflows + ice_cream_msgs + transmission_msgs + asset_msgs + eliminated_player_msgs + game_over_msg
+
+        return game_state, msgs
 
     @staticmethod
     def _update_game_state_with_market_coupling_result(

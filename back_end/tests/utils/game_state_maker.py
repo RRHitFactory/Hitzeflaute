@@ -7,31 +7,32 @@ from src.models.assets import AssetRepo
 from src.models.buses import BusRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
-from src.models.ids import GameId
+from src.models.ids import GameId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionRepo
 from src.tools.random_choice import random_choice, random_choice_multi
 from tests.utils.repo_maker import (
-    PlayerRepoMaker,
-    BusRepoMaker,
     AssetRepoMaker,
+    BusRepoMaker,
+    PlayerRepoMaker,
     TransmissionRepoMaker,
 )
 
 
 class MarketResultMaker:
-    @staticmethod
+    @classmethod
     def make_quick(
-        player_repo: Optional[PlayerRepo] = None,
-        bus_repo: Optional[BusRepo] = None,
-        asset_repo: Optional[AssetRepo] = None,
-        transmission_repo: Optional[TransmissionRepo] = None,
+        cls,
+        player_repo: PlayerRepo | None = None,
+        bus_repo: BusRepo | None = None,
+        asset_repo: AssetRepo | None = None,
+        transmission_repo: TransmissionRepo | None = None,
         n_random_congested_transmissions: int = 0,
-        n_timesteps: int = 1,
+        n_players_with_no_power_for_ice_cream: int = 0,
     ) -> MarketCouplingResult:
-        market_time_units = pd.Index([k for k in range(n_timesteps)], name="time")
-
+        if player_repo is None:
+            player_repo = PlayerRepoMaker.make_quick(3)
         if bus_repo is None:
             bus_repo = BusRepoMaker.make_quick(players=player_repo.player_ids)
         if asset_repo is None:
@@ -39,24 +40,99 @@ class MarketResultMaker:
         if transmission_repo is None:
             transmission_repo = TransmissionRepoMaker.make_quick(buses=bus_repo, players=player_repo.player_ids)
 
-        bus_columns = pd.Index([b.as_int() for b in bus_repo.bus_ids], name="Bus")
-        bus_data = np.random.rand(n_timesteps, len(bus_columns))
-        bus_prices = pd.DataFrame(index=market_time_units, columns=bus_columns, data=bus_data)
+        maker = cls(player_repo=player_repo, bus_repo=bus_repo, asset_repo=asset_repo, transmission_repo=transmission_repo)
 
-        tx_columns = pd.Index([t.as_int() for t in transmission_repo.transmission_ids], name="Line")
-        tx_data = np.random.rand(n_timesteps, len(tx_columns))
         congested_ids = random_choice_multi(
             transmission_repo.transmission_ids,
             size=n_random_congested_transmissions,
             replace=False,
         )
-        for id in congested_ids:
-            tx_data[:, id] = transmission_repo[id].capacity
-        transmission_flows = pd.DataFrame(index=market_time_units, columns=tx_columns, data=tx_data)
+        maker.set_congested_lines(congested_ids)
+        if n_players_with_no_power_for_ice_cream > 0:
+            player_ids = random_choice_multi(
+                player_repo.human_player_ids,
+                size=n_players_with_no_power_for_ice_cream,
+                replace=False,
+            )
+            maker.set_players_with_unfed_freezers(player_ids)
+        return maker.make()
 
-        asset_columns = pd.Index([a.as_int() for a in asset_repo.asset_ids], name="Asset")
-        asset_data = np.random.rand(n_timesteps, len(asset_columns))
-        assets_dispatch = pd.DataFrame(index=market_time_units, columns=asset_columns, data=asset_data)
+    def __init__(
+        self,
+        player_repo: PlayerRepo,
+        bus_repo: BusRepo,
+        asset_repo: AssetRepo,
+        transmission_repo: TransmissionRepo,
+    ) -> None:
+        self.player_repo = player_repo
+        self.bus_repo = bus_repo
+        self.asset_repo = asset_repo
+        self.transmission_repo = transmission_repo
+        self.n_timesteps = 1
+        self._bus_prices: pd.DataFrame | None = None
+        self._tx_flows: pd.DataFrame | None = None
+        self._congested_lines: list[TransmissionId] | None = None
+        self._asset_dispatch: pd.DataFrame | None = None
+        self._players_with_no_power_for_ice_cream: list[PlayerId] | None = None
+
+    def set_bus_prices(self, bus_prices: pd.DataFrame) -> None:
+        self._bus_prices = bus_prices
+
+    def set_tx_flows(self, tx_flows: pd.DataFrame) -> None:
+        assert self._congested_lines is None, "Cannot set tx flows after setting congested lines"
+        self._tx_flows = tx_flows
+
+    def set_congested_lines(self, congested_lines: list[TransmissionId]) -> None:
+        self._congested_lines = congested_lines
+
+    def set_asset_dispatch(self, asset_dispatch: pd.DataFrame) -> None:
+        self._asset_dispatch = asset_dispatch
+
+    def set_players_with_unfed_freezers(self, player_ids: list[PlayerId]) -> None:
+        self._players_with_no_power_for_ice_cream = player_ids
+
+    def make(self) -> MarketCouplingResult:
+        random_gen = np.random.default_rng()
+        market_time_units = pd.Index([k for k in range(self.n_timesteps)], name="time")
+
+        # Buses
+        if self._bus_prices is None:
+            bus_columns = pd.Index([b.as_int() for b in self.bus_repo.bus_ids], name="Bus")
+            bus_data = random_gen.random(size=(self.n_timesteps, len(bus_columns)))
+            bus_prices = pd.DataFrame(index=market_time_units, columns=bus_columns, data=bus_data)
+        else:
+            bus_prices = self._bus_prices
+
+        # Transmission
+        if self._tx_flows is None:
+            tx_columns = pd.Index([t.as_int() for t in self.transmission_repo.transmission_ids], name="Line")
+            tx_data = random_gen.random(size=(self.n_timesteps, len(tx_columns)))
+            transmission_flows = pd.DataFrame(index=market_time_units, columns=tx_columns, data=tx_data)
+        else:
+            transmission_flows = self._tx_flows
+        if self._congested_lines is not None:
+            for id in self._congested_lines:
+                transmission_flows.loc[:, id] = self.transmission_repo[id].capacity
+
+        # Assets
+        if self._asset_dispatch is None:
+            asset_columns = pd.Index([a.as_int() for a in self.asset_repo.asset_ids], name="Asset")
+            asset_data = random_gen.random(size=(self.n_timesteps, len(asset_columns))) + 0.1  # Avoid zero dispatch to make testing easier
+            assets_dispatch = pd.DataFrame(index=market_time_units, columns=asset_columns, data=asset_data)
+        else:
+            assets_dispatch = self._asset_dispatch
+
+        players_with_power_for_ice_cream = set(self.player_repo.human_player_ids)
+        if self._players_with_no_power_for_ice_cream is not None:
+            players_with_power_for_ice_cream -= set(self._players_with_no_power_for_ice_cream)
+
+        for player_id in self.player_repo.human_player_ids:
+            freezer = self.asset_repo.get_freezer_for_player(player_id)
+
+            if player_id in players_with_power_for_ice_cream:
+                assets_dispatch.loc[:, freezer.id.as_int()] = freezer.power_expected
+            else:
+                assets_dispatch.loc[:, freezer.id.as_int()] = 0.0
 
         return MarketCouplingResult(
             bus_prices=bus_prices,
@@ -67,7 +143,7 @@ class MarketResultMaker:
 
 class GameStateMaker:
     def __init__(self) -> None:
-        self.game_id: Optional[int] = None
+        self.game_id: Optional[GameId] = None
         self.game_settings: Optional[GameSettings] = None
         self.phase: Optional[Phase] = None
         self.player_repo: Optional[PlayerRepo] = None

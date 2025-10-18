@@ -10,7 +10,7 @@ class LightDc:
     id: int
 
     def to_simple_dict(self) -> SimpleDict:
-        return {k: simplify_type(x=v) for k, v in self.__dict__.items()}
+        return {k: simplify_type(x=self.__getattribute__(k)) for k in self.__dataclass_fields__.keys()}
 
     @classmethod
     def get_keys(cls) -> list[str]:

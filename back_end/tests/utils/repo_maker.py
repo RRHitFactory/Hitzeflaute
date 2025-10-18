@@ -1,15 +1,15 @@
 from abc import abstractmethod
 from itertools import count
-from typing import Self, Literal, Optional, TypeVar
+from typing import Literal, Optional, Self, TypeVar
 
 import numpy as np
 
-from src.models.assets import AssetRepo, AssetInfo, AssetType
+from src.models.assets import AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color
-from src.models.ids import PlayerId, AssetId, BusId, TransmissionId
-from src.models.player import PlayerRepo, Player
-from src.models.transmission import TransmissionRepo, TransmissionInfo
+from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
+from src.models.player import Player, PlayerRepo
+from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.random_choice import random_choice
 
 T_RepoMaker = TypeVar("T_RepoMaker", bound="RepoMaker")
@@ -239,8 +239,12 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         if bus is None:
             bus = self._socket_manager.get_bus_with_free_socket()
 
+        power_expected = 10.0 + float(np.random.rand() * 90)
         if power_std is None:
-            power_std = float(np.random.rand() * 10)
+            if cat == "Freezer":
+                power_std = 0.0
+            else:
+                power_std = float(np.random.rand() * 0.2 * power_expected)
 
         if is_for_sale is None:
             is_for_sale = random_choice([True, False]) if owner is PlayerId.get_npc() else False
@@ -248,6 +252,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         if is_active is None:
             is_active = np.random.rand() > 0.2
 
+        assert cat is not None
         asset_type: AssetType = {
             "Generator": AssetType.GENERATOR,
             "Load": AssetType.LOAD,
@@ -269,7 +274,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             owner_player=owner,
             asset_type=asset_type,
             bus=bus,
-            power_expected=float(np.random.rand() * 100),
+            power_expected=power_expected,
             power_std=power_std,
             is_for_sale=is_for_sale,
             minimum_acquisition_price=float(np.random.rand() * 1000),

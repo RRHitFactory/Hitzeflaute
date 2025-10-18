@@ -9,6 +9,7 @@ from typing import (
 
 import pandas as pd
 
+from src.models.data.light_dc import LightDc
 from src.tools.random_choice import random_choice
 from src.tools.serialization import simplify_type
 from src.tools.typing import T
@@ -17,7 +18,7 @@ type Condition = dict[str, Any] | Callable[[pd.Series], bool]
 type Operator = Literal["or", "and", "not", None]
 
 
-class LdcRepo[T_LightDc](ABC):
+class LdcRepo[T_LightDc: LightDc](ABC):
     # A dataframe-based repo containing an indexed list of light dataclass objects
 
     @classmethod

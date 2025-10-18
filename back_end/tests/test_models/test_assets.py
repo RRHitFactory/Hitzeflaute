@@ -1,7 +1,7 @@
 from unittest import TestCase
 
-from src.models.assets import AssetRepo, AssetType, AssetInfo
-from src.models.ids import BusId, AssetId
+from src.models.assets import AssetInfo, AssetRepo, AssetType
+from src.models.ids import AssetId, BusId
 from src.models.player import PlayerId
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker
 

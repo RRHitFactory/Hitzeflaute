@@ -108,16 +108,16 @@ class Referee:
             ]
 
         asset_repo = gs.assets
-        ice_cream_loads = asset_repo.only_freezers
-        assets_dispatch: dict[AssetId, float] = gs.market_coupling_result.assets_dispatch.loc[0, :].to_dict()
+        freezers = asset_repo.only_freezers
+        assets_dispatch: dict[AssetId, float] = gs.market_coupling_result.assets_dispatch.loc[0, :].to_dict()  # type: ignore
         melted_ids = []
 
-        for load in ice_cream_loads:
-            if load.health == 0:
+        for freezer in freezers:
+            if freezer.health == 0:
                 continue
-            if assets_dispatch[load.id] < load.power_expected:
-                asset_repo = asset_repo.melt_ice_cream(load.id)
-                melted_ids.append(load.id)
+            if assets_dispatch[freezer.id] < (freezer.power_expected - 0.1):  # Allow a small tolerance
+                asset_repo = asset_repo.melt_ice_cream(freezer.id)
+                melted_ids.append(freezer.id)
 
         new_gs = gs.update(assets=asset_repo)
         msgs = generate_melted_ice_cream_messages(new_gs, melted_ids)
@@ -129,7 +129,9 @@ class Referee:
         gs: GameState,
     ) -> tuple[GameState, list[TransmissionWornMessage]]:
         transmission_repo = gs.transmission
-        flows = gs.market_coupling_result.transmission_flows
+        market_coupling_result = gs.market_coupling_result
+        assert market_coupling_result is not None
+        flows = market_coupling_result.transmission_flows
 
         def filter_transmission(tx: TransmissionInfo) -> bool:
             if tx.health == 0:

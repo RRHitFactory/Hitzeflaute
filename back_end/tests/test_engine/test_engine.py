@@ -1,32 +1,31 @@
-from typing import Callable
 from unittest import TestCase
 
 from src.engine.engine import Engine
 from src.models.colors import Color
-from src.models.ids import PlayerId, AssetId, TransmissionId
+from src.models.game_state import GameState, Phase
+from src.models.ids import AssetId, PlayerId, TransmissionId
 from src.models.message import (
-    PlayerToGameMessage,
+    AssetWornMessage,
     BuyRequest,
     BuyResponse,
+    IceCreamMeltedMessage,
     OperateLineRequest,
     OperateLineResponse,
-    IceCreamMeltedMessage,
+    PlayerToGameMessage,
     TransmissionWornMessage,
-    AssetWornMessage,
 )
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
-from src.models.game_state import GameState, Phase
 from tests.utils.comparisons import (
     assert_game_states_are_equal,
     assert_game_states_are_not_equal,
 )
 from tests.utils.game_state_maker import (
-    GameStateMaker,
     AssetRepoMaker,
+    GameStateMaker,
     MarketResultMaker,
 )
-from tests.utils.repo_maker import PlayerRepoMaker, BusRepoMaker, TransmissionRepoMaker
+from tests.utils.repo_maker import BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
 
 
 class DummyMessage(PlayerToGameMessage):
@@ -179,43 +178,31 @@ class TestAssets(TestCase):
         self.assertEqual(response.result, "failure")
         self.assertEqual(game_state.transmission[not_my_line.id].is_open, False)
 
-    def test_apply_rules_after_market_coupling(self):
-        # TODO Fix this test. The market coupling result created in this test is not actually used, a new market
-        # market coupling result is calculated in the market coupling phase based on the random game state.
-        # Either the market coupling calculation should be mocked, or the test should be adjusted to guarantee that
-        # market coupling will result in the desired outcome.
+    def test_post_clearing_book_keeping(self):
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker.make_quick(3)
         buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
-        asset_maker = AssetRepoMaker(bus_repo=buses, players=player_repo)
-        transmission_maker = TransmissionRepoMaker(buses=buses, players=player_repo)
+        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=5)
+        transmission = TransmissionRepoMaker.make_quick(buses=buses, players=player_repo, n=5)
 
-        for _ in range(6):
-            asset_maker.add_asset(cat="Generator", power_std=0)
-        for _ in range(6):
-            transmission_maker.add_transmission(capacity=1)  # Add weak lines to enable congestion
-
-        assets = asset_maker.make()
-        transmission = transmission_maker.make()
         game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).add_transmission_repo(transmission).make()
         market_coupling_result = MarketResultMaker.make_quick(
-            player_repo=game_state.players,
-            bus_repo=game_state.buses,
-            asset_repo=game_state.assets,
-            transmission_repo=game_state.transmission,
+            player_repo=player_repo,
+            bus_repo=buses,
+            asset_repo=assets,
+            transmission_repo=transmission,
             n_random_congested_transmissions=2,
+            n_players_with_no_power_for_ice_cream=1,
         )
-        game_state = game_state.update(Phase.DA_AUCTION, market_coupling_result)
-
-        new_game_state, update_msgs = Engine._process_day_ahead_auction_phase(game_state)
+        new_game_state, update_msgs = Engine._run_post_clearing_book_keeping(game_state=game_state, market_result=market_coupling_result)
         melt_ice_cream_msgs = [msg for msg in update_msgs if isinstance(msg, IceCreamMeltedMessage)]
         wear_transmission_msgs = [msg for msg in update_msgs if isinstance(msg, TransmissionWornMessage)]
         wear_asset_msgs = [msg for msg in update_msgs if isinstance(msg, AssetWornMessage)]
 
         self.assertIsInstance(new_game_state, GameState)
-        self.assertGreater(len(melt_ice_cream_msgs), 0)
-        self.assertGreater(len(wear_transmission_msgs), 0)
+        self.assertEqual(len(melt_ice_cream_msgs), 1)
+        self.assertEqual(len(wear_transmission_msgs), 2)
         self.assertGreater(len(wear_asset_msgs), 0)
 
     def assert_fails_with(self, game_state: GameState, request: BuyRequest, x: str) -> None:
