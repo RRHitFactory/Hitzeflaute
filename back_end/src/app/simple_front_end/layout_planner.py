@@ -69,18 +69,19 @@ class SocketProvider:
         if self.get_n_sockets_free() == 0:
             raise IndexError("No remaining sockets available.")
 
-        if preferred_side is None:
+        if preferred_side is not None:
+            side = preferred_side
+        else:
             if self.get_n_sockets_free("bl") == self.get_n_sockets_free("tr"):
-                preferred_side: SocketSide = random_choice(  # type: ignore
+                side: SocketSide = random_choice(  # type: ignore
                     x=["tr", "bl"], generator=self._random_generator
                 )
             elif self.get_n_sockets_free("bl") < self.get_n_sockets_free("tr"):
-                preferred_side = "tr"
+                side = "tr"
             else:
-                preferred_side = "bl"
+                side = "bl"
 
-        side = preferred_side
-        if self.get_n_sockets_free(preferred_side) == 0:
+        if self.get_n_sockets_free(side) == 0:
             side = self.get_other_side(side)
 
         return self._sockets[side].pop(0)
@@ -132,7 +133,7 @@ class LayoutPlanner:
         def sort_key(x: dict[str, AssetId | TransmissionId | int | bool]) -> float:
             return -1 * x["birthday"] - 0.5 * x["is_line"]
 
-        sorted_ids: list[TransmissionId | AssetId] = [x["id"] for x in sorted(sort_dict, key=sort_key)]
+        sorted_ids: list[TransmissionId | AssetId] = [x["id"] for x in sorted(sort_dict, key=sort_key)]  # type: ignore
 
         socket_providers = {bus.id: SocketProvider(bus=bus, random_generator=random_generator) for bus in bus_repo}
 

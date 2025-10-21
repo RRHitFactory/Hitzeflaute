@@ -1,6 +1,5 @@
-from unittest import TestCase
-
 import numpy as np
+from back_end.tests.base_test import BaseTest
 
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.assets import AssetType
@@ -14,7 +13,7 @@ from tests.utils.repo_maker import (
 )
 
 
-class TestMarketCoupling(TestCase):
+class TestMarketCoupling(BaseTest):
     @staticmethod
     def create_game_state():
         game_maker = GameStateMaker()

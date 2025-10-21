@@ -60,7 +60,7 @@ def simplify_optional_type(
 
 def un_simplify_type(x: Primitive, t: type[T]) -> T:
     if issubclass(t, Stringable):
-        return t.from_string(x)
+        return t.from_string(str(x))
     if t in primitives:
         return t(x)
     if issubclass(t, Enum):

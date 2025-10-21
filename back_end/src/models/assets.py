@@ -117,9 +117,9 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return self.update_frame(df)
 
     def _decrease_health(self, asset_id: AssetId) -> "AssetRepo":
-        if self.df.loc[asset_id, "health"] > 1:
+        if self.df.loc[asset_id, "health"] > 1:  # type: ignore
             df = self.df.copy()
-            df.loc[asset_id, "health"] -= 1
+            df.loc[asset_id, "health"] -= 1  # type: ignore
             return self.update_frame(df)
         else:
             df = self.df.copy()

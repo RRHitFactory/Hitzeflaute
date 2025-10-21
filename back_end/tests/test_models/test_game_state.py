@@ -1,12 +1,12 @@
-from unittest import TestCase
+from back_end.tests.base_test import BaseTest
 
 from src.models.game_state import GameState
-from src.tools.serialization import serialize, deserialize
+from src.tools.serialization import deserialize, serialize
 from tests.utils.comparisons import assert_game_states_are_equal
 from tests.utils.game_state_maker import GameStateMaker
 
 
-class TestGameState(TestCase):
+class TestGameState(BaseTest):
     def test_make_random_game_state(self) -> None:
         GameStateMaker().make()
 

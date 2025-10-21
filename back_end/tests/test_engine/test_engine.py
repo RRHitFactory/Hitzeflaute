@@ -1,4 +1,4 @@
-from unittest import TestCase
+from back_end.tests.base_test import BaseTest
 
 from src.engine.engine import Engine
 from src.models.colors import Color
@@ -32,7 +32,7 @@ class DummyMessage(PlayerToGameMessage):
     pass
 
 
-class TestAssets(TestCase):
+class TestAssets(BaseTest):
     def test_bad_message(self) -> None:
         game_state = GameStateMaker().make()
         dumb_message = DummyMessage(player_id=PlayerId(5))
@@ -64,7 +64,7 @@ class TestAssets(TestCase):
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
         self.assertEqual(len(messages), 1)
         success_msg = messages[0]
-        self.assertIsInstance(success_msg, BuyResponse)
+        success_msg = self.assertIsInstance(success_msg, BuyResponse)
         self.assertTrue(success_msg.success)
         assert_game_states_are_not_equal(game_state1=game_state, game_state2=result_game_state)
 
@@ -97,7 +97,7 @@ class TestAssets(TestCase):
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
         self.assertEqual(len(messages), 1)
         success_msg = messages[0]
-        self.assertIsInstance(success_msg, BuyResponse)
+        success_msg = self.assertIsInstance(success_msg, BuyResponse)
         self.assertTrue(success_msg.success)
         assert_game_states_are_not_equal(game_state1=game_state, game_state2=result_game_state)
 
@@ -136,8 +136,7 @@ class TestAssets(TestCase):
 
         self.assertEqual(len(responses), 1)
         response = responses[0]
-        self.assertIsInstance(response, OperateLineResponse)
-        print(response)
+        response = self.assertIsInstance(response, OperateLineResponse)
         self.assertEqual(response.result, "success")
         self.assertEqual(game_state.transmission[my_line.id].is_open, True)
 
@@ -146,7 +145,7 @@ class TestAssets(TestCase):
 
         self.assertEqual(len(responses), 1)
         response = responses[0]
-        self.assertIsInstance(response, OperateLineResponse)
+        response = self.assertIsInstance(response, OperateLineResponse)
         self.assertEqual(response.result, "no_change")
         self.assertEqual(game_state.transmission[my_line.id].is_open, True)
 
@@ -156,7 +155,7 @@ class TestAssets(TestCase):
 
         self.assertEqual(len(responses), 1)
         response = responses[0]
-        self.assertIsInstance(response, OperateLineResponse)
+        response = self.assertIsInstance(response, OperateLineResponse)
         self.assertEqual(response.result, "success")
         self.assertEqual(game_state.transmission[my_line.id].is_open, False)
 
@@ -165,7 +164,7 @@ class TestAssets(TestCase):
 
         self.assertEqual(len(responses), 1)
         response = responses[0]
-        self.assertIsInstance(response, OperateLineResponse)
+        response = self.assertIsInstance(response, OperateLineResponse)
         self.assertEqual(response.result, "no_change")
         self.assertEqual(game_state.transmission[my_line.id].is_open, False)
 
@@ -174,7 +173,7 @@ class TestAssets(TestCase):
         game_state, responses = Engine.handle_message(game_state=game_state, msg=not_my_open_request)
         self.assertEqual(len(responses), 1)
         response = responses[0]
-        self.assertIsInstance(response, OperateLineResponse)
+        response = self.assertIsInstance(response, OperateLineResponse)
         self.assertEqual(response.result, "failure")
         self.assertEqual(game_state.transmission[not_my_line.id].is_open, False)
 
@@ -209,7 +208,7 @@ class TestAssets(TestCase):
         new_game_state, msgs = Engine.handle_message(game_state=game_state, msg=request)
         self.assertEqual(len(msgs), 1)
         message = msgs[0]
-        self.assertIsInstance(message, BuyResponse)
+        message = self.assertIsInstance(message, BuyResponse)
         self.assertFalse(message.success)
         self.assertTrue(x in message.message.lower())
         assert_game_states_are_equal(game_state1=game_state, game_state2=new_game_state)

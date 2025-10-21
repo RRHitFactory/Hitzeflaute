@@ -1,9 +1,9 @@
-from unittest import TestCase
+from back_end.tests.base_test import BaseTest
 
 from src.models.colors import Color
 
 
-class TestColors(TestCase):
+class TestColors(BaseTest):
     def test_making_colours(self) -> None:
         red = Color("red")
         self.assertEqual(red.rgb_hex_str, "#FF0000")

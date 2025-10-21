@@ -29,7 +29,7 @@ class Phase(IntEnum):
     def nice_name(self) -> str:
         return self.name.replace("_", " ").lower()
 
-    def get_next(self) -> Self:
+    def get_next(self) -> "Phase":
         next_index = (self.value + 1) % len(Phase)
         return Phase(next_index)
 

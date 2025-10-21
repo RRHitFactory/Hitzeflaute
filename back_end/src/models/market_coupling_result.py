@@ -1,4 +1,4 @@
-from typing import Self
+from typing import Self, cast
 
 import pandas as pd
 
@@ -79,15 +79,16 @@ class MarketCouplingResult:
         """
         return self._assets_dispatch.copy()
 
-    def to_simple_dict(self) -> SimpleDict:
-        return {
+    def to_simple_dict(self) -> dict[str, SimpleDict]:
+        simple_dict = {
             "bus_prices": self._bus_prices.to_dict(),
             "transmission_flows": self._transmission_flows.to_dict(),
             "assets_dispatch": self._assets_dispatch.to_dict(),
         }
+        return cast(dict[str, SimpleDict], simple_dict)
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
+    def from_simple_dict(cls, simple_dict: dict[str, SimpleDict]) -> Self:
         def get_one(key: str, column_index_name: str) -> pd.DataFrame:
             df = pd.DataFrame.from_dict(simple_dict[key])
             df.index.name = "time"

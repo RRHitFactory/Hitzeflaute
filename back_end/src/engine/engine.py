@@ -1,10 +1,10 @@
-from typing import Literal
+from typing import Literal, cast
 
 from src.engine.finance import FinanceCalculator
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.engine.referee import Referee
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, TransmissionId
+from src.models.ids import AssetId, Round, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
     AuctionClearedMessage,
@@ -12,8 +12,7 @@ from src.models.message import (
     BuyResponse,
     ConcludePhase,
     EndTurn,
-    FromGameMessage,
-    GameToPlayerMessage,
+    Message,
     OperateLineRequest,
     OperateLineResponse,
     T_Id,
@@ -25,7 +24,7 @@ from src.models.message import (
 
 class Engine:
     @classmethod
-    def handle_message(cls, game_state: GameState, msg: ToGameMessage) -> tuple[GameState, list[FromGameMessage]]:
+    def handle_message(cls, game_state: GameState, msg: ToGameMessage) -> tuple[GameState, list[Message]]:
         """
         Messages can come from players or from the game itself
         Every time a message occurs, the engine is informed and it can then:
@@ -59,7 +58,7 @@ class Engine:
         cls,
         game_state: GameState,
         msg: ConcludePhase,
-    ) -> tuple[GameState, list[GameToPlayerMessage]]:
+    ) -> tuple[GameState, list[Message]]:
         if msg.new_phase == Phase.DA_AUCTION:
             new_game_state, msgs = cls._process_day_ahead_auction_phase(game_state)
         else:
@@ -68,7 +67,7 @@ class Engine:
         new_game_state = new_game_state.update(
             phase=msg.new_phase,
             players=new_game_state.players.start_all_turns(),
-            round=new_game_state.round + 1 if new_game_state.phase.get_next().value == 0 else new_game_state.round,
+            round=Round(new_game_state.round + 1) if new_game_state.phase.get_next().value == 0 else new_game_state.round,
         )
         return new_game_state, msgs
 
@@ -77,7 +76,7 @@ class Engine:
         cls,
         game_state: GameState,
         msg: UpdateBidRequest,
-    ) -> tuple[GameState, list[UpdateBidResponse]]:
+    ) -> tuple[GameState, list[Message]]:
         if game_state.phase != Phase.BIDDING:
             response = msg.make_response(
                 success=False,
@@ -87,7 +86,7 @@ class Engine:
 
         list_failed_response = cls._validate_update_bid(gs=game_state, msg=msg)
         if list_failed_response:
-            return game_state, list_failed_response
+            return game_state, cast(list[Message], list_failed_response)
 
         new_assets = game_state.assets.update_bid_price(asset_id=msg.asset_id, bid_price=msg.bid_price)
         new_game_state = game_state.update(assets=new_assets)
@@ -106,7 +105,7 @@ class Engine:
         cls,
         game_state: GameState,
         msg: BuyRequest[AssetId],
-    ) -> tuple[GameState, list[BuyResponse[AssetId]]]:
+    ) -> tuple[GameState, list[Message]]:
         if game_state.phase != Phase.CONSTRUCTION:
             response = msg.make_response(
                 success=False,
@@ -116,7 +115,7 @@ class Engine:
 
         list_failed_response = Referee.validate_purchase(gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id)
         if list_failed_response:
-            return game_state, list_failed_response
+            return game_state, cast(list[Message], list_failed_response)
 
         asset = game_state.assets[msg.purchase_id]
 
@@ -134,7 +133,7 @@ class Engine:
         cls,
         game_state: GameState,
         msg: BuyRequest[TransmissionId],
-    ) -> tuple[GameState, list[BuyResponse[TransmissionId]]]:
+    ) -> tuple[GameState, list[Message]]:
         if game_state.phase != Phase.CONSTRUCTION:
             response = msg.make_response(
                 success=False,
@@ -144,7 +143,7 @@ class Engine:
 
         list_failed_response = Referee.validate_purchase(gs=game_state, player_id=msg.player_id, purchase_id=msg.purchase_id)
         if list_failed_response:
-            return game_state, list_failed_response
+            return game_state, cast(list[Message], list_failed_response)
 
         transmission = game_state.transmission[msg.purchase_id]
 
@@ -163,12 +162,12 @@ class Engine:
         cls,
         game_state: GameState,
         msg: OperateLineRequest,
-    ) -> tuple[GameState, list[OperateLineResponse]]:
+    ) -> tuple[GameState, list[Message]]:
         def make_response(
             result: Literal["success", "no_change", "failure"],
             text: str,
             new_game_state: GameState | None = None,
-        ) -> tuple[GameState, list[OperateLineResponse]]:
+        ) -> tuple[GameState, list[Message]]:
             if new_game_state is None:
                 new_game_state = game_state
             response = OperateLineResponse(player_id=msg.player_id, request=msg, result=result, message=text)
@@ -214,7 +213,7 @@ class Engine:
         cls,
         game_state: GameState,
         msg: EndTurn,
-    ) -> tuple[GameState, list[ConcludePhase]]:
+    ) -> tuple[GameState, list[Message]]:
         # TODO If this phase requires players to play one by one (Do we need such a phase?) Then cycle to the next player
         game_state = game_state.update(players=game_state.players.end_turn(player_id=msg.player_id))
         if game_state.players.are_all_players_finished():
@@ -223,7 +222,7 @@ class Engine:
             return game_state, []
 
     @classmethod
-    def _process_day_ahead_auction_phase(cls, game_state: GameState) -> tuple[GameState, list[GameToPlayerMessage]]:
+    def _process_day_ahead_auction_phase(cls, game_state: GameState) -> tuple[GameState, list[Message]]:
         new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
 
         market_result = MarketCouplingCalculator.run(game_state=new_game_state)
@@ -233,7 +232,7 @@ class Engine:
         return new_game_state, msgs_load_deactivation + new_msgs
 
     @classmethod
-    def _run_post_clearing_book_keeping(cls, game_state: GameState, market_result: MarketCouplingResult) -> tuple[GameState, list[GameToPlayerMessage]]:
+    def _run_post_clearing_book_keeping(cls, game_state: GameState, market_result: MarketCouplingResult) -> tuple[GameState, list[Message]]:
         game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(game_state=game_state, market_coupling_result=market_result)
         game_state, ice_cream_msgs = Referee.melt_ice_creams(game_state)
         game_state, transmission_msgs = Referee.wear_congested_transmission(game_state)
@@ -243,7 +242,7 @@ class Engine:
 
         msgs = msgs_auction_cashflows + ice_cream_msgs + transmission_msgs + asset_msgs + eliminated_player_msgs + game_over_msg
 
-        return game_state, msgs
+        return game_state, msgs  # type: ignore
 
     @staticmethod
     def _update_game_state_with_market_coupling_result(
@@ -315,8 +314,8 @@ class Engine:
         return []
 
     @classmethod
-    def _validate_update_bid(cls, gs: GameState, msg: UpdateBidRequest) -> list[UpdateBidResponse]:
-        def make_failed_response(failed_message: str) -> list[UpdateBidResponse]:
+    def _validate_update_bid(cls, gs: GameState, msg: UpdateBidRequest) -> list[Message]:
+        def make_failed_response(failed_message: str) -> list[Message]:
             failed_response = UpdateBidResponse(
                 player_id=msg.player_id,
                 success=False,

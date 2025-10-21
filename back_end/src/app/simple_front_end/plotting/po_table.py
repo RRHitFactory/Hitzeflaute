@@ -22,7 +22,7 @@ def make_table(values: pd.DataFrame, colors: pd.DataFrame, rect: Shape) -> list[
             y_min = float(y_points[i])
             y_max = float(y_points[i + 1])
             value = str(values.iloc[i, j])
-            color = Color.from_string(colors.iloc[i, j])
+            color = Color.from_string(str(colors.iloc[i, j]))
 
             shape = Shape.make_rectangle(
                 bottom_left=Point(x=x_min, y=y_min),

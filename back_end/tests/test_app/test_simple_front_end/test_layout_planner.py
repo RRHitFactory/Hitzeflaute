@@ -1,14 +1,14 @@
-from unittest import TestCase
+from back_end.tests.base_test import BaseTest
 
 from src.app.simple_front_end.layout_planner import LayoutPlanner, Socket
 from src.models.ids import AssetId, TransmissionId
 from tests.utils.game_state_maker import GameStateMaker
 
+type Plan = tuple[dict[AssetId, Socket], dict[TransmissionId, tuple[Socket, Socket]]]
 
-class TestLayoutPlanner(TestCase):
+
+class TestLayoutPlanner(BaseTest):
     def test_sockets_are_deterministic(self) -> None:
-        Plan = tuple[dict[AssetId, Socket], dict[TransmissionId, tuple[Socket, Socket]]]
-
         game_state = GameStateMaker().make()
         func = LayoutPlanner.get_sockets_for_assets_and_transmission
         plans: list[Plan] = [func(game_state=game_state) for _ in range(5)]

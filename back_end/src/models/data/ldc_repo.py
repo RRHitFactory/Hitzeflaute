@@ -4,6 +4,7 @@ from typing import (
     Any,
     Literal,
     TypeVar,
+    cast,
     overload,
 )
 
@@ -11,8 +12,7 @@ import pandas as pd
 
 from src.models.data.light_dc import LightDc
 from src.tools.random_choice import random_choice
-from src.tools.serialization import simplify_type
-from src.tools.typing import T
+from src.tools.serialization import SimpleDict, simplify_type
 
 type Condition = dict[str, Any] | Callable[[pd.Series], bool]
 type Operator = Literal["or", "and", "not", None]
@@ -48,10 +48,10 @@ class LdcRepo[T_LightDc: LightDc](ABC):
         self._df = df
 
     @overload
-    def __getitem__(self, index: int) -> T_LightDc: ...
+    def __getitem__(self, x: int) -> T_LightDc: ...
 
     @overload
-    def __getitem__(self, index: str) -> pd.Series: ...
+    def __getitem__(self, x: str) -> pd.Series: ...
 
     def __getitem__(self, x: int | str) -> T_LightDc | pd.Series:
         if isinstance(x, str):
@@ -61,7 +61,7 @@ class LdcRepo[T_LightDc: LightDc](ABC):
         if simple_x not in self._df.index:
             raise KeyError(f"Element with id {x} not found in {self.__class__.__name__}")
         row = self.df.loc[simple_x]
-        return self._get_dc_type().from_simple_dict({**row.to_dict(), "id": x})
+        return self._get_dc_type().from_simple_dict(cast(SimpleDict, {**row.to_dict(), "id": x}))
 
     def __iter__(self) -> Iterator[T_LightDc]:
         for dc_id in self._df.index:
@@ -73,7 +73,7 @@ class LdcRepo[T_LightDc: LightDc](ABC):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}:\n{repr(self._df)}"
 
-    def __add__(self: T, other: T | T_LightDc) -> T:
+    def __add__(self: "T_LdcRepo", other: "T_LdcRepo" | T_LightDc) -> "T_LdcRepo":
         if isinstance(other, self.__class__):
             return self.__class__(pd.concat([self.df, other.df], axis=0))
         elif isinstance(other, self._get_dc_type()):
@@ -85,7 +85,7 @@ class LdcRepo[T_LightDc: LightDc](ABC):
     def __len__(self) -> int:
         return len(self._df)
 
-    def __eq__(self: T, other: T) -> bool:
+    def __eq__(self: "T_LdcRepo", other: "T_LdcRepo") -> bool:
         if not isinstance(other, self.__class__):
             return False
         return self.df.equals(other.df)
@@ -100,14 +100,14 @@ class LdcRepo[T_LightDc: LightDc](ABC):
     def get_random(self) -> T_LightDc:
         if len(self) == 0:
             raise ValueError("Cannot get a random item from an empty repo")
-        random_index = random_choice(self.df.index)
+        random_index: int = random_choice(self.df.index.tolist(), generator=None)
         return self[random_index]
 
     # UPDATE
-    def add(self: T, x: T | T_LightDc) -> T:
+    def add(self: "T_LdcRepo", x: "T_LdcRepo" | T_LightDc) -> "T_LdcRepo":
         return self + x
 
-    def update_frame(self: T, df: pd.DataFrame) -> T:
+    def update_frame(self: "T_LdcRepo", df: pd.DataFrame) -> "T_LdcRepo":
         return self.from_frame(df)
 
     @property
@@ -165,11 +165,11 @@ class LdcRepo[T_LightDc: LightDc](ABC):
             raise ValueError(f"Invalid operator {operator}")
 
     def _filter(
-        self: T,
+        self: "T_LdcRepo",
         condition: Condition,
         operator: Operator = None,
         condition_2: Condition | None = None,
-    ) -> T:
+    ) -> "T_LdcRepo":
         """
         Returns a copy of the repo filtered using the given condition
         :return: The filtered LdcFrame
@@ -179,11 +179,11 @@ class LdcRepo[T_LightDc: LightDc](ABC):
         return self.__class__(filtered_df)
 
     def drop_items(
-        self: T,
+        self: "T_LdcRepo",
         condition: Condition,
         operator: Operator = None,
         condition_2: Condition | None = None,
-    ) -> T:
+    ) -> "T_LdcRepo":
         """
         Returns a copy of the repo with elements deleted using the given condition
         :return: A new version of the LdcFrame with the items dropped
@@ -192,14 +192,14 @@ class LdcRepo[T_LightDc: LightDc](ABC):
         index = logical_indexer.loc[logical_indexer].index
         return self.from_frame(self.df.drop(index, axis=0))
 
-    def drop_by_ids(self: T, ids: Iterable[int]) -> T:
+    def drop_by_ids(self: "T_LdcRepo", ids: Iterable[int]) -> "T_LdcRepo":
         """
         :return: A copy of the repo with the elements with the given ids deleted
         """
         simple_ids = [simplify_type(x) for x in ids]
         return self.from_frame(self.df.drop(simple_ids, axis=0))
 
-    def drop_one(self: T, item: int) -> T:
+    def drop_one(self: "T_LdcRepo", item: int) -> "T_LdcRepo":
         return self.drop_by_ids([item])
 
     def as_objs(self) -> list[T_LightDc]:
@@ -213,14 +213,14 @@ class LdcRepo[T_LightDc: LightDc](ABC):
         }
 
     @classmethod
-    def from_simple_dict(cls: type[T], data: dict) -> T:
+    def from_simple_dict(cls: type["T_LdcRepo"], data: dict) -> "T_LdcRepo":
         # Creates a frame from a dict representation
         assert data["class"] == cls.__name__, f"Class mismatch: {data['class']} != {cls.__name__}"
         dcs = [cls._get_dc_type().from_simple_dict(dc) for dc in data["data"]]
         return cls(dcs)
 
     @classmethod
-    def from_frame(cls: type[T], df: pd.DataFrame) -> T:
+    def from_frame(cls: type["T_LdcRepo"], df: pd.DataFrame) -> "T_LdcRepo":
         return cls(df)
 
 

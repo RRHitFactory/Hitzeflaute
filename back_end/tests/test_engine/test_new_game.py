@@ -1,15 +1,15 @@
-from unittest import TestCase
+from back_end.tests.base_test import BaseTest
 
 from src.engine.new_game import DefaultGameInitializer
-from src.models.assets import AssetRepo, AssetInfo
-from src.models.buses import BusRepo, Bus
+from src.models.assets import AssetInfo, AssetRepo
+from src.models.buses import Bus, BusRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
 from src.models.ids import GameId, PlayerId
 from src.models.transmission import TransmissionRepo
 
 
-class TestDefaultGameInitializer(TestCase):
+class TestDefaultGameInitializer(BaseTest):
     def setUp(self) -> None:
         self.game_id = GameId(1)
         self.player_names = ["Alice", "Bob", "Charlie"]

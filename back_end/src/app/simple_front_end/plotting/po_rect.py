@@ -18,7 +18,7 @@ def render_shape(
     if not shape.is_closed:
         shape = shape.close()
 
-    points = [p for p in shape]
+    points = [p for p in shape.points]
 
     text = None
     if centre_text is not None:
@@ -68,7 +68,7 @@ class ShapePlotObject(PlotObject):
             raise TypeError(f"Expected 'shape' to be of type 'Shape', got {type(self.shape)}")
 
     @property
-    def color(self) -> Color:
+    def color(self) -> Color | None:
         return self.fill_color
 
     @property

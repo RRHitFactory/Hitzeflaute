@@ -21,7 +21,7 @@ from src.tools.money import format_money
 
 
 class GridPlotter:
-    def __init__(self, html_path: Path = None) -> None:
+    def __init__(self, html_path: Path | None = None) -> None:
         if html_path is None:
             html_path = game_cache_dir / "plot.html"
         self._html_path = html_path
@@ -106,7 +106,7 @@ class GridPlotter:
         player_table = cls.make_player_table(game_state=game_state)
         top_table = cls.make_top_table(game_state=game_state)
 
-        return player_table + top_table + [playable_map] + buses + txs + assets
+        return player_table + top_table + [playable_map] + buses + txs + assets  # type: ignore
 
     @classmethod
     def make_top_table(cls, game_state: GameState) -> list[ShapePlotObject]:

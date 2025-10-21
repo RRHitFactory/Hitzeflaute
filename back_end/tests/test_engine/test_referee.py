@@ -1,4 +1,4 @@
-from unittest import TestCase
+from back_end.tests.base_test import BaseTest
 
 from src.engine.referee import Referee
 from src.models.game_state import GameState, Phase
@@ -9,7 +9,7 @@ from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 
 
-class TestReferee(TestCase):
+class TestReferee(BaseTest):
     @staticmethod
     def create_game_state_and_market_coupling_result(n_melted: int = 0) -> tuple[GameState, MarketCouplingResult]:
         game_maker = GameStateMaker()

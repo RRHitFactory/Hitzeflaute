@@ -1,4 +1,5 @@
-from unittest import TestCase
+from back_end.src.models.ids import AssetId
+from back_end.tests.base_test import BaseTest
 
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
@@ -7,7 +8,7 @@ from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 
 
-class TestFinanceCalculator(TestCase):
+class TestFinanceCalculator(BaseTest):
     @staticmethod
     def create_game_state_and_market_coupling_result() -> tuple[GameState, MarketCouplingResult]:
         game_maker = GameStateMaker()
@@ -32,7 +33,7 @@ class TestFinanceCalculator(TestCase):
 
     def test_compute_assets_cashflow(self):
         game_state, market_coupling_result = self.create_game_state_and_market_coupling_result()
-        assets_dispatch = market_coupling_result.assets_dispatch.loc[0].to_dict()
+        assets_dispatch: dict[AssetId, float] = market_coupling_result.assets_dispatch.loc[0].to_dict()  # type: ignore
         bus_prices = market_coupling_result.bus_prices.loc[0].to_dict()
 
         asset_repo = game_state.assets

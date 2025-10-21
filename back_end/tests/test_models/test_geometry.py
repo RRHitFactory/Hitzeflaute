@@ -1,9 +1,9 @@
-from unittest import TestCase
+from back_end.tests.base_test import BaseTest
 
 from src.models.geometry import Point, Shape
 
 
-class TestGeometry(TestCase):
+class TestGeometry(BaseTest):
     def test_point(self) -> None:
         point = Point(x=3.0, y=4.0)
         self.assertEqual(point, Point(x=3.0, y=4.0))

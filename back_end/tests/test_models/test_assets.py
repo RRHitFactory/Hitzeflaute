@@ -1,4 +1,4 @@
-from unittest import TestCase
+from back_end.tests.base_test import BaseTest
 
 from src.models.assets import AssetInfo, AssetRepo, AssetType
 from src.models.ids import AssetId, BusId
@@ -6,7 +6,7 @@ from src.models.player import PlayerId
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker
 
 
-class TestAssets(TestCase):
+class TestAssets(BaseTest):
     def test_make_repo(self) -> None:
         repo = AssetRepoMaker.make_quick()
         self.assertIsInstance(repo, AssetRepo)
