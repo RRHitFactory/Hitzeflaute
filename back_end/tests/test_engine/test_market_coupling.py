@@ -1,8 +1,8 @@
 import numpy as np
-from back_end.tests.base_test import BaseTest
 
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.assets import AssetType
+from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker
 from tests.utils.infeasibility_catcher import infeasibility_catcher
 from tests.utils.repo_maker import (

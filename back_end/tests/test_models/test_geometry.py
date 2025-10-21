@@ -1,6 +1,5 @@
-from back_end.tests.base_test import BaseTest
-
 from src.models.geometry import Point, Shape
+from tests.base_test import BaseTest
 
 
 class TestGeometry(BaseTest):

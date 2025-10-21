@@ -1,10 +1,9 @@
-from back_end.tests.base_test import BaseTest
-
 from src.engine.referee import Referee
 from src.models.game_state import GameState, Phase
 from src.models.ids import PlayerId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import IceCreamMeltedMessage
+from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 

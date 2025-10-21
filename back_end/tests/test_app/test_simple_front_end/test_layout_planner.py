@@ -1,7 +1,6 @@
-from back_end.tests.base_test import BaseTest
-
 from src.app.simple_front_end.layout_planner import LayoutPlanner, Socket
 from src.models.ids import AssetId, TransmissionId
+from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker
 
 type Plan = tuple[dict[AssetId, Socket], dict[TransmissionId, tuple[Socket, Socket]]]

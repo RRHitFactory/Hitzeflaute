@@ -1,6 +1,5 @@
-from back_end.tests.base_test import BaseTest
-
 from src.models.colors import Color
+from tests.base_test import BaseTest
 
 
 class TestColors(BaseTest):

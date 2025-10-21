@@ -1,9 +1,8 @@
-from back_end.src.models.ids import AssetId
-from back_end.tests.base_test import BaseTest
-
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
+from src.models.ids import AssetId
 from src.models.market_coupling_result import MarketCouplingResult
+from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
 

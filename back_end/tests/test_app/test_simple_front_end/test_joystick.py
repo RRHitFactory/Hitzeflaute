@@ -1,6 +1,5 @@
-from back_end.tests.base_test import BaseTest
-
 from src.app.simple_front_end.joystick import Joystick
+from tests.base_test import BaseTest
 
 
 class TestJoystick(BaseTest):

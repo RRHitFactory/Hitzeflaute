@@ -1,6 +1,5 @@
-from back_end.tests.base_test import BaseTest
-
 from src.app.simple_front_end.plotting.grid_plotter import GridPlotter
+from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker
 from tests.utils.repo_maker import BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
 

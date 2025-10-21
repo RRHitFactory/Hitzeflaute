@@ -1,5 +1,3 @@
-from back_end.tests.base_test import BaseTest
-
 from src.engine.engine import Engine
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
@@ -16,6 +14,7 @@ from src.models.message import (
 )
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
+from tests.base_test import BaseTest
 from tests.utils.comparisons import (
     assert_game_states_are_equal,
     assert_game_states_are_not_equal,
