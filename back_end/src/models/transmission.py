@@ -72,32 +72,26 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         return self._filter({"bus1": min_bus, "bus2": max_bus, **oa_filter})
 
     # UPDATE
-    def open_line(self, transmission_id: TransmissionId) -> Self:
-        df = self.df
+    @LdcRepo.update
+    def open_line(self, df: LdcRepo.df, transmission_id: TransmissionId) -> Self:
         df.loc[transmission_id, "is_active"] = False
-        return self.update_frame(df)
 
-    def close_line(self, transmission_id: TransmissionId) -> Self:
-        df = self.df
+    @LdcRepo.update
+    def close_line(self, df: LdcRepo.df, transmission_id: TransmissionId) -> Self:
         df.loc[transmission_id, "is_active"] = True
-        return self.update_frame(df)
 
-    def change_owner(self, transmission_id: TransmissionId, new_owner: PlayerId) -> Self:
-        df = self.df.copy()
+    @LdcRepo.update
+    def change_owner(self, df: LdcRepo.df, transmission_id: TransmissionId, new_owner: PlayerId) -> Self:
         df.loc[transmission_id, "owner_player"] = simplify_type(new_owner)
         df.loc[transmission_id, "is_for_sale"] = False
-        return self.update_frame(df)
 
-    def wear_transmission(self, transmission_id: TransmissionId) -> Self:
-        if self.df.loc[transmission_id, "health"] > 1:
-            df = self.df.copy()
+    @LdcRepo.update
+    def wear_transmission(self, df: LdcRepo.df, transmission_id: TransmissionId) -> Self:
+        if df.loc[transmission_id, "health"] > 1:
             df.loc[transmission_id, "health"] -= 1
-            return self.update_frame(df)
         else:
-            df = self.df.copy()
             df.loc[transmission_id, "health"] = 0
             df.loc[transmission_id, "is_active"] = False
-            return self.update_frame(df)
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:

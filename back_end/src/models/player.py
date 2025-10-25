@@ -65,10 +65,9 @@ class PlayerRepo(LdcRepo[Player]):
         return len(self.get_currently_playing()) == 0
 
     # UPDATE
-    def _adjust_money(self, player_id: PlayerId, func: Callable[[float], float]) -> Self:
-        df = self.df.copy()
+    @LdcRepo.update
+    def _adjust_money(self, df: LdcRepo.df, player_id: PlayerId, func: Callable[[float], float]) -> Self:
         df.loc[player_id, "money"] = func(df.loc[player_id, "money"])
-        return self.update_frame(df)
 
     def add_money(self, player_id: PlayerId, amount: float) -> Self:
         return self._adjust_money(player_id, lambda x: x + amount)
@@ -79,10 +78,9 @@ class PlayerRepo(LdcRepo[Player]):
     def transfer_money(self, from_player: PlayerId, to_player: PlayerId, amount: float) -> Self:
         return self.add_money(to_player, amount).subtract_money(from_player, amount)
 
-    def _set_turn(self, player_id: PlayerId | list[PlayerId], is_having_turn: bool) -> Self:
-        df = self.df.copy()
+    @LdcRepo.update
+    def _set_turn(self, df: LdcRepo.df, player_id: PlayerId | list[PlayerId], is_having_turn: bool) -> Self:
         df.loc[player_id, "is_having_turn"] = is_having_turn
-        return self.update_frame(df)
 
     def end_turn(self, player_id: PlayerId | list[PlayerId]) -> Self:
         return self._set_turn(player_id, False)
@@ -93,10 +91,9 @@ class PlayerRepo(LdcRepo[Player]):
     def start_all_turns(self) -> Self:
         return self._set_turn(self.human_player_ids, True)
 
-    def eliminate_player(self, player_id: PlayerId) -> Self:
-        df = self.df.copy()
+    @LdcRepo.update
+    def eliminate_player(self, df: LdcRepo.df, player_id: PlayerId) -> Self:
         df.loc[player_id, "still_alive"] = False
-        return self.update_frame(df)
 
     # DELETE
     def delete_player(self, player_id: PlayerId) -> Self:

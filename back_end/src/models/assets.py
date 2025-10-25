@@ -105,27 +105,22 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return freezers.df.health.sum()
 
     # UPDATE
-    def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> "AssetRepo":
-        df = self.df.copy()
+    @LdcRepo.update
+    def change_owner(self, df: LdcRepo.df, asset_id: AssetId, new_owner: PlayerId) -> "AssetRepo":
         df.loc[asset_id, "owner_player"] = simplify_type(new_owner)
         df.loc[asset_id, "is_for_sale"] = False
-        return self.update_frame(df)
 
-    def update_bid_price(self, asset_id: AssetId, bid_price: float) -> "AssetRepo":
-        df = self.df.copy()
+    @LdcRepo.update
+    def update_bid_price(self, df: LdcRepo.df, asset_id: AssetId, bid_price: float) -> "AssetRepo":
         df.loc[asset_id, "bid_price"] = bid_price
-        return self.update_frame(df)
 
-    def _decrease_health(self, asset_id: AssetId) -> "AssetRepo":
-        if self.df.loc[asset_id, "health"] > 1:  # type: ignore
-            df = self.df.copy()
+    @LdcRepo.update
+    def _decrease_health(self, df: LdcRepo.df, asset_id: AssetId) -> "AssetRepo":
+        if df.loc[asset_id, "health"] > 1:  # type: ignore
             df.loc[asset_id, "health"] -= 1  # type: ignore
-            return self.update_frame(df)
         else:
-            df = self.df.copy()
             df.loc[asset_id, "health"] = 0
             df.loc[asset_id, "is_active"] = False
-            return self.update_frame(df)
 
     def melt_ice_cream(self, asset_id: AssetId) -> "AssetRepo":
         assert self.df.loc[asset_id, "is_freezer"], "Only freezer assets can melt ice cream"
@@ -135,10 +130,9 @@ class AssetRepo(LdcRepo[AssetInfo]):
         assert not self.df.loc[asset_id, "is_freezer"], "Only non-freezer assets can wear out"
         return self._decrease_health(asset_id)
 
-    def batch_deactivate(self, asset_ids: list[AssetId]) -> "AssetRepo":
-        df = self.df.copy()
+    @LdcRepo.update
+    def batch_deactivate(self, df: LdcRepo.df, asset_ids: list[AssetId]) -> "AssetRepo":
         df.loc[asset_ids, "is_active"] = False
-        return self.update_frame(df)
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> "AssetRepo":
