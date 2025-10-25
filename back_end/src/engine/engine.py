@@ -43,6 +43,8 @@ class Engine:
             return cls.handle_update_bid_message(game_state=game_state, msg=msg)
         elif isinstance(msg, OperateLineRequest):
             return cls.handle_operate_line_message(game_state, msg)
+        elif isinstance(msg, OperateAssetRequest):
+            return cls.handle_operate_asset_message(game_state, msg)
         elif isinstance(msg, BuyRequest):
             if isinstance(msg.purchase_id, AssetId):
                 return cls.handle_buy_asset_message(game_state, msg)
@@ -243,21 +245,25 @@ class Engine:
             if not asset.is_active:
                 return make_response(result="no_change", text="Asset is already off.")
             else:
-                new_state = game_state.update(transmission=game_state.assets.open_line(line.id))
+                new_state = game_state.update(assets=game_state.assets.deactivate(asset.id))
                 return make_response(
                     result="success",
-                    text="Transmission line opened successfully.",
+                    text="Asset successfully deactivated.",
                     new_game_state=new_state,
                 )
 
-        assert msg.action == "close"
-        if line.is_closed:
-            return make_response(result="no_change", text="Transmission line is already closed.")
+        assert msg.action == "startup"
+        player = game_state.players[msg.player_id]
+        if player.money < 0 and asset.asset_type.name == "LOAD":
+            return make_response(result="failure", text="Player cannot activate loads when their balance is negative.")
 
-        new_state = game_state.update(transmission=game_state.transmission.close_line(line.id))
+        if asset.is_active:
+            return make_response(result="no_change", text="Asset is already running.")
+
+        new_state = game_state.update(assets=game_state.assets.activate(asset.id))
         return make_response(
             result="success",
-            text="Transmission line closed successfully.",
+            text="Asset successfully activated.",
             new_game_state=new_state,
         )
 
