@@ -15,6 +15,8 @@ from src.models.message import (
     Message,
     OperateLineRequest,
     OperateLineResponse,
+    OperateAssetRequest,
+    OperateAssetResponse,
     T_Id,
     ToGameMessage,
     UpdateBidRequest,
@@ -191,6 +193,57 @@ class Engine:
                 return make_response(result="no_change", text="Transmission line is already open.")
             else:
                 new_state = game_state.update(transmission=game_state.transmission.open_line(line.id))
+                return make_response(
+                    result="success",
+                    text="Transmission line opened successfully.",
+                    new_game_state=new_state,
+                )
+
+        assert msg.action == "close"
+        if line.is_closed:
+            return make_response(result="no_change", text="Transmission line is already closed.")
+
+        new_state = game_state.update(transmission=game_state.transmission.close_line(line.id))
+        return make_response(
+            result="success",
+            text="Transmission line closed successfully.",
+            new_game_state=new_state,
+        )
+
+    @classmethod
+    def handle_operate_asset_message(
+        cls,
+        game_state: GameState,
+        msg: OperateAssetRequest,
+    ) -> tuple[GameState, list[Message]]:
+        def make_response(
+            result: Literal["success", "no_change", "failure"],
+            text: str,
+            new_game_state: GameState | None = None,
+        ) -> tuple[GameState, list[Message]]:
+            if new_game_state is None:
+                new_game_state = game_state
+            response = OperateAssetResponse(player_id=msg.player_id, request=msg, result=result, message=text)
+            return new_game_state, [response]
+
+        if game_state.phase != Phase.BIDDING:
+            return make_response(
+                result="failure",
+                text=f"You can only operate assets during the {Phase.BIDDING.nice_name} phase.",
+            )
+
+        if msg.asset_id not in game_state.assets.asset_ids:
+            return make_response(result="failure", text="Asset does not exist.")
+
+        asset = game_state.assets[msg.asset_id]
+        if asset.owner_player != msg.player_id:
+            return make_response(result="failure", text="Asset does not belong to this player.")
+
+        if msg.action == "shutdown":
+            if not asset.is_active:
+                return make_response(result="no_change", text="Asset is already off.")
+            else:
+                new_state = game_state.update(transmission=game_state.assets.open_line(line.id))
                 return make_response(
                     result="success",
                     text="Transmission line opened successfully.",
