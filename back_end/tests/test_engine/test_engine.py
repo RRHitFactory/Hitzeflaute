@@ -1,4 +1,5 @@
 from src.engine.engine import Engine
+from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, PlayerId, TransmissionId
@@ -7,16 +8,15 @@ from src.models.message import (
     BuyRequest,
     BuyResponse,
     IceCreamMeltedMessage,
-    OperateLineRequest,
-    OperateLineResponse,
     OperateAssetRequest,
     OperateAssetResponse,
+    OperateLineRequest,
+    OperateLineResponse,
     PlayerToGameMessage,
     TransmissionWornMessage,
 )
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
-from src.models.assets import AssetInfo, AssetType
 from tests.base_test import BaseTest
 from tests.utils.comparisons import (
     assert_game_states_are_equal,
@@ -193,36 +193,9 @@ class TestAssets(BaseTest):
         asset_repo = AssetRepoMaker.make_quick(players=player_repo, bus_repo=bus_repo)
 
         player = player_repo.human_players[0]
-        my_generator = AssetInfo(
-            id=AssetId(100),
-            owner_player=player.id,
-            asset_type=AssetType.GENERATOR,
-            bus=bus_repo.bus_ids[0],
-            power_expected=10,
-            power_std=0.0,
-            health=5,
-            is_active=True
-        )
-        my_load = AssetInfo(
-            id=AssetId(101),
-            owner_player=player.id,
-            asset_type=AssetType.LOAD,
-            bus=bus_repo.bus_ids[0],
-            power_expected=10,
-            power_std=0.0,
-            health=5,
-            is_active=True
-        )
-        broke_player_load = AssetInfo(
-            id=AssetId(102),
-            owner_player=broke_player.id,
-            asset_type=AssetType.LOAD,
-            bus=bus_repo.bus_ids[0],
-            power_expected=10,
-            power_std=0.0,
-            health=5,
-            is_active=False
-        )
+        my_generator = AssetInfo(id=AssetId(100), owner_player=player.id, asset_type=AssetType.GENERATOR, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=True)
+        my_load = AssetInfo(id=AssetId(101), owner_player=player.id, asset_type=AssetType.LOAD, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=True)
+        broke_player_load = AssetInfo(id=AssetId(102), owner_player=broke_player.id, asset_type=AssetType.LOAD, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=False)
         asset_repo = asset_repo + my_generator + my_load + broke_player_load
 
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.BIDDING).make()

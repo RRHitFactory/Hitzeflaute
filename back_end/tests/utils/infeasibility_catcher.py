@@ -5,9 +5,9 @@ from contextlib import contextmanager
 
 from src.app.simple_front_end.plotting.grid_plotter import GridPlotter
 from src.directories import test_dir
-from src.engine.market_coupling import OptimizationError, MarketCouplingCalculator
+from src.engine.market_coupling import MarketCouplingCalculator, OptimizationError
 from src.models.game_state import GameState
-from src.tools.serialization import serialize, deserialize
+from src.tools.serialization import deserialize, serialize
 
 logger = logging.getLogger(__name__)
 bad_state_dir = test_dir / "bad_states"
@@ -31,7 +31,7 @@ def check_infeasible_states():
         if not (f.is_file() and f.name.endswith(".json")):
             continue
         print(f"Found bad state file: {f.name}")
-        with open(f.path, "r") as file:
+        with open(f.path) as file:
             content = file.read()
         game_state = deserialize(x=content, cls=GameState)
         GridPlotter().make_figure(game_state=game_state).show()

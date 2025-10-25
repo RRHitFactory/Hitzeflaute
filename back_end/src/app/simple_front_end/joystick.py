@@ -10,8 +10,8 @@ from src.models.message import (
     EndTurn,
     GameToPlayerMessage,
     GameUpdate,
-    OperateLineRequest,
     OperateAssetRequest,
+    OperateLineRequest,
     PlayerToGameMessage,
     UpdateBidRequest,
 )
