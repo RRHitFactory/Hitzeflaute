@@ -135,6 +135,16 @@ class AssetRepo(LdcRepo[AssetInfo]):
         assert not self.df.loc[asset_id, "is_freezer"], "Only non-freezer assets can wear out"
         return self._decrease_health(asset_id)
 
+    def deactivate(self, asset_id: AssetId) -> "AssetRepo":
+        df = self.df.copy()
+        df.loc[asset_id, "is_active"] = False
+        return self.update_frame(df)
+
+    def activate(self, asset_id: AssetId) -> "AssetRepo":
+        df = self.df.copy()
+        df.loc[asset_id, "is_active"] = True
+        return self.update_frame(df)
+
     def batch_deactivate(self, asset_ids: list[AssetId]) -> "AssetRepo":
         df = self.df.copy()
         df.loc[asset_ids, "is_active"] = False

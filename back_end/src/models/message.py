@@ -115,6 +115,18 @@ class OperateLineResponse(GameToPlayerMessage):
 
 
 @dataclass(frozen=True)
+class OperateAssetRequest(PlayerToGameMessage):
+    asset_id: AssetId
+    action: Literal["shutdown", "startup"]
+
+
+@dataclass(frozen=True)
+class OperateAssetResponse(GameToPlayerMessage):
+    request: OperateAssetRequest
+    result: Literal["success", "no_change", "failure"]
+
+
+@dataclass(frozen=True)
 class EndTurn(PlayerToGameMessage):
     player_id: PlayerId
 

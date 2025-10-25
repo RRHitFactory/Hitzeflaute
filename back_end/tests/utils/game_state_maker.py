@@ -1,4 +1,4 @@
-from typing import Optional, Self
+from typing import Self
 
 import numpy as np
 import pandas as pd
@@ -143,14 +143,14 @@ class MarketResultMaker:
 
 class GameStateMaker:
     def __init__(self) -> None:
-        self.game_id: Optional[GameId] = None
-        self.game_settings: Optional[GameSettings] = None
-        self.phase: Optional[Phase] = None
-        self.player_repo: Optional[PlayerRepo] = None
-        self.bus_repo: Optional[BusRepo] = None
-        self.asset_repo: Optional[AssetRepo] = None
-        self.transmission_repo: Optional[TransmissionRepo] = None
-        self.market_coupling_result: Optional[MarketCouplingResult] = None
+        self.game_id: GameId | None = None
+        self.game_settings: GameSettings | None = None
+        self.phase: Phase | None = None
+        self.player_repo: PlayerRepo | None = None
+        self.bus_repo: BusRepo | None = None
+        self.asset_repo: AssetRepo | None = None
+        self.transmission_repo: TransmissionRepo | None = None
+        self.market_coupling_result: MarketCouplingResult | None = None
 
     def add_game_id(self, game_id: GameId) -> Self:
         self.game_id = game_id

@@ -1,6 +1,6 @@
 from abc import abstractmethod
 from itertools import count
-from typing import Literal, Optional, Self, TypeVar
+from typing import Literal, Self, TypeVar
 
 import numpy as np
 
@@ -136,14 +136,14 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         cls,
         n_normal_assets: int = 3,
         players: list[PlayerId] | PlayerRepo | None = None,
-        bus_repo: Optional[BusRepo] = None,
+        bus_repo: BusRepo | None = None,
     ) -> AssetRepo:
         return cls(players=players, bus_repo=bus_repo).add_n_random(n_normal_assets).add_asset(owner=PlayerId.get_npc(), is_for_sale=True).make()
 
     def __init__(
         self,
         players: list[PlayerId] | PlayerRepo | None = None,
-        bus_repo: Optional[BusRepo] = None,
+        bus_repo: BusRepo | None = None,
     ) -> None:
         super().__init__()
         if players is None:
@@ -184,14 +184,14 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
 
     def add_asset(
         self,
-        asset: Optional[AssetInfo] = None,
-        cat: Optional[Literal["Generator", "Load", "Freezer"]] = None,
-        owner: Optional[PlayerId] = None,
-        bus: Optional[BusId] = None,
-        power_std: Optional[float] = None,
-        is_for_sale: Optional[bool] = None,
-        bid_price: Optional[float] = None,
-        is_active: Optional[bool] = None,
+        asset: AssetInfo | None = None,
+        cat: Literal["Generator", "Load", "Freezer"] | None = None,
+        owner: PlayerId | None = None,
+        bus: BusId | None = None,
+        power_std: float | None = None,
+        is_for_sale: bool | None = None,
+        bid_price: float | None = None,
+        is_active: bool | None = None,
     ) -> Self:
         if asset is None:
             asset = self._make_dc(
@@ -220,13 +220,13 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
 
     def _make_dc(
         self,
-        cat: Optional[Literal["Generator", "Load", "Freezer"]] = None,
-        owner: Optional[PlayerId] = None,
-        bus: Optional[BusId] = None,
-        power_std: Optional[float] = None,
-        is_for_sale: Optional[bool] = None,
-        bid_price: Optional[float] = None,
-        is_active: Optional[bool] = None,
+        cat: Literal["Generator", "Load", "Freezer"] | None = None,
+        owner: PlayerId | None = None,
+        bus: BusId | None = None,
+        power_std: float | None = None,
+        is_for_sale: bool | None = None,
+        bid_price: float | None = None,
+        is_active: bool | None = None,
     ) -> AssetInfo:
         asset_id = next(self.id_counter)
 
@@ -294,9 +294,9 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
     @classmethod
     def make_quick(
         cls,
-        n: Optional[int] = None,
+        n: int | None = None,
         players: list[PlayerId] | PlayerRepo | None = None,
-        buses: Optional[BusRepo] = None,
+        buses: BusRepo | None = None,
     ) -> TransmissionRepo:
         if n is None:
             n = min(10, round(sum([b.max_lines for b in buses]) * 0.4))
@@ -306,7 +306,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
     def __init__(
         self,
         players: list[PlayerId] | PlayerRepo | None = None,
-        buses: Optional[BusRepo] = None,
+        buses: BusRepo | None = None,
     ) -> None:
         super().__init__()
         if players is None:
@@ -337,15 +337,15 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
 
     def add_transmission(
         self,
-        transmission_info: Optional[TransmissionInfo] = None,
-        owner: Optional[PlayerId] = None,
-        reactance: Optional[float] = None,
-        capacity: Optional[float] = None,
-        health: Optional[int] = None,
-        fixed_operating_cost: Optional[float] = None,
-        is_for_sale: Optional[bool] = None,
-        minimum_acquisition_price: Optional[float] = None,
-        is_active: Optional[bool] = None,
+        transmission_info: TransmissionInfo | None = None,
+        owner: PlayerId | None = None,
+        reactance: float | None = None,
+        capacity: float | None = None,
+        health: int | None = None,
+        fixed_operating_cost: float | None = None,
+        is_for_sale: bool | None = None,
+        minimum_acquisition_price: float | None = None,
+        is_active: bool | None = None,
     ) -> Self:
         if transmission_info is None:
             transmission = self._make_dc(
@@ -380,16 +380,16 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
 
     def _make_dc(
         self,
-        transmission: Optional[TransmissionInfo] = None,
-        owner: Optional[PlayerId] = None,
-        buses: Optional[tuple[BusId, BusId]] = None,
-        reactance: Optional[float] = None,
-        capacity: Optional[float] = None,
-        health: Optional[int] = None,
-        fixed_operating_cost: Optional[float] = None,
-        is_for_sale: Optional[bool] = None,
-        minimum_acquisition_price: Optional[float] = None,
-        is_active: Optional[bool] = None,
+        transmission: TransmissionInfo | None = None,
+        owner: PlayerId | None = None,
+        buses: tuple[BusId, BusId] | None = None,
+        reactance: float | None = None,
+        capacity: float | None = None,
+        health: int | None = None,
+        fixed_operating_cost: float | None = None,
+        is_for_sale: bool | None = None,
+        minimum_acquisition_price: float | None = None,
+        is_active: bool | None = None,
     ) -> TransmissionInfo:
         transmission_id = TransmissionId(next(self.id_counter))
         if owner is None:

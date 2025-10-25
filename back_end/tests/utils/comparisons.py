@@ -1,4 +1,4 @@
-from typing import Optional, Callable
+from collections.abc import Callable
 
 import pandas as pd
 
@@ -36,7 +36,7 @@ class GameStateComparator:
         }
 
     @staticmethod
-    def market_coupling_result_is_equal(result1: Optional[MarketCouplingResult], result2: Optional[MarketCouplingResult]) -> bool:
+    def market_coupling_result_is_equal(result1: MarketCouplingResult | None, result2: MarketCouplingResult | None) -> bool:
         if result1 is None and result2 is None:
             return True
         if result1 is None or result2 is None:
