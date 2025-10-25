@@ -107,8 +107,14 @@ class LdcRepo[T_LightDc: LightDc](ABC):
     def add(self: "T_LdcRepo", x: "T_LdcRepo" | T_LightDc) -> "T_LdcRepo":
         return self + x
 
-    def update_frame(self: "T_LdcRepo", df: pd.DataFrame) -> "T_LdcRepo":
-        return self.from_frame(df)
+    @staticmethod
+    def update(method):
+        """Decorator that copies self._df, passes it to the method, and updates the frame."""
+        def wrapper(self: "T_LdcRepo", *args, **kwargs) -> "T_LdcRepo":
+            df = self.df
+            method(self, df, *args, **kwargs)
+            return self.from_frame(df)
+        return wrapper
 
     @property
     def df(self) -> pd.DataFrame:
