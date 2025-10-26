@@ -2,32 +2,22 @@ import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Protocol, Self, TypeVar, runtime_checkable
+from typing import Protocol, Self, runtime_checkable
 
-from src.tools.typing import IntId, T
+from src.tools.typing import IntId
 
 type Primitive = int | float | str | bool
 type SimpleDict = dict[str, Primitive]
+type ComplexDict = dict[str, Primitive | SimpleDict | ComplexDict]
 primitives = (int, float, str, bool)
 
 
 @runtime_checkable
 class Serializable(Protocol):
-    def to_simple_dict(self) -> SimpleDict: ...
+    def to_simple_dict(self) -> SimpleDict | ComplexDict: ...
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self: ...
-
-
-@runtime_checkable
-class Stringable(Protocol):
-    def to_string(self) -> str: ...
-
-    @classmethod
-    def from_string(cls, s: str) -> Self: ...
-
-
-GenericSerializable = TypeVar("GenericSerializable", bound=Serializable)
+    def from_simple_dict(cls, simple_dict: SimpleDict | ComplexDict) -> Self: ...
 
 
 def serialize(x: Serializable) -> str:
@@ -38,7 +28,18 @@ def deserialize[GenericSerializable: Serializable](x: str, cls: type[GenericSeri
     return cls.from_simple_dict(json.loads(x))
 
 
-def simplify_type(x: Stringable | Enum | IntId | Primitive) -> Primitive:
+@runtime_checkable
+class Stringable(Protocol):
+    def to_string(self) -> str: ...
+
+    @classmethod
+    def from_string(cls, s: str) -> Self: ...
+
+
+type SimpleValue = Stringable | Enum | IntId | Primitive
+
+
+def simplify_type(x: SimpleValue) -> Primitive:
     if isinstance(x, Stringable):
         return x.to_string()
     if isinstance(x, Enum):
@@ -51,14 +52,14 @@ def simplify_type(x: Stringable | Enum | IntId | Primitive) -> Primitive:
 
 
 def simplify_optional_type(
-    x: Enum | IntId | Primitive | None,
+    x: SimpleValue | None,
 ) -> Primitive | None:
     if x is None:
         return None
     return simplify_type(x)
 
 
-def un_simplify_type(x: Primitive, t: type[T]) -> T:
+def un_simplify_type[T: SimpleValue](x: Primitive, t: type[T]) -> T:
     if issubclass(t, Stringable):
         return t.from_string(str(x))
     if t in primitives:
@@ -70,7 +71,7 @@ def un_simplify_type(x: Primitive, t: type[T]) -> T:
     raise TypeError(f"Unsupported type {t}")
 
 
-def un_simplify_optional_type(x: int | float | str | None, t: type[T]) -> T | None:
+def un_simplify_optional_type[T: SimpleValue](x: Primitive | None, t: type[T]) -> T | None:
     if x is None:
         return None
     return un_simplify_type(x, t)
@@ -86,3 +87,53 @@ class SerializableBase(ABC):
     @abstractmethod
     def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
         pass
+
+
+@dataclass(frozen=True)
+class SerializableDcSimple:
+    def to_simple_dict(self) -> SimpleDict:
+        return {k: simplify_type(x=self.__getattribute__(k)) for k in self.get_serializable_fields().keys()}
+
+    @classmethod
+    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
+        init_dict = {
+            k: un_simplify_type(x=simple_dict[k], t=v.type)
+            for k, v in cls.get_serializable_fields().items()  # noqa
+        }
+        return cls(**init_dict)  # noqa
+
+    @classmethod
+    def get_serializable_fields(cls) -> dict[str, type]:
+        return {k: v for k, v in cls.__dataclass_fields__.items() if k != "allow_recursion"}
+
+
+@dataclass(frozen=True)
+class SerializableDcRecursive:
+    def to_simple_dict(self) -> ComplexDict:
+        def serialize_field(x: Serializable) -> Primitive | SimpleDict | ComplexDict:
+            if isinstance(x, Serializable):
+                return x.to_simple_dict()
+            return simplify_type(x)
+
+        return {k: serialize_field(x=self.__getattribute__(k)) for k in self.get_serializable_fields().keys()}
+
+    @classmethod
+    def from_simple_dict(cls, simple_dict: ComplexDict) -> Self:
+        def deserialize_dict[T: Serializable](x: SimpleDict | ComplexDict, t: type[T]) -> T:
+            return t.from_simple_dict(x)
+
+        def deserialize_value[T: SimpleValue](x: Primitive, t: type[T]) -> T:
+            return un_simplify_type(x, t)
+
+        init_dict = {}
+        for k, field_type in cls.get_serializable_fields().items():
+            field_value = simple_dict[k]
+            if issubclass(field_type, Serializable) and isinstance(field_value, dict):
+                init_dict[k] = deserialize_dict(x=field_value, t=field_type)
+            else:
+                init_dict[k] = deserialize_value(x=field_value, t=field_type)  # type: ignore
+        return cls(**init_dict)  # noqa
+
+    @classmethod
+    def get_serializable_fields(cls) -> dict[str, type[Serializable] | type[SimpleValue]]:
+        return {k: v for k, v in cls.__dataclass_fields__.items()}

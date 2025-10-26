@@ -43,6 +43,7 @@ class Referee:
 
         def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
             failed_response = BuyResponse(
+                game_id=gs.game_id,
                 player_id=player_id,
                 success=False,
                 message=failed_message,
@@ -79,6 +80,7 @@ class Referee:
             load_ids = gs.assets.get_all_for_player(player_id=player.id).only_loads.asset_ids
             ids_to_deactivate.extend(load_ids)
             msg = LoadsDeactivatedMessage(
+                game_id=gs.game_id,
                 player_id=player.id,
                 asset_ids=load_ids,
                 message=f"Player {player.name} has negative balance, all their loads ({load_ids}) have been deactivated.",
@@ -96,6 +98,7 @@ class Referee:
         def generate_melted_ice_cream_messages(new_gs: GameState, asset_ids: list[AssetId]) -> list[IceCreamMeltedMessage]:
             return [
                 IceCreamMeltedMessage(
+                    game_id=new_gs.game_id,
                     player_id=new_gs.assets[asset_id].owner_player,
                     asset_id=asset_id,
                     message=(
@@ -146,6 +149,7 @@ class Referee:
 
         msgs = [
             TransmissionWornMessage(
+                game_id=new_gs.game_id,
                 player_id=new_gs.transmission[transmission_id].owner_player,
                 transmission_id=transmission_id,
                 message=f"Transmission line {TransmissionId} has worn due to congestion, it can only withstand {new_gs.transmission[transmission_id].health} more congested periods.",
@@ -173,6 +177,7 @@ class Referee:
 
         warn_asset_messages = [
             AssetWornMessage(
+                game_id=new_gs.game_id,
                 player_id=new_gs.assets[asset_id].owner_player,
                 asset_id=asset_id,
                 message=(
@@ -203,6 +208,7 @@ class Referee:
 
         return new_gs, [
             PlayerEliminatedMessage(
+                game_id=new_gs.game_id,
                 player_id=player_id,
                 message=f"Player {player_id} has been eliminated from the game as they have no remaining ice creams.",
             )
@@ -216,6 +222,7 @@ class Referee:
             winner = gs.players.only_alive.human_players[0]
             return gs, [
                 GameOverMessage(
+                    game_id=gs.game_id,
                     player_id=player_id,
                     winner_id=winner.id,
                     message=f"Player {winner.id} <{winner.name}> has won the game!",
@@ -225,6 +232,7 @@ class Referee:
         elif n_players_alive == 0:
             return gs, [
                 GameOverMessage(
+                    game_id=gs.game_id,
                     player_id=player_id,
                     winner_id=None,
                     message="All players have been eliminated. The game is over.",

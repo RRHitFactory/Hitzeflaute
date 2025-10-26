@@ -321,7 +321,7 @@ class DefaultGameInitializer(BaseGameInitializer):
     def _create_bus_repo(self, player_repo: PlayerRepo) -> BusRepo:
         topology = BusTopologyMaker.make_layered_polygon(
             n_buses=self.settings.n_buses,
-            n_buses_per_layer=player_repo.n_human_players,
+            n_buses_per_layer=self.settings.n_buses,
             radius=self.settings.map_area.height * 0.9 / 2,
         )
 

@@ -11,11 +11,11 @@ interface AssetProps {
     onHover: (element: HoverableElement, event: React.MouseEvent) => void
     onLeave: () => void
     isPurchasable?: boolean
-    onPurchase?: (assetId: string) => void
+    onPurchase?: (assetId: number) => void
     playerMoney?: number
     isBiddable?: boolean
-    onBid?: (assetId: string, newBidPrice: number) => void
-    currentPlayer?: string
+    onBid?: (assetId: number, newBidPrice: number) => void
+    currentPlayer?: number
 }
 
 const AssetComponent: React.FC<AssetProps> = ({
@@ -115,7 +115,7 @@ const AssetComponent: React.FC<AssetProps> = ({
         return brightness > 128 ? '#000000' : '#FFFFFF'
     }
 
-    const radius = 18 // Increased from 12
+    const radius = 5 // Increased from 12
     const fillColor = getAssetColor()
     const textColor = getContrastColor(fillColor)
 
@@ -126,7 +126,7 @@ const AssetComponent: React.FC<AssetProps> = ({
         event.stopPropagation()
         onHover({
             type: 'asset',
-            id: `purchase-${asset.id}`,
+            id: asset.id,
             title: `Purchase ${getAssetTitle()}`,
             data: {
                 'Cost': formatMoney(asset.minimum_acquisition_price),
@@ -150,7 +150,7 @@ const AssetComponent: React.FC<AssetProps> = ({
                 <circle
                     cx={position.x}
                     cy={position.y}
-                    r={radius + 6}
+                    r={radius}
                     fill="none"
                     stroke="#ffd700"
                     strokeWidth="3"
@@ -164,7 +164,7 @@ const AssetComponent: React.FC<AssetProps> = ({
                 <circle
                     cx={position.x}
                     cy={position.y}
-                    r={radius + 6}
+                    r={radius}
                     fill="none"
                     stroke="#3b82f6"
                     strokeWidth="3"
@@ -177,7 +177,7 @@ const AssetComponent: React.FC<AssetProps> = ({
             <circle
                 cx={position.x}
                 cy={position.y}
-                r={radius + 8}
+                r={radius}
                 fill="transparent"
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={onLeave}

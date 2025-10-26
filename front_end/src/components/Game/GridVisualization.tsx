@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { GameState, HoverableElement } from '@/types/game'
+import React, { useState, useMemo } from 'react'
+import { GameState, HoverableElement, mapBackendToDisplay, DisplayBounds } from '@/types/game'
 import InfoPanel from './InfoPanel'
 import BusComponent from './Bus'
 import AssetComponent from './Asset'
@@ -10,10 +10,10 @@ import ConfirmationDialog from '../UI/ConfirmationDialog'
 
 interface GridVisualizationProps {
     gameState: GameState
-    onPurchaseAsset?: (assetId: string) => void
-    onPurchaseTransmissionLine?: (lineId: string) => void
-    onBidAsset?: (assetId: string, newBidPrice: number) => void
-    currentPlayer?: string
+    onPurchaseAsset?: (assetId: number) => void
+    onPurchaseTransmissionLine?: (lineId: number) => void
+    onBidAsset?: (assetId: number, newBidPrice: number) => void
+    currentPlayer?: number
 }
 
 const GridVisualization: React.FC<GridVisualizationProps> = ({
@@ -28,10 +28,10 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     const [confirmationDialog, setConfirmationDialog] = useState<{
         isOpen: boolean
         type: 'asset' | 'line'
-        id: string
+        id: number
         title: string
         price: number
-    }>({ isOpen: false, type: 'asset', id: '', title: '', price: 0 })
+    }>({ isOpen: false, type: 'asset', id: -1, title: '', price: 0 })
 
     const handleElementHover = (element: HoverableElement, event: React.MouseEvent) => {
         const svgRect = event.currentTarget.closest('svg')?.getBoundingClientRect()
@@ -54,31 +54,52 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         setHoveredElement(null)
     }
 
-    // Find bus by ID
-    const getBusById = (id: string) => gameState.buses.find(bus => bus.id === id)
+    // Helper to get array from either array or repo structure
+    const getBusesArray = () => Array.isArray(gameState.buses) ? gameState.buses : gameState.buses?.data || []
+    const getAssetsArray = () => Array.isArray(gameState.assets) ? gameState.assets : gameState.assets?.data || []
+    const getTransmissionArray = () => Array.isArray(gameState.transmission) ? gameState.transmission : gameState.transmission?.data || []
+    const getPlayersArray = () => Array.isArray(gameState.players) ? gameState.players : gameState.players?.data || []
+
+    // Display bounds for coordinate mapping
+    const displayBounds: DisplayBounds = {
+        width: 400,  // SVG viewBox width
+        height: 300, // SVG viewBox height
+        padding: 20  // Padding from edges
+    }
+
+    // Map backend coordinates to display coordinates
+    const busesWithDisplayCoords = useMemo(() => {
+        return getBusesArray().map(bus => {
+            const displayCoords = mapBackendToDisplay(bus.x, bus.y, gameState.game_settings.map_area, displayBounds)
+            return { ...bus, displayX: displayCoords.x, displayY: displayCoords.y }
+        })
+    }, [gameState.buses, gameState.game_settings.map_area])
+
+    // Find bus by ID (with display coordinates)
+    const getBusById = (id: number) => busesWithDisplayCoords.find(bus => bus.id === id)
 
     // Get assets for a specific bus and calculate their positions
-    const getAssetsForBus = (busId: string) => {
+    const getAssetsForBus = (busId: number) => {
         const bus = getBusById(busId)
         if (!bus) return []
 
-        const assets = gameState.assets.filter(asset => asset.bus === busId)
+        const assets = getAssetsArray().filter(asset => asset.bus === busId)
         return assets.map((asset, index) => {
-            // Position assets around the bus similar to the socket system in the Python code
-            const offsetRadius = 25
+            // Position assets around the bus using display coordinates
+            const offsetRadius = 15
             const angleStep = (2 * Math.PI) / Math.max(assets.length, 4)
             const angle = index * angleStep
 
-            const x = bus.x + offsetRadius * Math.cos(angle)
-            const y = bus.y + offsetRadius * Math.sin(angle)
+            const x = bus.displayX + offsetRadius * Math.cos(angle)
+            const y = bus.displayY + offsetRadius * Math.sin(angle)
 
             return { asset, position: { x, y } }
         })
     }
 
     // Get player by ID
-    const getPlayerById = (playerId: string) =>
-        gameState.players.find(player => player.id === playerId)
+    const getPlayerById = (playerId: number) =>
+        getPlayersArray().find(player => player.id === playerId)
 
     // Check if asset is purchasable
     const isAssetPurchasable = (asset: any) => {
@@ -100,13 +121,13 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
     // Get current player money
     const getCurrentPlayerMoney = () => {
-        const player = getPlayerById(currentPlayer || 'player_1')
+        const player = getPlayerById(currentPlayer || 1)
         return player?.money || 0
     }
 
     // Handle purchase confirmation for assets
-    const handleAssetPurchaseRequest = (assetId: string) => {
-        const asset = gameState.assets.find(a => a.id === assetId)
+    const handleAssetPurchaseRequest = (assetId: number) => {
+        const asset = getAssetsArray().find(a => a.id === assetId)
         if (asset) {
             setConfirmationDialog({
                 isOpen: true,
@@ -119,8 +140,8 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     }
 
     // Handle purchase confirmation for transmission lines
-    const handleLinePurchaseRequest = (lineId: string) => {
-        const line = gameState.transmissionLines.find(l => l.id === lineId)
+    const handleLinePurchaseRequest = (lineId: number) => {
+        const line = getTransmissionArray().find(l => l.id === lineId)
         if (line) {
             setConfirmationDialog({
                 isOpen: true,
@@ -139,24 +160,25 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         } else if (confirmationDialog.type === 'line' && onPurchaseTransmissionLine) {
             onPurchaseTransmissionLine(confirmationDialog.id)
         }
-        setConfirmationDialog({ isOpen: false, type: 'asset', id: '', title: '', price: 0 })
+        setConfirmationDialog({ isOpen: false, type: 'asset', id: -1, title: '', price: 0 })
     }
 
     const handleCancelPurchase = () => {
-        setConfirmationDialog({ isOpen: false, type: 'asset', id: '', title: '', price: 0 })
+        setConfirmationDialog({ isOpen: false, type: 'asset', id: -1, title: '', price: 0 })
     }
 
     return (
-        <div className="relative w-full h-96 bg-gray-50 rounded-lg border overflow-hidden">
+        <div className="relative w-full h-[500px] bg-gray-50 rounded-lg border overflow-hidden">
             <svg
                 width="100%"
                 height="100%"
-                viewBox="0 0 500 400"
+                viewBox="0 0 400 300"
                 className="grid-container"
+                preserveAspectRatio="xMidYMid meet"
                 onMouseLeave={handleMouseLeave}
             >
                 {/* Transmission Lines */}
-                {gameState.transmissionLines.map(line => {
+                {getTransmissionArray().map(line => {
                     const owner = getPlayerById(line.owner_player)
                     if (!owner) return null
                     const isPurchasable = isLinePurchasable(line)
@@ -164,7 +186,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                         <TransmissionLineComponent
                             key={line.id}
                             line={line}
-                            buses={gameState.buses}
+                            buses={busesWithDisplayCoords}
                             owner={owner}
                             onHover={handleElementHover}
                             onLeave={handleMouseLeave}
@@ -176,7 +198,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 })}
 
                 {/* Buses */}
-                {gameState.buses.map(bus => {
+                {busesWithDisplayCoords.map(bus => {
                     const owner = getPlayerById(bus.player_id)
                     if (!owner) return null
                     return (
@@ -191,7 +213,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 })}
 
                 {/* Assets */}
-                {gameState.buses.map(bus =>
+                {busesWithDisplayCoords.map(bus =>
                     getAssetsForBus(bus.id).map(({ asset, position }) => {
                         const owner = getPlayerById(asset.owner_player)
                         if (!owner) return null

@@ -11,6 +11,7 @@ interface GameStatusProps {
 const GameStatus: React.FC<GameStatusProps> = ({ phase, round }) => {
     const phaseInfo = getPhaseInfo(phase)
 
+
     return (
         <div className="flex items-center w-80">
             {/* Left half - Round info */}

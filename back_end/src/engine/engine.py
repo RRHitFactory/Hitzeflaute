@@ -92,6 +92,7 @@ class Engine:
         new_game_state = game_state.update(assets=new_assets)
 
         response = UpdateBidResponse(
+            game_id=msg.game_id,
             player_id=msg.player_id,
             success=True,
             message=f"Player {msg.player_id} successfully updated bid for asset {msg.asset_id} to {msg.bid_price}.",
@@ -170,7 +171,7 @@ class Engine:
         ) -> tuple[GameState, list[Message]]:
             if new_game_state is None:
                 new_game_state = game_state
-            response = OperateLineResponse(player_id=msg.player_id, request=msg, result=result, message=text)
+            response = OperateLineResponse(game_id=game_state.game_id, player_id=msg.player_id, request=msg, result=result, message=text)
             return new_game_state, [response]
 
         if game_state.phase != Phase.SNEAKY_TRICKS:
@@ -217,7 +218,7 @@ class Engine:
         # TODO If this phase requires players to play one by one (Do we need such a phase?) Then cycle to the next player
         game_state = game_state.update(players=game_state.players.end_turn(player_id=msg.player_id))
         if game_state.players.are_all_players_finished():
-            return game_state, [ConcludePhase(phase=game_state.phase)]
+            return game_state, [ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)]
         else:
             return game_state, []
 
@@ -267,6 +268,7 @@ class Engine:
             text = f"Day-ahead market cleared. Your balance was adjusted accordingly from ${old_money} to ${new_money}."
             msgs.append(
                 AuctionClearedMessage(
+                    game_id=game_state.game_id,
                     player_id=player_id,
                     message=text,
                 )
@@ -294,6 +296,7 @@ class Engine:
 
         def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
             failed_response = BuyResponse(
+                game_id=gs.game_id,
                 player_id=msg.player_id,
                 success=False,
                 message=failed_message,
@@ -317,6 +320,7 @@ class Engine:
     def _validate_update_bid(cls, gs: GameState, msg: UpdateBidRequest) -> list[Message]:
         def make_failed_response(failed_message: str) -> list[Message]:
             failed_response = UpdateBidResponse(
+                game_id=gs.game_id,
                 player_id=msg.player_id,
                 success=False,
                 message=failed_message,

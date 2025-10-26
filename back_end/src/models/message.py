@@ -2,13 +2,15 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Literal, TypeVar
 
+from back_end.src.tools.serialization import SerializableDcRecursive
+
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, PlayerId, TransmissionId
+from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
 
 
 @dataclass(frozen=True)
-class Message(ABC):
-    pass
+class Message(ABC, SerializableDcRecursive):
+    game_id: GameId
 
 
 @dataclass(frozen=True)
@@ -76,6 +78,7 @@ class UpdateBidRequest(PlayerToGameMessage):
 
     def make_response(self, success: bool, message: str) -> UpdateBidResponse:
         return UpdateBidResponse(
+            game_id=self.game_id,
             player_id=self.player_id,
             asset_id=self.asset_id,
             success=success,
@@ -95,6 +98,7 @@ class BuyRequest[T_Id](PlayerToGameMessage):
 
     def make_response(self, success: bool, message: str) -> BuyResponse[T_Id]:
         return BuyResponse(
+            game_id=self.game_id,
             player_id=self.player_id,
             success=success,
             purchase_id=self.purchase_id,
@@ -116,7 +120,7 @@ class OperateLineResponse(GameToPlayerMessage):
 
 @dataclass(frozen=True)
 class EndTurn(PlayerToGameMessage):
-    player_id: PlayerId
+    pass
 
 
 @dataclass(frozen=True)

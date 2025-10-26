@@ -85,7 +85,7 @@ class Shape:
     def __repr__(self) -> str:
         return str(self)
 
-    def __add__(self, other: Self | Point | list[Point]) -> Self:
+    def __add__(self, other: Self | Point | list[Point]) -> "Shape":
         if isinstance(other, Point):
             return Shape(points=self.points + [other], shape_type=ShapeType.UNKOWN)
         if isinstance(other, list):
@@ -140,11 +140,11 @@ class Shape:
     def max_y(self) -> float:
         return float(max(point.y for point in self.points))
 
-    def close(self) -> Self:
+    def close(self) -> "Shape":
         assert not self.is_closed
         return Shape(points=self.points + [self.points[0]], shape_type=self.shape_type)
 
-    def open(self) -> Self:
+    def open(self) -> "Shape":
         assert self.is_closed
         return Shape(points=self.points[:-1], shape_type=self.shape_type)
 

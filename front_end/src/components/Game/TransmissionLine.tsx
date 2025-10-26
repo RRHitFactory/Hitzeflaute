@@ -10,7 +10,7 @@ interface TransmissionLineProps {
     onHover: (element: HoverableElement, event: React.MouseEvent) => void
     onLeave: () => void
     isPurchasable?: boolean
-    onPurchase?: (lineId: string) => void
+    onPurchase?: (lineId: number) => void
     playerMoney?: number
 }
 
@@ -80,16 +80,22 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     }
 
     // Create curved line with multiple points similar to the Python implementation
-    const vector = { x: toBus.x - fromBus.x, y: toBus.y - fromBus.y }
-    const midX = (fromBus.x + toBus.x) / 2
-    const midY = (fromBus.y + toBus.y) / 2
+    // Use display coordinates if available, fallback to original coordinates
+    const fromX = (fromBus as any).displayX || fromBus.x
+    const fromY = (fromBus as any).displayY || fromBus.y
+    const toX = (toBus as any).displayX || toBus.x
+    const toY = (toBus as any).displayY || toBus.y
+
+    const vector = { x: toX - fromX, y: toY - fromY }
+    const midX = (fromX + toX) / 2
+    const midY = (fromY + toY) / 2
 
     // Add slight curve by offsetting the middle point
     const curveOffset = 0.1
     const offsetX = vector.y * curveOffset
     const offsetY = -vector.x * curveOffset
 
-    const pathData = `M ${fromBus.x} ${fromBus.y} Q ${midX + offsetX} ${midY + offsetY} ${toBus.x} ${toBus.y}`
+    const pathData = `M ${fromX} ${fromY} Q ${midX + offsetX} ${midY + offsetY} ${toX} ${toY}`
 
     // Check if player can afford this line
     const canAfford = !isPurchasable || (onPurchase && line.minimum_acquisition_price <= playerMoney)
@@ -98,7 +104,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         event.stopPropagation()
         onHover({
             type: 'line',
-            id: `purchase-${line.id}`,
+            id: line.id,
             title: `Purchase Line${line.id}`,
             data: {
                 'Cost': `$${line.minimum_acquisition_price.toLocaleString()}`,

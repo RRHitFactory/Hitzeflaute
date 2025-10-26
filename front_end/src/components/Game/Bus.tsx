@@ -26,10 +26,10 @@ const BusComponent: React.FC<BusProps> = ({ bus, owner, onHover, onLeave }) => {
         <g>
             {/* Invisible larger hover area */}
             <rect
-                x={bus.x - 35}
-                y={bus.y - 10}
-                width={70}
-                height={20}
+                x={(bus as any).displayX ? (bus as any).displayX - 20 : bus.x - 20}
+                y={(bus as any).displayY ? (bus as any).displayY - 8 : bus.y - 8}
+                width={40}
+                height={16}
                 fill="transparent"
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={onLeave}
@@ -37,14 +37,14 @@ const BusComponent: React.FC<BusProps> = ({ bus, owner, onHover, onLeave }) => {
             />
             {/* Visible bus */}
             <rect
-                x={bus.x - 30}
-                y={bus.y - 7}
-                width={60}
-                height={14}
+                x={(bus as any).displayX ? (bus as any).displayX - 18 : bus.x - 18}
+                y={(bus as any).displayY ? (bus as any).displayY - 6 : bus.y - 6}
+                width={36}
+                height={12}
                 fill={owner.color}
                 stroke="#374151"
                 strokeWidth="1"
-                rx="3"
+                rx="2"
                 pointerEvents="none"
             />
         </g>

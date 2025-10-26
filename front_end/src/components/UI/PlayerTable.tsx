@@ -11,13 +11,13 @@ interface PlayerTableProps {
 const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState }) => {
     const formatMoney = (amount: number) => `$${amount.toLocaleString()}`
 
-    const getIceCreams = (playerId: string) => {
+    const getIceCreams = (playerId: number) => {
         if (!gameState) {
             console.log('No gameState provided to PlayerTable')
             return 0
         }
 
-        const playerAssets = gameState.assets.filter(asset => asset.owner_player === playerId)
+        const playerAssets = gameState.assets.data.filter(asset => asset.owner_player === playerId)
         const freezerAssets = playerAssets.filter(asset => asset.is_freezer)
         const totalIceCreams = freezerAssets.reduce((total, asset) => total + asset.health, 0)
         return totalIceCreams

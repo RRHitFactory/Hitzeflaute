@@ -1,18 +1,18 @@
 export interface Bus {
-    id: string
+    id: number
     x: number
     y: number
-    player_id: string
+    player_id: number
     max_lines: number
     max_assets: number
     color: string
 }
 
 export interface TransmissionLine {
-    id: string
-    bus1: string
-    bus2: string
-    owner_player: string
+    id: number
+    bus1: number
+    bus2: number
+    owner_player: number
     reactance: number
     capacity: number
     health: number
@@ -26,10 +26,10 @@ export interface TransmissionLine {
 }
 
 export interface Asset {
-    id: string
+    id: number
     asset_type: 'GENERATOR' | 'LOAD'
-    bus: string
-    owner_player: string
+    bus: number
+    owner_player: number
     power_expected: number
     power_std: number
     marginal_cost: number
@@ -45,15 +45,16 @@ export interface Asset {
 }
 
 export interface Player {
-    id: string
+    id: number
     name: string
     money: number
     color: string
-    assets: string[]
+    assets: number[]
 }
 
-// Phase management - centralized from backend game_state.py
-export type GamePhase = 'CONSTRUCTION' | 'SNEAKY_TRICKS' | 'BIDDING' | 'DA_AUCTION'
+// Phase management - matches backend game_state.py Phase enum
+// Backend sends integer values: CONSTRUCTION=0, SNEAKY_TRICKS=1, BIDDING=2, DA_AUCTION=3
+export type GamePhase = 0 | 1 | 2 | 3 | 'CONSTRUCTION' | 'SNEAKY_TRICKS' | 'BIDDING' | 'DA_AUCTION'
 
 export interface PhaseInfo {
     id: GamePhase
@@ -62,7 +63,15 @@ export interface PhaseInfo {
     description: string
 }
 
-export const GAME_PHASES: Record<GamePhase, PhaseInfo> = {
+// Phase mapping for integer values from backend
+const PHASE_INT_TO_STRING: Record<number, string> = {
+    0: 'CONSTRUCTION',
+    1: 'SNEAKY_TRICKS',
+    2: 'BIDDING',
+    3: 'DA_AUCTION'
+}
+
+export const GAME_PHASES: Record<string, PhaseInfo> = {
     CONSTRUCTION: {
         id: 'CONSTRUCTION',
         displayName: 'Construction',
@@ -97,21 +106,132 @@ export function getNextPhase(currentPhase: GamePhase): GamePhase {
 }
 
 export function getPhaseInfo(phase: GamePhase): PhaseInfo {
-    return GAME_PHASES[phase]
+    // Handle integer phase values from backend
+    let phaseKey: string
+    if (typeof phase === 'number') {
+        phaseKey = PHASE_INT_TO_STRING[phase] || 'CONSTRUCTION'
+    } else {
+        phaseKey = phase
+    }
+
+    // Return phase info with fallback to CONSTRUCTION if phase not found
+    return GAME_PHASES[phaseKey] || GAME_PHASES['CONSTRUCTION']
 }
 
-export interface GameState {
-    phase: GamePhase
+// Coordinate mapping utilities
+export interface DisplayBounds {
+    width: number
+    height: number
+    padding: number
+}
+
+export function getMapAreaBounds(mapArea: Shape): { minX: number, minY: number, maxX: number, maxY: number } {
+    if (mapArea.points.length < 2) {
+        // Fallback bounds if map area is not properly defined
+        return { minX: -30, minY: -15, maxX: 30, maxY: 15 }
+    }
+
+    const xs = mapArea.points.map(p => p.x)
+    const ys = mapArea.points.map(p => p.y)
+
+    return {
+        minX: Math.min(...xs),
+        minY: Math.min(...ys),
+        maxX: Math.max(...xs),
+        maxY: Math.max(...ys)
+    }
+}
+
+export function mapBackendToDisplay(
+    backendX: number,
+    backendY: number,
+    mapArea: Shape,
+    displayBounds: DisplayBounds
+): Point {
+    const bounds = getMapAreaBounds(mapArea)
+    const mapWidth = bounds.maxX - bounds.minX
+    const mapHeight = bounds.maxY - bounds.minY
+
+    // Available display area (accounting for padding)
+    const availableWidth = displayBounds.width - (2 * displayBounds.padding)
+    const availableHeight = displayBounds.height - (2 * displayBounds.padding)
+
+    // Convert backend coordinates to display coordinates
+    const displayX = displayBounds.padding + ((backendX - bounds.minX) / mapWidth) * availableWidth
+    const displayY = displayBounds.padding + ((backendY - bounds.minY) / mapHeight) * availableHeight
+
+    return { x: displayX, y: displayY }
+}
+
+export function mapDisplayToBackend(
+    displayX: number,
+    displayY: number,
+    mapArea: Shape,
+    displayBounds: DisplayBounds
+): Point {
+    const bounds = getMapAreaBounds(mapArea)
+    const mapWidth = bounds.maxX - bounds.minX
+    const mapHeight = bounds.maxY - bounds.minY
+
+    // Available display area (accounting for padding)
+    const availableWidth = displayBounds.width - (2 * displayBounds.padding)
+    const availableHeight = displayBounds.height - (2 * displayBounds.padding)
+
+    // Convert display coordinates to backend coordinates
+    const backendX = bounds.minX + ((displayX - displayBounds.padding) / availableWidth) * mapWidth
+    const backendY = bounds.minY + ((displayY - displayBounds.padding) / availableHeight) * mapHeight
+
+    return { x: backendX, y: backendY }
+} export interface GameState {
+    game_id: number
+    game_settings: GameSettings
+    phase: GamePhase  // Can be integer (0,1,2,3) from backend or string
     round: number
-    buses: Bus[]
-    transmissionLines: TransmissionLine[]
-    assets: Asset[]
-    players: Player[]
+    buses: { class: string; data: Bus[] }  // Can be array or repo structure
+    transmission: { class: string; data: TransmissionLine[] }  // Backend uses "transmission", not "transmissionLines"
+    assets: { class: string; data: Asset[] }  // Can be array or repo structure
+    players: { class: string; data: Player[] }  // Can be array or repo structure from backend
+    market_coupling_result: MarketCouplingResult | null
+}
+
+export interface Point {
+    x: number
+    y: number
+}
+
+export interface Shape {
+    points: Point[]
+    shape_type: string
+}
+
+export interface GameSettings {
+    id?: number
+    n_buses: number
+    max_rounds: number
+    n_init_ice_cream: number
+    n_init_assets: number
+    n_init_non_freezer_loads: number
+    min_bid_price: number
+    max_bid_price: number
+    initial_funds: number
+    max_connections_per_bus: number
+    map_area: Shape
+    [key: string]: any  // Allow for additional settings
+}
+
+export interface MarketCouplingResult {
+    id: number
+    round: number
+    cleared: boolean
+    clearing_price: number | null
+    total_generation: number
+    total_demand: number
+    [key: string]: any  // Allow for additional result fields
 }
 
 export interface HoverableElement {
     type: 'bus' | 'line' | 'asset'
-    id: string
+    id: number
     title: string
     data: { [key: string]: string }
 }
