@@ -2,10 +2,9 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Literal, TypeVar
 
-from back_end.src.tools.serialization import SerializableDcRecursive
-
 from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
+from src.tools.serialization import SerializableDcRecursive
 
 
 @dataclass(frozen=True)
