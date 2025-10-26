@@ -1,7 +1,7 @@
 from src.engine.engine import Engine
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, PlayerId, TransmissionId
+from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
 from src.models.message import (
     AssetWornMessage,
     BuyRequest,
@@ -34,7 +34,7 @@ class DummyMessage(PlayerToGameMessage):
 class TestAssets(BaseTest):
     def test_bad_message(self) -> None:
         game_state = GameStateMaker().make()
-        dumb_message = DummyMessage(player_id=PlayerId(5))
+        dumb_message = DummyMessage(game_id=GameId(1), player_id=PlayerId(5))
         with self.assertRaises(NotImplementedError):
             Engine.handle_message(game_state=game_state, msg=dumb_message)  # noqa
 
@@ -53,13 +53,13 @@ class TestAssets(BaseTest):
         is_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": True}).asset_ids
         not_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": False}).asset_ids
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=AssetId(-5))
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=AssetId(-5))
         self.assert_fails_with(game_state=game_state, request=msg, x="asset")
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
         self.assert_fails_with(game_state=game_state, request=msg, x="for sale")
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
         self.assertEqual(len(messages), 1)
         success_msg = messages[0]
@@ -86,13 +86,13 @@ class TestAssets(BaseTest):
         is_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": True}).transmission_ids
         not_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": False}).transmission_ids
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=TransmissionId(-5))
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=TransmissionId(-5))
         self.assert_fails_with(game_state=game_state, request=msg, x="transmission")
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
         self.assert_fails_with(game_state=game_state, request=msg, x="for sale")
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
         self.assertEqual(len(messages), 1)
         success_msg = messages[0]
@@ -130,7 +130,7 @@ class TestAssets(BaseTest):
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_transmission_repo(transmission_repo).add_phase(Phase.SNEAKY_TRICKS).make()
 
         # Test operating a line that I own
-        open_request = OperateLineRequest(player_id=player.id, transmission_id=my_line.id, action="open")
+        open_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=my_line.id, action="open")
         game_state, responses = Engine.handle_message(game_state=game_state, msg=open_request)
 
         self.assertEqual(len(responses), 1)
@@ -149,7 +149,7 @@ class TestAssets(BaseTest):
         self.assertEqual(game_state.transmission[my_line.id].is_open, True)
 
         # Try closing a line that I own
-        close_request = OperateLineRequest(player_id=player.id, transmission_id=my_line.id, action="close")
+        close_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=my_line.id, action="close")
         game_state, responses = Engine.handle_message(game_state=game_state, msg=close_request)
 
         self.assertEqual(len(responses), 1)
@@ -168,7 +168,7 @@ class TestAssets(BaseTest):
         self.assertEqual(game_state.transmission[my_line.id].is_open, False)
 
         # Try to operate a line that I do not own
-        not_my_open_request = OperateLineRequest(player_id=player.id, transmission_id=not_my_line.id, action="open")
+        not_my_open_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=not_my_line.id, action="open")
         game_state, responses = Engine.handle_message(game_state=game_state, msg=not_my_open_request)
         self.assertEqual(len(responses), 1)
         response = responses[0]
