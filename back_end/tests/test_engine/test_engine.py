@@ -201,7 +201,7 @@ class TestEngine(BaseTest):
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.BIDDING).make()
 
         # Test deactivate my generator
-        deactivate_asset = OperateAssetRequest(player_id=player.id, asset_id=my_generator.id, action="shutdown")
+        deactivate_asset = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=my_generator.id, action="shutdown")
 
         game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_asset)
 
@@ -221,7 +221,7 @@ class TestEngine(BaseTest):
         self.assertEqual(game_state.assets[my_generator.id].is_active, False)
 
         # Try activating my generator
-        activate_asset = OperateAssetRequest(player_id=player.id, asset_id=my_generator.id, action="startup")
+        activate_asset = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=my_generator.id, action="startup")
 
         game_state, responses = Engine.handle_message(game_state=game_state, msg=activate_asset)
 
@@ -241,7 +241,7 @@ class TestEngine(BaseTest):
         self.assertEqual(game_state.assets[my_generator.id].is_active, True)
 
         # Try to operate an asset that I do not own
-        broke_player_load_activate = OperateAssetRequest(player_id=player.id, asset_id=broke_player_load.id, action="startup")
+        broke_player_load_activate = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=broke_player_load.id, action="startup")
 
         game_state, responses = Engine.handle_message(game_state=game_state, msg=broke_player_load_activate)
 
@@ -252,7 +252,7 @@ class TestEngine(BaseTest):
         self.assertEqual(game_state.assets[broke_player_load.id].is_active, False)
 
         # Broke player tries to activate their own load
-        broke_player_load_activate = OperateAssetRequest(player_id=broke_player.id, asset_id=broke_player_load.id, action="startup")
+        broke_player_load_activate = OperateAssetRequest(game_id=game_state.game_id, player_id=broke_player.id, asset_id=broke_player_load.id, action="startup")
 
         game_state, responses = Engine.handle_message(game_state=game_state, msg=broke_player_load_activate)
 
