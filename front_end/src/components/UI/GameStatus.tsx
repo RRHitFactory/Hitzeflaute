@@ -1,10 +1,10 @@
 'use client'
 
 import React from 'react'
-import { GamePhase, getPhaseInfo } from '@/types/game'
+import { GamePhaseValue, getPhaseInfo } from '@/types/game'
 
 interface GameStatusProps {
-    phase: GamePhase
+    phase: GamePhaseValue
     round: number
 }
 

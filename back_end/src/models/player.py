@@ -93,6 +93,28 @@ class PlayerRepo(LdcRepo[Player]):
     def start_all_turns(self) -> Self:
         return self._set_turn(self.human_player_ids, True)
 
+    def start_first_player_turn(self) -> Self:
+        df = self.df.copy()
+        df.loc[:, "is_having_turn"] = False
+        df.loc[self.human_player_ids[0], "is_having_turn"] = True
+        return self.update_frame(df)
+
+    def cycle_turn(self) -> Self:
+        current_players = self.get_currently_playing().player_ids
+        assert len(current_players) == 1, f"Expected exactly one current player, got {current_players}"
+        current_player = current_players[0]
+
+        df = self.df.copy()
+        df.loc[current_player, "is_having_turn"] = False
+        human_ids = self.human_player_ids
+        next_index = human_ids.index(current_players[0]) + 1
+        if next_index >= len(human_ids):
+            return self.update_frame(df)
+
+        next_player = human_ids[next_index]
+        df.loc[next_player, "is_having_turn"] = True
+        return self.update_frame(df)
+
     def eliminate_player(self, player_id: PlayerId) -> Self:
         df = self.df.copy()
         df.loc[player_id, "still_alive"] = False

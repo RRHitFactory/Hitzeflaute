@@ -50,72 +50,102 @@ export interface Player {
     money: number
     color: string
     assets: number[]
+    is_having_turn?: boolean  // Indicates if this player is currently having their turn
+    still_alive?: boolean     // Indicates if the player is still in the game
 }
+
+export const NPC_PLAYER_ID = -1
 
 // Phase management - matches backend game_state.py Phase enum
 // Backend sends integer values: CONSTRUCTION=0, SNEAKY_TRICKS=1, BIDDING=2, DA_AUCTION=3
-export type GamePhase = 0 | 1 | 2 | 3 | 'CONSTRUCTION' | 'SNEAKY_TRICKS' | 'BIDDING' | 'DA_AUCTION'
 
+// Game Phase Enum-like object with both integer and string representations
+export const GamePhase = {
+    // Integer values (what backend sends)
+    CONSTRUCTION: 0,
+    SNEAKY_TRICKS: 1,
+    BIDDING: 2,
+    DA_AUCTION: 3,
+} as const
+
+// Type for phase values (can be integer from backend)
+export type GamePhaseValue = typeof GamePhase[keyof typeof GamePhase]
+
+// String names for phases
+export const GamePhaseName = {
+    [GamePhase.CONSTRUCTION]: 'CONSTRUCTION',
+    [GamePhase.SNEAKY_TRICKS]: 'SNEAKY_TRICKS',
+    [GamePhase.BIDDING]: 'BIDDING',
+    [GamePhase.DA_AUCTION]: 'DA_AUCTION',
+} as const
+
+export type GamePhaseNameValue = typeof GamePhaseName[GamePhaseValue]
+
+// Phase info interface
 export interface PhaseInfo {
-    id: GamePhase
+    id: GamePhaseValue
+    name: GamePhaseNameValue
     displayName: string
     color: string
     description: string
 }
 
-// Phase mapping for integer values from backend
-const PHASE_INT_TO_STRING: Record<number, string> = {
-    0: 'CONSTRUCTION',
-    1: 'SNEAKY_TRICKS',
-    2: 'BIDDING',
-    3: 'DA_AUCTION'
-}
-
-export const GAME_PHASES: Record<string, PhaseInfo> = {
-    CONSTRUCTION: {
-        id: 'CONSTRUCTION',
+// Phase configurations with full info
+export const GAME_PHASE_INFO: Record<GamePhaseValue, PhaseInfo> = {
+    [GamePhase.CONSTRUCTION]: {
+        id: GamePhase.CONSTRUCTION,
+        name: 'CONSTRUCTION',
         displayName: 'Construction',
         color: 'bg-blue-200 text-black border border-blue-400',
         description: 'Build and purchase assets and transmission lines'
     },
-    SNEAKY_TRICKS: {
-        id: 'SNEAKY_TRICKS',
+    [GamePhase.SNEAKY_TRICKS]: {
+        id: GamePhase.SNEAKY_TRICKS,
+        name: 'SNEAKY_TRICKS',
         displayName: 'Sneaky Tricks',
         color: 'bg-purple-200 text-black border border-purple-400',
         description: 'Execute special actions and strategic moves'
     },
-    BIDDING: {
-        id: 'BIDDING',
+    [GamePhase.BIDDING]: {
+        id: GamePhase.BIDDING,
+        name: 'BIDDING',
         displayName: 'Bidding',
         color: 'bg-yellow-200 text-black border border-yellow-400',
         description: 'Submit bids for the electricity market'
     },
-    DA_AUCTION: {
-        id: 'DA_AUCTION',
+    [GamePhase.DA_AUCTION]: {
+        id: GamePhase.DA_AUCTION,
+        name: 'DA_AUCTION',
         displayName: 'Day-Ahead Auction',
         color: 'bg-green-200 text-black border border-green-400',
         description: 'Market clearing and results'
     }
 }
 
-export const PHASE_ORDER: GamePhase[] = ['CONSTRUCTION', 'SNEAKY_TRICKS', 'BIDDING', 'DA_AUCTION']
+// Phase order for cycling
+export const PHASE_ORDER: GamePhaseValue[] = [
+    GamePhase.CONSTRUCTION,
+    GamePhase.SNEAKY_TRICKS,
+    GamePhase.BIDDING,
+    GamePhase.DA_AUCTION
+]
 
-export function getNextPhase(currentPhase: GamePhase): GamePhase {
+// Utility functions
+export function getPhaseInfo(phase: GamePhaseValue): PhaseInfo {
+    return GAME_PHASE_INFO[phase] || GAME_PHASE_INFO[GamePhase.CONSTRUCTION]
+}
+
+export function getPhaseName(phase: GamePhaseValue): GamePhaseNameValue {
+    return GamePhaseName[phase] || GamePhaseName[GamePhase.CONSTRUCTION]
+}
+
+export function getNextPhase(currentPhase: GamePhaseValue): GamePhaseValue {
     const currentIndex = PHASE_ORDER.indexOf(currentPhase)
     return PHASE_ORDER[(currentIndex + 1) % PHASE_ORDER.length]
 }
 
-export function getPhaseInfo(phase: GamePhase): PhaseInfo {
-    // Handle integer phase values from backend
-    let phaseKey: string
-    if (typeof phase === 'number') {
-        phaseKey = PHASE_INT_TO_STRING[phase] || 'CONSTRUCTION'
-    } else {
-        phaseKey = phase
-    }
-
-    // Return phase info with fallback to CONSTRUCTION if phase not found
-    return GAME_PHASES[phaseKey] || GAME_PHASES['CONSTRUCTION']
+export function isValidPhase(phase: number): phase is GamePhaseValue {
+    return Object.values(GamePhase).includes(phase as GamePhaseValue)
 }
 
 // Coordinate mapping utilities
@@ -185,8 +215,8 @@ export function mapDisplayToBackend(
 } export interface GameState {
     game_id: number
     game_settings: GameSettings
-    phase: GamePhase  // Can be integer (0,1,2,3) from backend or string
-    round: number
+    phase: GamePhaseValue  // Integer values (0,1,2,3) from backend
+    game_round: number
     buses: { class: string; data: Bus[] }  // Can be array or repo structure
     transmission: { class: string; data: TransmissionLine[] }  // Backend uses "transmission", not "transmissionLines"
     assets: { class: string; data: Asset[] }  // Can be array or repo structure
@@ -221,7 +251,7 @@ export interface GameSettings {
 
 export interface MarketCouplingResult {
     id: number
-    round: number
+    game_round: number
     cleared: boolean
     clearing_price: number | null
     total_generation: number

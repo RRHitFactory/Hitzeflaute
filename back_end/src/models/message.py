@@ -2,8 +2,10 @@ from abc import ABC
 from dataclasses import dataclass
 from typing import Literal, TypeVar
 
+from src.models.assets import AssetId
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
+from src.models.ids import GameId, PlayerId
+from src.models.transmission import TransmissionId
 from src.tools.serialization import SerializableDcRecursive
 
 
@@ -25,6 +27,20 @@ class InternalMessage(Message, ABC):
 @dataclass(frozen=True)
 class PlayerToGameMessage(Message, ABC):
     player_id: PlayerId
+
+    @classmethod
+    def get_camel_case_name(cls) -> str:
+        """Convert class name from PascalCase to camelCase"""
+        class_name = cls.__name__
+        result = class_name[0].lower()
+        for char in class_name[1:]:
+            if char.isupper():
+                # Don't add anything, just lowercase it
+                result += "_"
+                result += char.lower()
+            else:
+                result += char
+        return result
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}({self.player_id} -> Game)>"

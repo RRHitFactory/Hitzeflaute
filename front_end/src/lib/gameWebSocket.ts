@@ -6,13 +6,11 @@
  */
 
 // Type definitions
-interface WebSocketMessage {
-    type: string;
-    data?: any;
-    game_id?: number;
-    player_id?: number;
-    message_class?: string;
-    message?: string;
+export interface WebSocketMessage {
+    message_type: string;
+    data: any
+    game_id: number;
+    player_id: number;
 }
 
 interface GameWebSocketCallbacks {
@@ -28,7 +26,7 @@ export class GameWebSocketClient {
     private reconnectAttempts: number = 0;
     private maxReconnectAttempts: number = 5;
     private reconnectDelay: number = 1000; // Start with 1 second delay
-    private messageQueue: Array<{ type: string; data: any }> = [];
+    private messageQueue: Array<WebSocketMessage> = [];
 
     // Callbacks
     private onMessage: (data: WebSocketMessage) => void;
@@ -61,27 +59,46 @@ export class GameWebSocketClient {
             this.ws = new WebSocket(wsUrl);
 
             this.ws.onopen = (event: Event) => {
-                console.log('WebSocket connected');
+                console.log('🟢 WebSocket connected successfully!');
+                console.log('Game ID:', this.gameId, 'Player ID:', this.playerId);
                 this.reconnectAttempts = 0;
                 this.reconnectDelay = 1000;
 
+                // Request initial game state
+                console.log('📋 Requesting initial game state after connection...');
+                this.requestGameState();
+
                 // Send any queued messages
+                console.log('📤 Processing queued messages:', this.messageQueue.length);
                 while (this.messageQueue.length > 0) {
                     const message = this.messageQueue.shift();
                     if (message) {
+                        console.log('📤 Sending queued message:', message.type);
                         this.send(message.type, message.data);
                     }
                 }
+                console.log('✅ WebSocket initialization complete');
             };
 
             this.ws.onmessage = (event: MessageEvent) => {
+                console.log('=== Raw WebSocket Message ===')
+                console.log('Raw WebSocket data:', event.data)
+                console.log('Data type:', typeof event.data)
+                console.log('Data length:', event.data.length)
+
                 try {
                     const data: WebSocketMessage = JSON.parse(event.data);
+                    console.log('✅ Successfully parsed JSON')
+                    console.log('Parsed message type:', data.message_type)
+                    console.log('Parsed data keys:', Object.keys(data))
+
                     this.onMessage(data);
                 } catch (error) {
-                    console.error('Error parsing WebSocket message:', error);
-                    console.error('Raw message:', event.data);
+                    console.error('❌ Error parsing WebSocket message:', error);
+                    console.error('Raw message that failed to parse:', event.data);
+                    console.error('Error details:', error instanceof Error ? error.message : error);
                 }
+                console.log('=== End Raw WebSocket Processing ===')
             };
 
             this.ws.onclose = (event: CloseEvent) => {
@@ -118,36 +135,48 @@ export class GameWebSocketClient {
     }
 
     public send(type: string, data: any): void {
-        const message = {
-            type: type,
+        const message: WebSocketMessage = {
+            message_type: type,
             data: data,
             game_id: this.gameId,
             player_id: this.playerId
         };
 
+        console.log('=== Sending WebSocket Message ===')
+        console.log('Message type:', type)
+        console.log('Message data:', JSON.stringify(data, null, 2))
+        console.log('Full message:', JSON.stringify(message, null, 2))
+        console.log('WebSocket ready state:', this.ws?.readyState)
+
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            console.log('✅ Sending message immediately')
             this.ws.send(JSON.stringify(message));
         } else {
-            console.log('WebSocket not ready, queuing message:', message);
+            console.log('⚠️ WebSocket not ready, queuing message')
+            console.log('Current state:', this.getConnectionState())
             this.messageQueue.push(message);
 
             // Try to reconnect if connection is closed
             if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
+                console.log('🔄 Attempting to reconnect...')
                 this.connect();
             }
         }
+        console.log('=== End Send Message ===')
     }
 
     // Specific game action methods
     public buyAsset(assetId: string): void {
         this.send('buy_request', {
-            purchase_id: assetId
+            purchase_id: assetId,
+            purchase_type: 'asset'
         });
     }
 
     public buyTransmissionLine(lineId: string): void {
         this.send('buy_request', {
-            purchase_id: lineId
+            purchase_id: lineId,
+            purchase_type: 'transmission'
         });
     }
 
@@ -169,6 +198,11 @@ export class GameWebSocketClient {
         this.send('end_turn', {});
     }
 
+    public requestGameState(): void {
+        console.log('🎯 Requesting initial game state...')
+        this.send('get_game_state', {});
+    }
+
     public disconnect(): void {
         if (this.ws) {
             this.ws.close();
@@ -176,21 +210,18 @@ export class GameWebSocketClient {
     }
 
     // Default callback implementations
-    private defaultOnMessage(data: WebSocketMessage): void {
-        console.log('Received message:', data);
+    private defaultOnMessage(msg: WebSocketMessage): void {
+        console.log('Received message:', msg);
 
-        switch (data.type) {
-            case 'game_state':
-                console.log('Game state updated:', data.data);
-                break;
+        switch (msg.message_type) {
             case 'game_message':
-                console.log('Game message:', data.message_class, data.data);
+                console.log('Game message:', msg.message_type, msg.data);
                 break;
             case 'error':
-                console.error('Server error:', data.message);
+                console.error('Server error:', msg.data);
                 break;
             default:
-                console.log('Unknown message type:', data.type);
+                console.log('Unknown message type:', msg.message_type);
         }
     }
 

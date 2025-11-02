@@ -43,7 +43,7 @@ class Joystick:
         self._game_manager = GameManager(
             game_repo=self.get_game_repo(),
             game_engine=Engine(),
-            front_end=self._message_handler,
+            front_end_interface=self._message_handler,
         )
         self._game_id = game_id
         self._current_player_id = PlayerId.get_npc()

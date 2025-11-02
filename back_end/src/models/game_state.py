@@ -1,4 +1,4 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, fields, replace
 from enum import IntEnum
 from functools import cached_property
 from typing import Self
@@ -26,6 +26,10 @@ class Phase(IntEnum):
         return str(self)
 
     @property
+    def is_turn_based(self) -> bool:
+        return True
+
+    @property
     def nice_name(self) -> str:
         return self.name.replace("_", " ").lower()
 
@@ -47,9 +51,10 @@ class GameState:
     assets: AssetRepo
     transmission: TransmissionRepo
     market_coupling_result: MarketCouplingResult | None
-    round: Round = Round(1)
+    game_round: Round = Round(1)
 
     def __post_init__(self) -> None:
+        assert isinstance(self.game_round, Round), f"game_round must be of type Round. Got {type(self.game_round)}"
         assert isinstance(self.game_id, GameId), f"game_id must be of type GameId. Got {type(self.game_id)}"
 
     @cached_property
@@ -90,34 +95,25 @@ class GameState:
 
     def update(
         self,
+        /,
         *new_attributes: GameStateAttributes,
-        **kw_new_attributes: GameStateAttributes,
     ) -> Self:
-        assert kw_new_attributes.keys() <= vars(self).keys()
-        map_new_attributes = {**kw_new_attributes}
+        map_new_attributes = {}
 
         def append_to_map(key: str, attribute: GameStateAttributes) -> None:
             if key in map_new_attributes:
                 raise ValueError(f"Cannot update {key} multiple times in one update call.")
             map_new_attributes[key] = attribute
 
-        for attr in new_attributes:
-            if isinstance(attr, Phase):
-                append_to_map("phase", attr)
-            elif isinstance(attr, PlayerRepo):
-                append_to_map("players", attr)
-            elif isinstance(attr, BusRepo):
-                append_to_map("buses", attr)
-            elif isinstance(attr, AssetRepo):
-                append_to_map("assets", attr)
-            elif isinstance(attr, TransmissionRepo):
-                append_to_map("transmission", attr)
-            elif isinstance(attr, MarketCouplingResult):
-                append_to_map("market_coupling_result", attr)
-            elif isinstance(attr, Round):
-                append_to_map("round", attr)
-            else:
-                raise TypeError(f"Unsupported type for update: {type(attr)}")
+        # Create a mapping from type to field name using dataclass fields
+        attr_to_type: dict[str, type[GameStateAttributes]] = {f.name: f.type for f in fields(self)}  # type: ignore
+        attr_to_type["market_coupling_result"] = MarketCouplingResult  # type: ignore
+        type_to_attr: dict[type[GameStateAttributes], str] = {v: k for k, v in attr_to_type.items()}
+
+        for k, attr in enumerate(new_attributes):
+            attr_name = type_to_attr.get(type(attr), None)
+            assert attr_name is not None, f"Attribute in position {k} of with value {attr} of {type(attr)} is not a valid GameState attribute."
+            append_to_map(attr_name, attr)
 
         return replace(self, **map_new_attributes)
 
@@ -131,7 +127,7 @@ class GameState:
             "assets": self.assets.to_simple_dict(),
             "transmission": self.transmission.to_simple_dict(),
             "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
-            "round": self.round,
+            "game_round": self.game_round,
         }
 
     @classmethod
@@ -145,5 +141,5 @@ class GameState:
             assets=AssetRepo.from_simple_dict(simple_dict["assets"]),
             transmission=TransmissionRepo.from_simple_dict(simple_dict["transmission"]),
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
-            round=simple_dict["round"],
+            game_round=Round(simple_dict["game_round"]),
         )

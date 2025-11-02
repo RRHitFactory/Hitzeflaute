@@ -230,7 +230,11 @@ class BaseGameInitializer(ABC):
             transmission=transmission_repo,
             market_coupling_result=None,
         )
-        new_game = new_game.update(new_game.players.start_all_turns())
+        if Phase(0).is_turn_based:
+            new_game = new_game.update(new_game.players.start_first_player_turn())
+        else:
+            new_game = new_game.update(new_game.players.start_all_turns())
+
         return new_game
 
     def _create_player_repo(self, names: list[str], colors: list[Color]) -> PlayerRepo:

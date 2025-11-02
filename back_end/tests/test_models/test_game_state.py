@@ -24,15 +24,15 @@ class TestGameState(BaseTest):
 
         dict_vars = dict(vars(game_state_1))
 
-        game_state_2 = game_state_2.update(**dict_vars)
+        game_state_2 = game_state_2.update(*dict_vars.values())
         self.assertEqual(game_state_1, game_state_2)
 
-        dict_vars_incorrect = {**dict_vars, "hello": "world"}
         with self.assertRaises(
-            AssertionError,
-            msg="GameState.update() should not accept keys not in the GameState attributes.",
+            TypeError,
+            msg="GameState.update() got an unexpected keyword argument 'game_id'",
         ):
-            game_state_2.update(**dict_vars_incorrect)
+            # Keyword arguments are not allowed
+            game_state_2.update(game_id=game_state_1.game_id)  # type: ignore
 
         repeated_attributes = [dict_vars["players"], dict_vars["players"]]
         with self.assertRaises(

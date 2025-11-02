@@ -112,7 +112,7 @@ class GridPlotter:
     def make_top_table(cls, game_state: GameState) -> list[ShapePlotObject]:
         top_df = pd.DataFrame(
             {
-                "Round": ["Round", str(game_state.round)],
+                "Round": ["Round", str(game_state.game_round)],
                 "Phase": ["Phase", game_state.phase.name],
             }
         )

@@ -128,6 +128,7 @@ class SerializableDcRecursive:
         init_dict = {}
         for k, field_type in cls.get_serializable_fields().items():
             field_value = simple_dict[k]
+            assert isinstance(field_type, type), f"Field type {field_type} for key {k} is not a type."
             if issubclass(field_type, Serializable) and isinstance(field_value, dict):
                 init_dict[k] = deserialize_dict(x=field_value, t=field_type)
             else:

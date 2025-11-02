@@ -1,12 +1,13 @@
 'use client'
 
 import React, { useState, useMemo } from 'react'
-import { GameState, HoverableElement, mapBackendToDisplay, DisplayBounds } from '@/types/game'
+import { GameState, NPC_PLAYER_ID, HoverableElement, mapBackendToDisplay, DisplayBounds, GamePhase } from '@/types/game'
 import InfoPanel from './InfoPanel'
 import BusComponent from './Bus'
 import AssetComponent from './Asset'
 import TransmissionLineComponent from './TransmissionLine'
 import ConfirmationDialog from '../UI/ConfirmationDialog'
+
 
 interface GridVisualizationProps {
     gameState: GameState
@@ -103,25 +104,52 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
     // Check if asset is purchasable
     const isAssetPurchasable = (asset: any) => {
-        return gameState.phase === 'CONSTRUCTION' &&
-            asset.owner_player === 'npc' &&
-            asset.minimum_acquisition_price > 0
+        console.log('Checking asset purchasability:', {
+            assetId: asset.id,
+            phase: gameState.phase,
+            isConstruction: gameState.phase === GamePhase.CONSTRUCTION,
+            ownerPlayer: asset.owner_player,
+            isNPC: asset.owner_player === NPC_PLAYER_ID,
+            minPrice: asset.minimum_acquisition_price,
+            hasPrice: asset.minimum_acquisition_price > 0,
+            isForSale: asset.is_for_sale
+        })
+
+        return gameState.phase === GamePhase.CONSTRUCTION &&
+            asset.owner_player === NPC_PLAYER_ID &&
+            asset.minimum_acquisition_price > 0 &&
+            (asset.is_for_sale === true || asset.is_for_sale === undefined)
     }
 
     // Check if asset is biddable (owned by current player in bidding phase)
     const isAssetBiddable = (asset: any) => {
-        return gameState.phase === 'BIDDING' &&
-            asset.owner_player === (currentPlayer || 'player_1')
+        return gameState.phase === GamePhase.BIDDING &&
+            asset.owner_player === currentPlayer
     }    // Check if transmission line is purchasable
     const isLinePurchasable = (line: any) => {
-        return gameState.phase === 'CONSTRUCTION' &&
-            line.owner_player === 'npc' &&
-            line.minimum_acquisition_price > 0
+        console.log('Checking line purchasability:', {
+            lineId: line.id,
+            phase: gameState.phase,
+            isConstruction: gameState.phase === GamePhase.CONSTRUCTION,
+            ownerPlayer: line.owner_player,
+            isNPC: line.owner_player === NPC_PLAYER_ID,
+            minPrice: line.minimum_acquisition_price,
+            hasPrice: line.minimum_acquisition_price > 0,
+            isForSale: line.is_for_sale
+        })
+
+        return gameState.phase === GamePhase.CONSTRUCTION &&
+            line.owner_player === NPC_PLAYER_ID &&
+            line.minimum_acquisition_price > 0 &&
+            (line.is_for_sale === true || line.is_for_sale === undefined)
     }
 
     // Get current player money
     const getCurrentPlayerMoney = () => {
-        const player = getPlayerById(currentPlayer || 1)
+        if (currentPlayer === undefined) {
+            return 0
+        }
+        const player = getPlayerById(currentPlayer)
         return player?.money || 0
     }
 

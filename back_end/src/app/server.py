@@ -6,48 +6,28 @@ with WebSocket connections for real-time message communication.
 
 import json
 import logging
+import traceback
 from pathlib import Path
 
 import uvicorn
+from back_end.src.models.server_models import CreateGameRequest, CreateGameResponse, GameStateResponse, WebsocketMessage
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel
 
 from src.app.game_manager import GameManager
 from src.app.game_repo.file_game_repo import FileGameStateRepo
 from src.engine.engine import Engine
 from src.models.ids import GameId, PlayerId
 from src.models.message import (
-    BuyRequest,
-    EndTurn,
     GameToPlayerMessage,
-    OperateLineRequest,
-    UpdateBidRequest,
+    GameUpdate,
 )
-
-# Serialization handled by message objects directly
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-
-# Pydantic models for API requests/responses
-class CreateGameRequest(BaseModel):
-    player_names: list[str]
-
-
-class CreateGameResponse(BaseModel):
-    game_id: str
-    message: str
-
-
-class GameStateResponse(BaseModel):
-    game_state: dict
-    success: bool
-    message: str
 
 
 class ConnectionManager:
@@ -72,28 +52,15 @@ class ConnectionManager:
             if not self.active_connections[game_id]:
                 del self.active_connections[game_id]
 
-    async def send_to_one_player(self, message: str, game_id: GameId, player_id: PlayerId):
+    async def send_to_one_player(self, message: WebsocketMessage) -> None:
+        game_id = message.game_id_obj
+        player_id = message.player_id_obj
         if game_id in self.active_connections and player_id in self.active_connections[game_id]:
             websocket = self.active_connections[game_id][player_id]
             try:
-                await websocket.send_text(message)
+                await websocket.send_text(message.to_string())
             except Exception as e:
                 logger.error(f"Error sending message to {player_id} in game {game_id}: {e}")
-                self.disconnect(game_id, player_id)
-
-    async def send_to_all_players(self, message: str, game_id: GameId):
-        """Send message to all players in a game"""
-        if game_id in self.active_connections:
-            disconnected_players = []
-            for player_id, websocket in self.active_connections[game_id].items():
-                try:
-                    await websocket.send_text(message)
-                except Exception as e:
-                    logger.error(f"Error sending message to {player_id} in game {game_id}: {e}")
-                    disconnected_players.append(player_id)
-
-            # Clean up disconnected players
-            for player_id in disconnected_players:
                 self.disconnect(game_id, player_id)
 
 
@@ -108,17 +75,16 @@ class WebSocketFrontEnd:
         for msg in msgs:
             try:
                 # Convert message to simple dict for JSON serialization
-                message_data = {"type": "game_message", "message_class": msg.__class__.__name__, "data": msg.to_simple_dict()}
-
+                message = WebsocketMessage.from_py_message(msg)
                 import asyncio
 
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
                     # If we're in an async context, create a task
-                    asyncio.create_task(self.connection_manager.send_to_one_player(json.dumps(message_data), msg.game_id, msg.player_id))
+                    asyncio.create_task(self.connection_manager.send_to_one_player(message))
                 else:
                     # If not in async context, run it
-                    loop.run_until_complete(self.connection_manager.send_to_one_player(json.dumps(message_data), msg.game_id, msg.player_id))
+                    loop.run_until_complete(self.connection_manager.send_to_one_player(message))
 
             except Exception as e:
                 logger.error(f"Error handling message {msg}: {e}")
@@ -140,7 +106,7 @@ app.add_middleware(
 connection_manager = ConnectionManager()
 websocket_frontend = WebSocketFrontEnd(connection_manager)
 game_repo = FileGameStateRepo()
-game_manager = GameManager(game_repo=game_repo, game_engine=Engine(), front_end=websocket_frontend)
+game_manager = GameManager(game_repo=game_repo, game_engine=Engine(), front_end_interface=websocket_frontend)
 
 # Frontend static file serving
 frontend_dist_path = Path(__file__).parent.parent.parent.parent / "front_end" / "dist"
@@ -214,7 +180,7 @@ async def delete_game(game_id: str):
 
 
 @app.websocket("/ws/{game_id}/{player_id}")
-async def websocket_endpoint(websocket: WebSocket, game_id: str, player_id: str):
+async def websocket_endpoint(websocket: WebSocket, game_id: str, player_id: str) -> None:
     """WebSocket endpoint for real-time game communication"""
     game_id_true = GameId(int(game_id))
     player_id_true = PlayerId(int(player_id))
@@ -223,8 +189,8 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str, player_id: str)
     # Send initial game state
     try:
         game_state = game_repo.get_game_state(GameId(int(game_id)))
-        initial_message = {"type": "game_state", "data": game_state.to_simple_dict()}
-        await websocket.send_text(json.dumps(initial_message))
+        message = WebsocketMessage.from_py_message(GameUpdate(game_id=game_id_true, player_id=player_id_true, game_state=game_state, message=""))
+        await websocket.send_text(message.to_string())
     except Exception as e:
         logger.error(f"Error sending initial game state: {e}")
 
@@ -234,51 +200,41 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str, player_id: str)
             data = await websocket.receive_text()
 
             try:
-                message_data = json.loads(data)
-                await handle_websocket_message(message_data, game_id_true, player_id_true)
+                message = WebsocketMessage.from_string(data)
+                await handle_websocket_message(message)
             except json.JSONDecodeError:
-                logger.error(f"Invalid JSON received from {player_id_true} in game {game_id_true}: {data}")
-                await websocket.send_text(json.dumps({"type": "error", "message": "Invalid JSON format"}))
+                err = f"Invalid JSON received from {player_id_true} in game {game_id_true}: {data}"
+                logger.error(err)
+                err_msg = WebsocketMessage.make_error(game_id=game_id_true, player_id=player_id_true, error_message=err)
+                await websocket.send_text(err_msg.to_string())
             except Exception as e:
-                logger.error(f"Error handling message from {player_id_true} in game {game_id_true}: {e}")
-                await websocket.send_text(json.dumps({"type": "error", "message": f"Error processing message: {str(e)}"}))
+                err = f"Error handling message from {player_id_true} in game {game_id_true}: {e}"
+                logger.error(err)
+                err_msg = WebsocketMessage.make_error(game_id=game_id_true, player_id=player_id_true, error_message=err)
+                await websocket.send_text(err_msg.to_string())
 
     except WebSocketDisconnect:
         connection_manager.disconnect(game_id_true, player_id_true)
         logger.info(f"Player {player_id_true} disconnected from game {game_id_true}")
 
 
-async def handle_websocket_message(message_data: dict, game_id: GameId, player_id: PlayerId):
+async def handle_websocket_message(message: WebsocketMessage) -> None:
     """Handle incoming WebSocket messages and convert them to game messages"""
 
-    message_type = message_data.get("type")
-    data = message_data.get("data", {})
-
-    # Create the appropriate PlayerToGameMessage based on message type
-    player_message = None
+    print(f"Received message: {message}")
 
     try:
-        if message_type == "buy_request":
-            player_message = BuyRequest.from_simple_dict({**data, "player_id": PlayerId(player_id), "game_id": GameId(int(game_id))})
-        elif message_type == "update_bid_request":
-            player_message = UpdateBidRequest.from_simple_dict({**data, "player_id": PlayerId(player_id), "game_id": GameId(int(game_id))})
-        elif message_type == "operate_line_request":
-            player_message = OperateLineRequest.from_simple_dict({**data, "player_id": PlayerId(player_id), "game_id": GameId(int(game_id))})
-        elif message_type == "end_turn":
-            player_message = EndTurn(player_id=PlayerId(player_id), game_id=GameId(int(game_id)))
+        if message.message_type == "get_game_state":
+            # Shortcut for requesting the game state
+            game_manager.update_players(game_id=message.game_id_obj, players=[message.player_id_obj])
         else:
-            logger.warning(f"Unknown message type: {message_type}")
-            return
-
-        if player_message:
-            # Handle the message through GameManager
-            game_manager.handle_player_message(GameId(int(game_id)), player_message)
+            game_manager.handle_player_message(game_id=message.game_id_obj, msg=message.to_py_message())
 
     except Exception as e:
-        logger.error(f"Error creating player message: {e}")
+        logger.error(f"Error creating player message: {e}: {traceback.format_exc()}")
         # Send error back to client
-        error_message = {"type": "error", "message": f"Error processing {message_type}: {str(e)}"}
-        await connection_manager.send_to_one_player(json.dumps(error_message), game_id, player_id)
+        message = WebsocketMessage.make_error(game_id=message.game_id_obj, player_id=message.player_id_obj, error_message=f"Error processing {message.message_type}: {str(e)}")
+        await connection_manager.send_to_one_player(message)
 
 
 # Health check endpoint

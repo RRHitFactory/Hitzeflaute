@@ -7,6 +7,7 @@ import GameStatus from '@/components/UI/GameStatus'
 import PlayerTable from '@/components/UI/PlayerTable'
 import { GameState } from '@/types/game'
 import { GameAPIClient, useCreateGame, useGamesList } from '@/lib/gameAPI'
+import type { GameWebSocketClient, WebSocketMessage } from '@/lib/gameWebSocket'
 
 // Sample data
 const sampleGameState: GameState = {
@@ -32,7 +33,7 @@ const sampleGameState: GameState = {
         }
     },
     phase: 0, // CONSTRUCTION phase from backend
-    round: 1,
+    game_round: 1,
     market_coupling_result: null,
     buses: {
         class: 'BusRepo',
@@ -192,7 +193,22 @@ export default function Home() {
     const [gameState, setGameState] = useState<GameState | null>(null)
     const [gameId, setGameId] = useState<string | null>(null)
     const [currentPlayer] = useState(1) // For demo purposes, assume player_1 is active
-    const [wsClient, setWsClient] = useState<any | null>(null)
+    const [wsClient, setWsClient] = useState<GameWebSocketClient | null>(null)
+    const [hasReceivedInitialState, setHasReceivedInitialState] = useState(false)
+
+    // Calculate current player from gameState (who is having their turn)
+    const currentPlayerFromGameState = React.useMemo(() => {
+        if (!gameState) return currentPlayer
+
+        // Handle both array format (sample data) and repo format (backend)
+        const playersArray = Array.isArray(gameState.players)
+            ? gameState.players
+            : gameState.players?.data || []
+
+        // Find the player who is currently having their turn
+        const activePlayer = playersArray.find(p => p.is_having_turn)
+        return activePlayer ? activePlayer.id : currentPlayer
+    }, [gameState, currentPlayer])
 
     // Calculate current player name from gameState
     const currentPlayerName = React.useMemo(() => {
@@ -203,19 +219,18 @@ export default function Home() {
             ? gameState.players
             : gameState.players?.data || []
 
-        const player = playersArray.find(p => p.id === currentPlayer)
-        return player ? player.name : `Player ${currentPlayer}`
-    }, [gameState, currentPlayer])
+        const player = playersArray.find(p => p.id === currentPlayerFromGameState)
+        return player ? player.name : `Player ${currentPlayerFromGameState}`
+    }, [gameState, currentPlayerFromGameState])
     const [connectionStatus, setConnectionStatus] = useState('DISCONNECTED')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const { createGame, loading: creatingGame } = useCreateGame()
-    const { games, refresh: refreshGames } = useGamesList()
-    const apiClient = new GameAPIClient()
 
     // Create a new game on component mount
     useEffect(() => {
+        console.log('🚀 Starting game initialization...')
         const initializeGame = async () => {
             try {
                 setLoading(true)
@@ -231,15 +246,39 @@ export default function Home() {
                 const client = new GameWebSocketClient(
                     newGameId,
                     currentPlayer,
-                    (data: any) => {
-                        console.log('WebSocket message received:', data)
-                        if (data.type === 'game_state') {
-                            setGameState(data.data)
-                        } else if (data.type === 'game_message') {
-                            console.log('Game message:', data.message_class, data.data)
-                        } else if (data.type === 'error') {
-                            setError(data.message || 'Unknown server error')
+                    (msg: WebSocketMessage) => {
+                        console.log('=== WebSocket Message Received ===')
+                        if (msg.message_type === 'error') {
+                            console.error('=== SERVER ERROR ===')
+                            console.error(msg.data)
+                            setError(msg.data || 'Unknown server error')
+                        } else if (msg.message_type === 'GameUpdate') {
+                            console.log('=== GAME UPDATE ===')
+                            console.log('Message type:', msg.message_type)
+                            console.log('Raw game state data:', JSON.stringify(msg.data, null, 2))
+                            // Validate the structure
+                            const gameStateData = msg.data.game_state
+
+                            // Check players for is_having_turn
+                            if (gameStateData?.players?.data) {
+                                console.log('Players details:')
+                                gameStateData.players.data.forEach((player: any, index: number) => {
+                                    console.log(`  Player ${index}:`, {
+                                        id: player.id,
+                                        name: player.name,
+                                        is_having_turn: player.is_having_turn,
+                                        money: player.money
+                                    })
+                                })
+                            }
+                            setGameState(gameStateData)
+                            setHasReceivedInitialState(true)
+                        } else {
+                            console.log('=== UNKNOWN MESSAGE TYPE ===')
+                            console.log('Message type:', msg.message_type)
+                            console.log('Raw message data:', JSON.stringify(msg, null, 2))
                         }
+                        console.log('=== End WebSocket Message Processing ===')
                     },
                     (error: any) => {
                         console.error('WebSocket error:', error)
@@ -249,6 +288,7 @@ export default function Home() {
                         console.log('WebSocket closed:', event)
                         setConnectionStatus('DISCONNECTED')
                     }
+
                 )
 
                 setWsClient(client)
@@ -287,7 +327,7 @@ export default function Home() {
         }
 
         console.log('Purchasing asset:', assetId)
-        wsClient.buyAsset(assetId)
+        wsClient.buyAsset(assetId.toString())
     }
 
     const handlePurchaseTransmissionLine = (lineId: number) => {
@@ -297,7 +337,7 @@ export default function Home() {
         }
 
         console.log('Purchasing transmission line:', lineId)
-        wsClient.buyTransmissionLine(lineId)
+        wsClient.buyTransmissionLine(lineId.toString())
     }
 
     const handleBidAsset = (assetId: number, newBidPrice: number) => {
@@ -307,7 +347,7 @@ export default function Home() {
         }
 
         console.log('Updating bid for asset:', assetId, 'to:', newBidPrice)
-        wsClient.updateBid(assetId, newBidPrice)
+        wsClient.updateBid(assetId.toString(), newBidPrice)
     }
 
     const handleEndTurn = () => {
@@ -321,14 +361,17 @@ export default function Home() {
     }
 
     // Show loading screen while initializing
-    if (loading || !gameState) {
+    if (loading || !gameState || connectionStatus !== 'CONNECTED' || !hasReceivedInitialState) {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
                     <h2 className="text-xl font-semibold text-gray-900">Initializing Game...</h2>
                     <p className="text-gray-600 mt-2">
-                        {creatingGame ? 'Creating new game...' : 'Connecting to server...'}
+                        {creatingGame ? 'Creating new game...' :
+                            connectionStatus === 'CONNECTING' ? 'Connecting to server...' :
+                                connectionStatus === 'DISCONNECTED' ? 'Waiting for connection...' :
+                                    'Loading game state...'}
                     </p>
                 </div>
             </div>
@@ -356,7 +399,7 @@ export default function Home() {
                             </div>
                             {/* Game Status */}
                             <div className="flex-shrink-0">
-                                <GameStatus phase={gameState.phase} round={gameState.round} />
+                                <GameStatus phase={gameState.phase} round={gameState.game_round} />
                             </div>
                         </div>
                     </div>
@@ -390,7 +433,7 @@ export default function Home() {
                                 onPurchaseAsset={handlePurchaseAsset}
                                 onPurchaseTransmissionLine={handlePurchaseTransmissionLine}
                                 onBidAsset={handleBidAsset}
-                                currentPlayer={currentPlayer}
+                                currentPlayer={currentPlayerFromGameState}
                             />
                         </div>
                     </div>
@@ -398,22 +441,13 @@ export default function Home() {
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Game Controls */}
-                        <div className="bg-white rounded-lg shadow-sm border p-6">
-                            <h3 className="text-lg font-bold mb-4 text-black">Controls</h3>
-                            <div className="space-y-4">
-                                <button
-                                    onClick={handleEndTurn}
-                                    disabled={!wsClient || !wsClient.isConnected()}
-                                    className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                                >
-                                    End Turn
-                                </button>
-                                <div className="text-sm text-gray-600">
-                                    <p>Game ID: {gameId}</p>
-                                    <p>Current Player: {currentPlayerName}</p>
-                                </div>
-                            </div>
-                        </div>
+                        <GameControls
+                            gameState={gameState}
+                            gameId={gameId}
+                            currentPlayerName={currentPlayerName}
+                            isConnected={wsClient?.isConnected() || false}
+                            onEndTurn={handleEndTurn}
+                        />
 
                         {/* Player Information */}
                         <div className="bg-white rounded-lg shadow-sm border p-4">

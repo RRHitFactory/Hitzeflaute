@@ -69,7 +69,7 @@ class Referee:
     ) -> tuple[GameState, list[LoadsDeactivatedMessage]]:
         def deactivate_player_loads(game_state: GameState, loads: list[AssetId]) -> GameState:
             asset_repo = game_state.assets.batch_deactivate(loads)
-            return game_state.update(assets=asset_repo)
+            return game_state.update(asset_repo)
 
         msgs = []
         ids_to_deactivate = []
@@ -122,7 +122,7 @@ class Referee:
                 asset_repo = asset_repo.melt_ice_cream(freezer.id)
                 melted_ids.append(freezer.id)
 
-        new_gs = gs.update(assets=asset_repo)
+        new_gs = gs.update(asset_repo)
         msgs = generate_melted_ice_cream_messages(new_gs, melted_ids)
 
         return new_gs, msgs
@@ -145,7 +145,7 @@ class Referee:
         for tid in congested_transmissions:
             transmission_repo = transmission_repo.wear_transmission(tid)
 
-        new_gs = gs.update(transmission=transmission_repo)
+        new_gs = gs.update(transmission_repo)
 
         msgs = [
             TransmissionWornMessage(
@@ -173,7 +173,7 @@ class Referee:
             asset_repo = asset_repo.wear_asset(asset_id=asset.id)
             melted_ids.append(asset.id)
 
-        new_gs = gs.update(assets=asset_repo)
+        new_gs = gs.update(asset_repo)
 
         warn_asset_messages = [
             AssetWornMessage(
