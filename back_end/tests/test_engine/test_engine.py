@@ -31,7 +31,7 @@ class DummyMessage(PlayerToGameMessage):
     pass
 
 
-class TestAssets(BaseTest):
+class TestEngine(BaseTest):
     def test_bad_message(self) -> None:
         game_state = GameStateMaker().make()
         dumb_message = DummyMessage(game_id=GameId(1), player_id=PlayerId(5))
