@@ -233,7 +233,7 @@ class Engine:
         ) -> tuple[GameState, list[Message]]:
             if new_game_state is None:
                 new_game_state = game_state
-            response = OperateAssetResponse(player_id=msg.player_id, request=msg, result=result, message=text)
+            response = OperateAssetResponse(game_id=game_state.game_id, player_id=msg.player_id, request=msg, result=result, message=text)
             return new_game_state, [response]
 
         if game_state.phase != Phase.BIDDING:
@@ -253,7 +253,7 @@ class Engine:
             if not asset.is_active:
                 return make_response(result="no_change", text="Asset is already off.")
             else:
-                new_state = game_state.update(assets=game_state.assets.deactivate(asset.id))
+                new_state = game_state.update(game_state.assets.deactivate(asset.id))
                 return make_response(
                     result="success",
                     text="Asset successfully deactivated.",
@@ -268,7 +268,7 @@ class Engine:
         if asset.is_active:
             return make_response(result="no_change", text="Asset is already running.")
 
-        new_state = game_state.update(assets=game_state.assets.activate(asset.id))
+        new_state = game_state.update(game_state.assets.activate(asset.id))
         return make_response(
             result="success",
             text="Asset successfully activated.",
