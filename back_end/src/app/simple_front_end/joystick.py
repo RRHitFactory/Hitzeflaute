@@ -10,6 +10,7 @@ from src.models.message import (
     EndTurn,
     GameToPlayerMessage,
     GameUpdate,
+    OperateAssetRequest,
     OperateLineRequest,
     PlayerToGameMessage,
     UpdateBidRequest,
@@ -109,6 +110,22 @@ class Joystick:
     def close_line(self, transmission_id: int) -> None:
         t_id = TransmissionId(transmission_id)
         message = OperateLineRequest(game_id=self._game_id, player_id=self._current_player_id, transmission_id=t_id, action="close")
+        self._send_message(message)
+
+    def start_asset(self, asset_id: int) -> None:
+        message = OperateAssetRequest(
+            player_id=self._current_player_id,
+            asset_id=AssetId(asset_id),
+            action="startup",
+        )
+        self._send_message(message)
+
+    def shutdown_asset(self, asset_id: int) -> None:
+        message = OperateAssetRequest(
+            player_id=self._current_player_id,
+            asset_id=AssetId(asset_id),
+            action="shutdown",
+        )
         self._send_message(message)
 
     def update_bid(self, asset_id: int, new_bid: float) -> None:

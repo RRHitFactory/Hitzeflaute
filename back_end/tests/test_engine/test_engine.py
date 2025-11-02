@@ -1,4 +1,5 @@
 from src.engine.engine import Engine
+from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
@@ -7,6 +8,8 @@ from src.models.message import (
     BuyRequest,
     BuyResponse,
     IceCreamMeltedMessage,
+    OperateAssetRequest,
+    OperateAssetResponse,
     OperateLineRequest,
     OperateLineResponse,
     PlayerToGameMessage,
@@ -175,6 +178,89 @@ class TestEngine(BaseTest):
         response = self.assertIsInstance(response, OperateLineResponse)
         self.assertEqual(response.result, "failure")
         self.assertEqual(game_state.transmission[not_my_line.id].is_open, False)
+
+    def test_operate_asset_messages(self) -> None:
+        player_repo = PlayerRepoMaker.make_quick()
+        broke_player = Player(
+            id=PlayerId(100),
+            name="Broke player",
+            color=Color("black"),
+            money=-100,
+            is_having_turn=True,
+        )
+        player_repo += broke_player
+        bus_repo = BusRepoMaker.make_quick(n_npc_buses=5, players=player_repo)
+        asset_repo = AssetRepoMaker.make_quick(players=player_repo, bus_repo=bus_repo)
+
+        player = player_repo.human_players[0]
+        my_generator = AssetInfo(id=AssetId(100), owner_player=player.id, asset_type=AssetType.GENERATOR, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=True)
+        my_load = AssetInfo(id=AssetId(101), owner_player=player.id, asset_type=AssetType.LOAD, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=True)
+        broke_player_load = AssetInfo(id=AssetId(102), owner_player=broke_player.id, asset_type=AssetType.LOAD, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=False)
+        asset_repo = asset_repo + my_generator + my_load + broke_player_load
+
+        game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.BIDDING).make()
+
+        # Test deactivate my generator
+        deactivate_asset = OperateAssetRequest(player_id=player.id, asset_id=my_generator.id, action="shutdown")
+
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_asset)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        response = self.assertIsInstance(response, OperateAssetResponse)
+        self.assertEqual(response.result, "success")
+        self.assertEqual(game_state.assets[my_generator.id].is_active, False)
+
+        # Try to deactivate it again
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_asset)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        response = self.assertIsInstance(response, OperateAssetResponse)
+        self.assertEqual(response.result, "no_change")
+        self.assertEqual(game_state.assets[my_generator.id].is_active, False)
+
+        # Try activating my generator
+        activate_asset = OperateAssetRequest(player_id=player.id, asset_id=my_generator.id, action="startup")
+
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=activate_asset)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        response = self.assertIsInstance(response, OperateAssetResponse)
+        self.assertEqual(response.result, "success")
+        self.assertEqual(game_state.assets[my_generator.id].is_active, True)
+
+        # Try to activate it again
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=activate_asset)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        response = self.assertIsInstance(response, OperateAssetResponse)
+        self.assertEqual(response.result, "no_change")
+        self.assertEqual(game_state.assets[my_generator.id].is_active, True)
+
+        # Try to operate an asset that I do not own
+        broke_player_load_activate = OperateAssetRequest(player_id=player.id, asset_id=broke_player_load.id, action="startup")
+
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=broke_player_load_activate)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        response = self.assertIsInstance(response, OperateAssetResponse)
+        self.assertEqual(response.result, "failure")
+        self.assertEqual(game_state.assets[broke_player_load.id].is_active, False)
+
+        # Broke player tries to activate their own load
+        broke_player_load_activate = OperateAssetRequest(player_id=broke_player.id, asset_id=broke_player_load.id, action="startup")
+
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=broke_player_load_activate)
+
+        self.assertEqual(len(responses), 1)
+        response = responses[0]
+        response = self.assertIsInstance(response, OperateAssetResponse)
+        self.assertEqual(response.result, "failure")
+        self.assertEqual(game_state.assets[broke_player_load.id].is_active, False)
 
     def test_post_clearing_book_keeping(self):
         game_maker = GameStateMaker()
