@@ -11,6 +11,11 @@
     "python.terminal.activateEnvironment": true,
     "python.analysis.typeCheckingMode": "basic",
     "python.analysis.diagnosticMode": "workspace",
+    "python.venvPath": "${workspaceFolder}\\back_end",
+    "python.venvFolders": [
+        "${workspaceFolder}\\back_end"
+    ],
+    "python.defaultInterpreterPath": "${workspaceFolder}\\back_end\\.venv\\Scripts\\python.exe",
     "[python]": {
         "editor.defaultFormatter": "charliermarsh.ruff",
         "editor.codeActionsOnSave": {
@@ -19,10 +24,46 @@
             "source.unusedImports": "always"
         }
     },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "always",
+            "source.fixAll.eslint": "always"
+        }
+    },
+    "[typescriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "always",
+            "source.fixAll.eslint": "always"
+        }
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "always",
+            "source.fixAll.eslint": "always"
+        }
+    },
+    "[javascriptreact]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "always",
+            "source.fixAll.eslint": "always"
+        }
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSave": true
+    },
     "autoDocstring.generateDocstringOnEnter": true,
     "autoDocstring.docstringFormat": "google",
     "terminal.integrated.env.windows": {
-        "PYTHONPATH": "${workspaceFolder}"
+        "PYTHONPATH": "${workspaceFolder};${workspaceFolder}\\back_end"
     },
     "workbench.tree.indent": 20,
     "editor.semanticTokenColorCustomizations": {
