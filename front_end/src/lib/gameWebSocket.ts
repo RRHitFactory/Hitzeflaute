@@ -40,7 +40,7 @@ export class GameWebSocketClient {
     playerId: number,
     onMessage?: (data: WebSocketMessage) => void,
     onError?: (error: Event) => void,
-    onClose?: (event: CloseEvent) => void
+    onClose?: (event: CloseEvent) => void,
   ) {
     this.gameId = gameId;
     this.playerId = playerId;
@@ -96,7 +96,7 @@ export class GameWebSocketClient {
           console.error("Raw message that failed to parse:", event.data);
           console.error(
             "Error details:",
-            error instanceof Error ? error.message : error
+            error instanceof Error ? error.message : error,
           );
         }
         console.log("=== End Raw WebSocket Processing ===");
@@ -128,7 +128,7 @@ export class GameWebSocketClient {
   private attemptReconnect(): void {
     this.reconnectAttempts++;
     console.log(
-      `Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`
+      `Attempting to reconnect... (${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
     );
 
     setTimeout(() => {
@@ -265,7 +265,7 @@ export class GameWebSocketClient {
 export function useGameWebSocket(
   gameId: number,
   playerId: number,
-  callbacks: GameWebSocketCallbacks = {}
+  callbacks: GameWebSocketCallbacks = {},
 ) {
   const [client, setClient] = useState<GameWebSocketClient | null>(null);
   const [connectionState, setConnectionState] =
@@ -283,7 +283,7 @@ export function useGameWebSocket(
         "⏸️  WebSocket hook waiting for valid gameId:",
         gameId,
         "playerId:",
-        playerId
+        playerId,
       );
       return;
     }
@@ -292,7 +292,7 @@ export function useGameWebSocket(
       "🔌 WebSocket hook connecting to gameId:",
       gameId,
       "playerId:",
-      playerId
+      playerId,
     );
 
     const wsClient = new GameWebSocketClient(
@@ -304,7 +304,7 @@ export function useGameWebSocket(
           console.log("Message type:", msg.message_type);
           console.log(
             "Raw game state data:",
-            JSON.stringify(msg.data, null, 2)
+            JSON.stringify(msg.data, null, 2),
           );
           // Validate the structure
           const gameStateData = msg.data.game_state;
@@ -336,7 +336,7 @@ export function useGameWebSocket(
         setConnectionState(wsClient.getConnectionState());
       },
       callbacksRef.current.onError,
-      callbacksRef.current.onClose
+      callbacksRef.current.onClose,
     );
 
     setClient(wsClient);

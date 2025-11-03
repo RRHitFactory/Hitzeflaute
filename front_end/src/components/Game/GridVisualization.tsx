@@ -31,7 +31,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   currentPlayer,
 }) => {
   const [hoveredElement, setHoveredElement] = useState<HoverableElement | null>(
-    null
+    null,
   );
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
   const [confirmationDialog, setConfirmationDialog] = useState<{
@@ -44,7 +44,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   const handleElementHover = (
     element: HoverableElement,
-    event: React.MouseEvent
+    event: React.MouseEvent,
   ) => {
     const svgRect = event.currentTarget.closest("svg")?.getBoundingClientRect();
     const rect = event.currentTarget.getBoundingClientRect();
@@ -98,7 +98,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         bus.x,
         bus.y,
         gameState.game_settings.map_area,
-        displayBounds
+        displayBounds,
       );
       return { ...bus, displayX: displayCoords.x, displayY: displayCoords.y };
     });
@@ -320,7 +320,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 currentPlayer={currentPlayer}
               />
             );
-          })
+          }),
         )}
       </svg>
 

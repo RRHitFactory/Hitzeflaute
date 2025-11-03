@@ -41,7 +41,7 @@ export default function Home() {
       onError: handleError,
       onClose: handleClose,
     }),
-    [handleMessage, handleError, handleClose]
+    [handleMessage, handleError, handleClose],
   );
 
   // Use the WebSocket hook - always call to follow Rules of Hooks
@@ -76,7 +76,7 @@ export default function Home() {
       : gameState.players?.data || [];
 
     const player = playersArray.find(
-      (p: any) => p.id === currentPlayerFromGameState
+      (p: any) => p.id === currentPlayerFromGameState,
     );
     return player ? player.name : `Player ${currentPlayerFromGameState}`;
   }, [gameState, currentPlayerFromGameState]);
@@ -100,7 +100,7 @@ export default function Home() {
       } catch (err) {
         console.error("Failed to initialize game:", err);
         setError(
-          err instanceof Error ? err.message : "Failed to initialize game"
+          err instanceof Error ? err.message : "Failed to initialize game",
         );
       } finally {
         setLoading(false);
@@ -165,10 +165,10 @@ export default function Home() {
             {creatingGame
               ? "Creating new game..."
               : connectionState === "CONNECTING"
-              ? "Connecting to server..."
-              : connectionState === "DISCONNECTED"
-              ? "Waiting for connection..."
-              : "Loading game state..."}
+                ? "Connecting to server..."
+                : connectionState === "DISCONNECTED"
+                  ? "Waiting for connection..."
+                  : "Loading game state..."}
           </p>
         </div>
       </div>
@@ -191,16 +191,16 @@ export default function Home() {
                     connectionState === "CONNECTED"
                       ? "bg-green-500"
                       : connectionState === "CONNECTING"
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
                   }`}
                 ></div>
                 <span className="text-sm text-gray-600">
                   {connectionState === "CONNECTED"
                     ? "Connected"
                     : connectionState === "CONNECTING"
-                    ? "Connecting..."
-                    : "Disconnected"}
+                      ? "Connecting..."
+                      : "Disconnected"}
                 </span>
               </div>
               {/* Game Status */}
