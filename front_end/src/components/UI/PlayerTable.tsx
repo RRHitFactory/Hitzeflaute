@@ -1,7 +1,7 @@
 "use client";
 
+import { GameState, NPC_PLAYER_ID, Player } from "@/types/game";
 import React from "react";
-import { Player, GameState } from "@/types/game";
 
 interface PlayerTableProps {
   players: Player[];
@@ -10,6 +10,8 @@ interface PlayerTableProps {
 
 const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState }) => {
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
+
+  const humanPlayers = players.filter((player) => player.id !== NPC_PLAYER_ID);
 
   const getIceCreams = (playerId: number) => {
     if (!gameState) {
@@ -60,7 +62,7 @@ const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState }) => {
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {players.map((player) => (
+          {humanPlayers.map((player) => (
             <tr key={player.id} className="hover:bg-gray-50">
               <td
                 className="px-2 py-2 whitespace-nowrap"
