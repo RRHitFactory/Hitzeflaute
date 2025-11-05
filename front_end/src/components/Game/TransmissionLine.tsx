@@ -1,7 +1,7 @@
 "use client";
 
+import { Bus, HoverableElement, Player, TransmissionLine } from "@/types/game";
 import React from "react";
-import { TransmissionLine, Bus, HoverableElement, Player } from "@/types/game";
 
 interface TransmissionLineProps {
   line: TransmissionLine;
@@ -85,21 +85,19 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
 
   // Create curved line with multiple points similar to the Python implementation
   // Use display coordinates if available, fallback to original coordinates
-  const fromX = (fromBus as any).displayX || fromBus.x;
-  const fromY = (fromBus as any).displayY || fromBus.y;
-  const toX = (toBus as any).displayX || toBus.x;
-  const toY = (toBus as any).displayY || toBus.y;
+  const from = fromBus.display_point!;
+  const to = toBus.display_point!;
 
-  const vector = { x: toX - fromX, y: toY - fromY };
-  const midX = (fromX + toX) / 2;
-  const midY = (fromY + toY) / 2;
+  const vector = { x: to.x - from.x, y: to.y - from.y };
+  const midX = (from.x + to.x) / 2;
+  const midY = (from.y + to.y) / 2;
 
   // Add slight curve by offsetting the middle point
   const curveOffset = 0.1;
   const offsetX = vector.y * curveOffset;
   const offsetY = -vector.x * curveOffset;
 
-  const pathData = `M ${fromX} ${fromY} Q ${midX + offsetX} ${midY + offsetY} ${toX} ${toY}`;
+  const pathData = `M ${from.x} ${from.y} Q ${midX + offsetX} ${midY + offsetY} ${to.x} ${to.y}`;
 
   // Check if player can afford this line
   const canAfford =

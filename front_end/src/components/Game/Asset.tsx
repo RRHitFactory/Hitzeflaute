@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
 import { Asset, Bus, HoverableElement, Player } from "@/types/game";
+import React, { useState } from "react";
 
 interface AssetProps {
   asset: Asset;
@@ -22,7 +22,6 @@ const AssetComponent: React.FC<AssetProps> = ({
   asset,
   bus,
   owner,
-  position,
   onHover,
   onLeave,
   isPurchasable = false,
@@ -32,6 +31,8 @@ const AssetComponent: React.FC<AssetProps> = ({
   onBid,
   currentPlayer,
 }) => {
+  const [isHovered, setIsHovered] = useState(false);
+
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
 
@@ -69,6 +70,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   const handleMouseEnter = (event: React.MouseEvent) => {
+    setIsHovered(true);
     onHover(
       {
         type: "asset",
@@ -78,6 +80,11 @@ const AssetComponent: React.FC<AssetProps> = ({
       },
       event,
     );
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    onLeave();
   };
 
   const handlePurchaseClick = (event: React.MouseEvent) => {
@@ -118,7 +125,7 @@ const AssetComponent: React.FC<AssetProps> = ({
     return brightness > 128 ? "#000000" : "#FFFFFF";
   };
 
-  const radius = 5; // Increased from 12
+  const radius = 5;
   const fillColor = getAssetColor();
   const textColor = getContrastColor(fillColor);
 
@@ -154,8 +161,14 @@ const AssetComponent: React.FC<AssetProps> = ({
     }
   };
 
+  const position = asset.display_point!;
+  const hover_position = asset.hover_point!;
+
   return (
-    <g>
+    <g 
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       {/* Glow effect for purchasable assets */}
       {isPurchasable && (
         <circle
@@ -186,10 +199,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       <circle
         cx={position.x}
         cy={position.y}
-        r={radius}
+        r={radius + 5}
         fill="transparent"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={onLeave}
         onClick={isBiddable ? handleBidClick : undefined}
         style={{ cursor: isBiddable ? "pointer" : "default" }}
       />
@@ -203,7 +214,7 @@ const AssetComponent: React.FC<AssetProps> = ({
         strokeWidth={isPurchasable || isBiddable ? "2" : "1"}
         pointerEvents="none"
       />{" "}
-      {/* Asset type text */}
+      {/* Asset text */}
       <text
         x={position.x}
         y={position.y + 5}
@@ -215,12 +226,12 @@ const AssetComponent: React.FC<AssetProps> = ({
       >
         {getAssetText()}
       </text>
-      {/* Purchase button for purchasable assets */}
-      {isPurchasable && (
+      {/* Purchase button for purchasable assets - only show when hovered */}
+      {isPurchasable && isHovered && (
         <g className="purchase-button" opacity="0.9">
           <circle
-            cx={position.x + 25}
-            cy={position.y - 20}
+            cx={hover_position.x}
+            cy={hover_position.y}
             r="10"
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
@@ -228,11 +239,10 @@ const AssetComponent: React.FC<AssetProps> = ({
             style={{ cursor: canAfford ? "pointer" : "not-allowed" }}
             onClick={canAfford ? handlePurchaseClick : undefined}
             onMouseEnter={handlePurchaseButtonHover}
-            onMouseLeave={onLeave}
           />
           <text
-            x={position.x + 25}
-            y={position.y - 16}
+            x={hover_position.x}
+            y={hover_position.y}
             textAnchor="middle"
             fontSize="10"
             fill="white"

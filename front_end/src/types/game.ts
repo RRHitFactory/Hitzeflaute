@@ -6,6 +6,8 @@ export interface Bus {
   max_lines: number;
   max_assets: number;
   color: string;
+  display_point?: Point;
+  hover_point?: Point;
 }
 
 export interface TransmissionLine {
@@ -42,6 +44,8 @@ export interface Asset {
   is_active: boolean;
   birthday: number;
   color: string;
+  display_point?: Point;
+  hover_point?: Point;
 }
 
 export interface Player {
@@ -198,6 +202,15 @@ export function mapBackendToDisplay(
   const displayY =
     displayBounds.padding +
     ((backendY - bounds.minY) / mapHeight) * availableHeight;
+
+  console.log("🗺️ Coordinate mapping:", {
+    backend: { x: backendX, y: backendY },
+    bounds,
+    mapDimensions: { width: mapWidth, height: mapHeight },
+    displayBounds,
+    availableDimensions: { width: availableWidth, height: availableHeight },
+    result: { x: displayX, y: displayY },
+  });
 
   return { x: displayX, y: displayY };
 }

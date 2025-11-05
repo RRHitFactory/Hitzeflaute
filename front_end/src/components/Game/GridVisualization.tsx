@@ -1,12 +1,15 @@
 "use client";
 
 import {
+  Asset,
+  Bus,
   DisplayBounds,
   GamePhase,
   GameState,
   HoverableElement,
   mapBackendToDisplay,
   NPC_PLAYER_ID,
+  Point
 } from "@/types/game";
 import React, { useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
@@ -14,6 +17,8 @@ import AssetComponent from "./Asset";
 import BusComponent from "./Bus";
 import InfoPanel from "./InfoPanel";
 import TransmissionLineComponent from "./TransmissionLine";
+
+
 
 interface GridVisualizationProps {
   gameState: GameState;
@@ -91,16 +96,30 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     padding: 20, // Padding from edges
   };
 
-  // Map backend coordinates to display coordinates
-  const busesWithDisplayCoords = useMemo(() => {
-    return getBusesArray().map((bus) => {
+  // Set display coordinates on buses
+  const buses: Bus[] = useMemo(() => {
+    const busArray = getBusesArray();
+    console.log("🚌 DEBUG: Processing buses:", {
+      totalBuses: busArray.length,
+      mapArea: gameState.game_settings.map_area,
+      displayBounds,
+    });
+    
+    return busArray.map((bus) => {
       const displayCoords = mapBackendToDisplay(
         bus.x,
         bus.y,
         gameState.game_settings.map_area,
         displayBounds,
       );
-      return { ...bus, displayX: displayCoords.x, displayY: displayCoords.y };
+      
+      console.log(`🚌 Bus ${bus.id}:`, {
+        backendCoords: { x: bus.x, y: bus.y },
+        displayCoords,
+        playerId: bus.player_id,
+      });
+      
+      return { ...bus, display_point: displayCoords };
     });
   }, [
     gameState.buses,
@@ -109,28 +128,51 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     getBusesArray,
   ]);
 
-  // Find bus by ID (with display coordinates)
-  const getBusById = (id: number) =>
-    busesWithDisplayCoords.find((bus) => bus.id === id);
-
-  // Get assets for a specific bus and calculate their positions
-  const getAssetsForBus = (busId: number) => {
-    const bus = getBusById(busId);
-    if (!bus) return [];
-
-    const assets = getAssetsArray().filter((asset) => asset.bus === busId);
-    return assets.map((asset, index) => {
-      // Position assets around the bus using display coordinates
-      const offsetRadius = 15;
-      const angleStep = (2 * Math.PI) / Math.max(assets.length, 4);
-      const angle = index * angleStep;
-
-      const x = bus.displayX + offsetRadius * Math.cos(angle);
-      const y = bus.displayY + offsetRadius * Math.sin(angle);
-
-      return { asset, position: { x, y } };
+  // Set display coordinates on assets
+  const assets: Asset[] = useMemo(() => {
+    const allAssets: Asset[] = getAssetsArray();
+    console.log("⚡ DEBUG: Processing assets:", {
+      totalAssets: allAssets.length,
+      totalBuses: buses.length,
     });
-  };
+    
+    return allAssets.map((asset) => {
+      const bus = buses.find((b) => b.id === asset.bus);
+      console.log(`⚡ Asset ${asset.id} (${asset.asset_type}):`, {
+        busId: asset.bus,
+        foundBus: !!bus,
+        busDisplayPoint: bus?.display_point,
+        ownerPlayer: asset.owner_player,
+      });
+      
+      if (!bus || !bus.display_point) {
+        console.warn(`⚠️ Asset ${asset.id}: No bus found or no display_point for bus ${asset.bus}`);
+        return { ...asset, display_point: { x: 0, y: 0 } };
+      }
+
+      // Calculate asset position around the bus
+      const assetsAtBus = allAssets.filter((a) => a.bus === asset.bus);
+      const assetIndex = assetsAtBus.findIndex((a) => a.id === asset.id);
+      
+      const offsetRadius = 15;
+      const angleStep = (2 * Math.PI) / Math.max(assetsAtBus.length, 4);
+      const angle = assetIndex * angleStep;
+
+      const x = bus.display_point.x + offsetRadius * Math.cos(angle);
+      const y = bus.display_point.y + offsetRadius * Math.sin(angle);
+      const display_point: Point = { x, y };
+
+      const hover_distance = 15;
+      const hover_x = x + hover_distance * Math.cos(angle);
+      const hover_y = y + hover_distance * Math.sin(angle);
+      const hover_point: Point = { x: hover_x, y: hover_y };
+
+      return { ...asset, display_point: display_point, hover_point: hover_point};
+    });
+  }, [buses, gameState.assets, getAssetsArray]);
+
+  // Find bus by ID (with display coordinates)
+  const getBusById = (id: number) => buses.find((bus) => bus.id === id);
 
   // Get player by ID
   const getPlayerById = (playerId: number) =>
@@ -138,17 +180,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Check if asset is purchasable
   const isAssetPurchasable = (asset: any) => {
-    console.log("Checking asset purchasability:", {
-      assetId: asset.id,
-      phase: gameState.phase,
-      isConstruction: gameState.phase === GamePhase.CONSTRUCTION,
-      ownerPlayer: asset.owner_player,
-      isNPC: asset.owner_player === NPC_PLAYER_ID,
-      minPrice: asset.minimum_acquisition_price,
-      hasPrice: asset.minimum_acquisition_price > 0,
-      isForSale: asset.is_for_sale,
-    });
-
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
       asset.owner_player === NPC_PLAYER_ID &&
@@ -165,17 +196,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     );
   }; // Check if transmission line is purchasable
   const isLinePurchasable = (line: any) => {
-    console.log("Checking line purchasability:", {
-      lineId: line.id,
-      phase: gameState.phase,
-      isConstruction: gameState.phase === GamePhase.CONSTRUCTION,
-      ownerPlayer: line.owner_player,
-      isNPC: line.owner_player === NPC_PLAYER_ID,
-      minPrice: line.minimum_acquisition_price,
-      hasPrice: line.minimum_acquisition_price > 0,
-      isForSale: line.is_for_sale,
-    });
-
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
       line.owner_player === NPC_PLAYER_ID &&
@@ -271,7 +291,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
             <TransmissionLineComponent
               key={line.id}
               line={line}
-              buses={busesWithDisplayCoords}
+              buses={buses}
               owner={owner}
               onHover={handleElementHover}
               onLeave={handleMouseLeave}
@@ -283,7 +303,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         })}
 
         {/* Buses */}
-        {busesWithDisplayCoords.map((bus) => {
+        {buses.map((bus) => {
           const owner = getPlayerById(bus.player_id);
           if (!owner) return null;
           return (
@@ -297,31 +317,47 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
           );
         })}
 
+        {/* Debug: Show bus centers as red dots */}
+        {buses.map((bus) => (
+          bus.display_point && (
+            <circle
+              key={`debug-bus-${bus.id}`}
+              cx={bus.display_point.x}
+              cy={bus.display_point.y}
+              r="3"
+              fill="red"
+              opacity="0.7"
+            />
+          )
+        ))}
+
         {/* Assets */}
-        {busesWithDisplayCoords.map((bus) =>
-          getAssetsForBus(bus.id).map(({ asset, position }) => {
-            const owner = getPlayerById(asset.owner_player);
-            if (!owner) return null;
-            const isPurchasable = isAssetPurchasable(asset);
-            return (
-              <AssetComponent
-                key={asset.id}
-                asset={asset}
-                bus={bus}
-                owner={owner}
-                position={position}
-                onHover={handleElementHover}
-                onLeave={handleMouseLeave}
-                isPurchasable={isPurchasable}
-                onPurchase={handleAssetPurchaseRequest}
-                playerMoney={getCurrentPlayerMoney()}
-                isBiddable={isAssetBiddable(asset)}
-                onBid={onBidAsset}
-                currentPlayer={currentPlayer}
-              />
-            );
-          }),
-        )}
+        {assets.map((asset) => {
+          const owner = getPlayerById(asset.owner_player);
+          const bus = getBusById(asset.bus);
+          if (!owner || !bus) {
+            console.warn(`⚠️ Skipping asset ${asset.id}: owner=${!!owner}, bus=${!!bus}`);
+            return null;
+          }
+          const isPurchasable = isAssetPurchasable(asset);
+          return (
+            <AssetComponent
+              key={asset.id}
+              asset={asset}
+              bus={bus}
+              owner={owner}
+              position={asset.display_point!}
+              onHover={handleElementHover}
+              onLeave={handleMouseLeave}
+              isPurchasable={isPurchasable}
+              onPurchase={handleAssetPurchaseRequest}
+              playerMoney={getCurrentPlayerMoney()}
+              isBiddable={isAssetBiddable(asset)}
+              onBid={onBidAsset}
+              currentPlayer={currentPlayer}
+            />
+          );
+        })}
       </svg>
 
       {/* Info Panel */}
