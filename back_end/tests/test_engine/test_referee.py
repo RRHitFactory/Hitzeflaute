@@ -30,7 +30,7 @@ class TestReferee(BaseTest):
             n_random_congested_transmissions=2,
             n_players_with_no_power_for_ice_cream=n_melted,
         )
-        game_state = game_state.update(phase=Phase.DA_AUCTION, market_coupling_result=market_coupling_result)
+        game_state = game_state.update(Phase.DA_AUCTION, market_coupling_result)
 
         return game_state, market_coupling_result
 
@@ -38,7 +38,7 @@ class TestReferee(BaseTest):
         n_melted = 2
         game_state, market_result = self.create_game_state_and_market_coupling_result(n_melted=n_melted)
         freezers = game_state.assets.only_freezers
-        game_state = game_state.update(phase=Phase.DA_AUCTION)
+        game_state = game_state.update(Phase.DA_AUCTION)
 
         t0 = market_result.assets_dispatch.index[0]
         unpowered_freezer_ids = []
@@ -106,7 +106,7 @@ class TestReferee(BaseTest):
         # make the first player go in debt
         player = game_state.players[0]
         players = game_state.players.subtract_money(player_id=player.id, amount=player.money * 2 + 100)
-        game_state = game_state.update(players=players)
+        game_state = game_state.update(players)
 
         new_game_state, update_msgs = Referee.deactivate_loads_of_players_in_debt(game_state)
         loads_player_in_debt = new_game_state.assets.get_all_for_player(player_id=player.id).only_loads
@@ -124,7 +124,7 @@ class TestReferee(BaseTest):
         # make the second player rich
         rich_player = game_state.players[1]
         players = players.add_money(player_id=rich_player.id, amount=1e10)
-        game_state = game_state.update(players=players)
+        game_state = game_state.update(players)
 
         # get the first asset for sale
         asset = game_state.assets._filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]

@@ -41,17 +41,6 @@ echo.
 echo All requirements satisfied!
 echo.
 
-:: Navigate to front_end directory
-echo Navigating to front_end directory...
-if not exist "front_end" (
-    echo ERROR: front_end directory not found
-    echo Please run this script from the project root directory
-    echo.
-    pause
-    exit /b 1
-)
-
-cd front_end
 
 :: Check if package.json exists
 if not exist "package.json" (

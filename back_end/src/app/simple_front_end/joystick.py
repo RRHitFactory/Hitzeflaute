@@ -44,7 +44,7 @@ class Joystick:
         self._game_manager = GameManager(
             game_repo=self.get_game_repo(),
             game_engine=Engine(),
-            front_end=self._message_handler,
+            front_end_interface=self._message_handler,
         )
         self._game_id = game_id
         self._current_player_id = PlayerId.get_npc()
@@ -91,11 +91,12 @@ class Joystick:
         print(f"Now it is {self.current_player}'s turn")
 
     def buy_asset(self, asset_id: int) -> None:
-        message = BuyRequest(player_id=self._current_player_id, purchase_id=AssetId(asset_id))
+        message = BuyRequest(game_id=self._game_id, player_id=self._current_player_id, purchase_id=AssetId(asset_id))
         self._send_message(message)
 
     def buy_transmission(self, transmission_id: int) -> None:
         message = BuyRequest(
+            game_id=self._game_id,
             player_id=self._current_player_id,
             purchase_id=TransmissionId(transmission_id),
         )
@@ -103,12 +104,12 @@ class Joystick:
 
     def open_line(self, transmission_id: int) -> None:
         t_id = TransmissionId(transmission_id)
-        message = OperateLineRequest(player_id=self._current_player_id, transmission_id=t_id, action="open")
+        message = OperateLineRequest(game_id=self._game_id, player_id=self._current_player_id, transmission_id=t_id, action="open")
         self._send_message(message)
 
     def close_line(self, transmission_id: int) -> None:
         t_id = TransmissionId(transmission_id)
-        message = OperateLineRequest(player_id=self._current_player_id, transmission_id=t_id, action="close")
+        message = OperateLineRequest(game_id=self._game_id, player_id=self._current_player_id, transmission_id=t_id, action="close")
         self._send_message(message)
 
     def start_asset(self, asset_id: int) -> None:
@@ -129,6 +130,7 @@ class Joystick:
 
     def update_bid(self, asset_id: int, new_bid: float) -> None:
         message = UpdateBidRequest(
+            game_id=self._game_id,
             player_id=self._current_player_id,
             asset_id=AssetId(asset_id),
             bid_price=new_bid,
@@ -136,7 +138,7 @@ class Joystick:
         self._send_message(message)
 
     def end_turn(self) -> None:
-        message = EndTurn(player_id=self._current_player_id)
+        message = EndTurn(game_id=self._game_id, player_id=self._current_player_id)
         self._send_message(message)
         self.change_player()
 

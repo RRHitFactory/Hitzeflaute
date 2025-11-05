@@ -68,11 +68,18 @@ class Engine:
         else:
             new_game_state, msgs = game_state, []
 
-        new_game_state = new_game_state.update(
-            phase=msg.new_phase,
-            players=new_game_state.players.start_all_turns(),
-            round=Round(new_game_state.round + 1) if new_game_state.phase.get_next().value == 0 else new_game_state.round,
-        )
+        players = new_game_state.players
+        if msg.new_phase.is_turn_based:
+            players = players.start_first_player_turn()
+        else:
+            players = players.start_all_turns()
+
+        if msg.new_phase.value == 0:
+            round = Round(new_game_state.game_round + 1)
+        else:
+            round = new_game_state.game_round
+
+        new_game_state = new_game_state.update(msg.new_phase, players, round)
         return new_game_state, msgs
 
     @classmethod
@@ -93,9 +100,10 @@ class Engine:
             return game_state, cast(list[Message], list_failed_response)
 
         new_assets = game_state.assets.update_bid_price(asset_id=msg.asset_id, bid_price=msg.bid_price)
-        new_game_state = game_state.update(assets=new_assets)
+        new_game_state = game_state.update(new_assets)
 
         response = UpdateBidResponse(
+            game_id=msg.game_id,
             player_id=msg.player_id,
             success=True,
             message=f"Player {msg.player_id} successfully updated bid for asset {msg.asset_id} to {msg.bid_price}.",
@@ -126,7 +134,7 @@ class Engine:
         new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=asset.minimum_acquisition_price)
         new_assets = game_state.assets.change_owner(asset_id=asset.id, new_owner=msg.player_id)
 
-        new_game_state = game_state.update(players=new_players, assets=new_assets)
+        new_game_state = game_state.update(new_players, new_assets)
 
         message = f"Player {msg.player_id} successfully bought asset {asset.id}."
         response = msg.make_response(success=True, message=message)
@@ -154,7 +162,7 @@ class Engine:
         new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=transmission.minimum_acquisition_price)
         new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=msg.player_id)
 
-        new_game_state = game_state.update(players=new_players, transmission=new_transmission)
+        new_game_state = game_state.update(new_players, new_transmission)
 
         message = f"Player {msg.player_id} successfully bought transmission {transmission.id}."
         response = msg.make_response(success=True, message=message)
@@ -174,7 +182,7 @@ class Engine:
         ) -> tuple[GameState, list[Message]]:
             if new_game_state is None:
                 new_game_state = game_state
-            response = OperateLineResponse(player_id=msg.player_id, request=msg, result=result, message=text)
+            response = OperateLineResponse(game_id=game_state.game_id, player_id=msg.player_id, request=msg, result=result, message=text)
             return new_game_state, [response]
 
         if game_state.phase != Phase.SNEAKY_TRICKS:
@@ -194,7 +202,7 @@ class Engine:
             if line.is_open:
                 return make_response(result="no_change", text="Transmission line is already open.")
             else:
-                new_state = game_state.update(transmission=game_state.transmission.open_line(line.id))
+                new_state = game_state.update(game_state.transmission.open_line(line.id))
                 return make_response(
                     result="success",
                     text="Transmission line opened successfully.",
@@ -205,7 +213,7 @@ class Engine:
         if line.is_closed:
             return make_response(result="no_change", text="Transmission line is already closed.")
 
-        new_state = game_state.update(transmission=game_state.transmission.close_line(line.id))
+        new_state = game_state.update(game_state.transmission.close_line(line.id))
         return make_response(
             result="success",
             text="Transmission line closed successfully.",
@@ -225,7 +233,7 @@ class Engine:
         ) -> tuple[GameState, list[Message]]:
             if new_game_state is None:
                 new_game_state = game_state
-            response = OperateAssetResponse(player_id=msg.player_id, request=msg, result=result, message=text)
+            response = OperateAssetResponse(game_id=game_state.game_id, player_id=msg.player_id, request=msg, result=result, message=text)
             return new_game_state, [response]
 
         if game_state.phase != Phase.BIDDING:
@@ -245,7 +253,7 @@ class Engine:
             if not asset.is_active:
                 return make_response(result="no_change", text="Asset is already off.")
             else:
-                new_state = game_state.update(assets=game_state.assets.deactivate(asset.id))
+                new_state = game_state.update(game_state.assets.deactivate(asset.id))
                 return make_response(
                     result="success",
                     text="Asset successfully deactivated.",
@@ -260,7 +268,7 @@ class Engine:
         if asset.is_active:
             return make_response(result="no_change", text="Asset is already running.")
 
-        new_state = game_state.update(assets=game_state.assets.activate(asset.id))
+        new_state = game_state.update(game_state.assets.activate(asset.id))
         return make_response(
             result="success",
             text="Asset successfully activated.",
@@ -273,10 +281,15 @@ class Engine:
         game_state: GameState,
         msg: EndTurn,
     ) -> tuple[GameState, list[Message]]:
-        # TODO If this phase requires players to play one by one (Do we need such a phase?) Then cycle to the next player
-        game_state = game_state.update(players=game_state.players.end_turn(player_id=msg.player_id))
+        players = game_state.players
+        if game_state.phase.is_turn_based:
+            players = players.cycle_turn()
+        else:
+            players = players.end_turn(player_id=msg.player_id)
+
+        game_state = game_state.update(players)
         if game_state.players.are_all_players_finished():
-            return game_state, [ConcludePhase(phase=game_state.phase)]
+            return game_state, [ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)]
         else:
             return game_state, []
 
@@ -314,10 +327,7 @@ class Engine:
         for player_id, net_cashflow in cashflows.items():
             player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
 
-        new_game_state = game_state.update(
-            players=player_repo,
-            market_coupling_result=market_coupling_result,
-        )
+        new_game_state = game_state.update(player_repo, market_coupling_result)
 
         msgs: list[AuctionClearedMessage] = []
         for player_id in new_game_state.players.player_ids:
@@ -326,6 +336,7 @@ class Engine:
             text = f"Day-ahead market cleared. Your balance was adjusted accordingly from ${old_money} to ${new_money}."
             msgs.append(
                 AuctionClearedMessage(
+                    game_id=game_state.game_id,
                     player_id=player_id,
                     message=text,
                 )
@@ -353,6 +364,7 @@ class Engine:
 
         def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
             failed_response = BuyResponse(
+                game_id=gs.game_id,
                 player_id=msg.player_id,
                 success=False,
                 message=failed_message,
@@ -376,6 +388,7 @@ class Engine:
     def _validate_update_bid(cls, gs: GameState, msg: UpdateBidRequest) -> list[Message]:
         def make_failed_response(failed_message: str) -> list[Message]:
             failed_response = UpdateBidResponse(
+                game_id=gs.game_id,
                 player_id=msg.player_id,
                 success=False,
                 message=failed_message,

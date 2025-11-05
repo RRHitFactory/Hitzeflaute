@@ -230,7 +230,11 @@ class BaseGameInitializer(ABC):
             transmission=transmission_repo,
             market_coupling_result=None,
         )
-        new_game = new_game.update(new_game.players.start_all_turns())
+        if Phase(0).is_turn_based:
+            new_game = new_game.update(new_game.players.start_first_player_turn())
+        else:
+            new_game = new_game.update(new_game.players.start_all_turns())
+
         return new_game
 
     def _create_player_repo(self, names: list[str], colors: list[Color]) -> PlayerRepo:
@@ -321,7 +325,7 @@ class DefaultGameInitializer(BaseGameInitializer):
     def _create_bus_repo(self, player_repo: PlayerRepo) -> BusRepo:
         topology = BusTopologyMaker.make_layered_polygon(
             n_buses=self.settings.n_buses,
-            n_buses_per_layer=player_repo.n_human_players,
+            n_buses_per_layer=self.settings.n_buses,
             radius=self.settings.map_area.height * 0.9 / 2,
         )
 

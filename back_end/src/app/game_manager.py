@@ -4,51 +4,55 @@ from src.app.game_repo.base import BaseGameStateRepo
 from src.engine.new_game import DefaultGameInitializer
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
-from src.models.ids import GameId
+from src.models.ids import GameId, PlayerId
 from src.models.message import (
-    FromGameMessage,
     GameToPlayerMessage,
     GameUpdate,
     InternalMessage,
+    Message,
     PlayerToGameMessage,
     ToGameMessage,
 )
 
 
 @runtime_checkable
-class CanReceiveGameToPlayerMessages(Protocol):
+class FrontEndMessageHandler(Protocol):
     # A generic stub for the front end implementation
     def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None: ...
 
 
 @runtime_checkable
-class CanReceiveToGameMessage(Protocol):
+class BackendMessageHandler(Protocol):
     # A generic stub for the game engine implementation
     @classmethod
-    def handle_message(cls, game_state: GameState, msg: ToGameMessage) -> tuple[GameState, list[FromGameMessage]]: ...
+    def handle_message(cls, game_state: GameState, msg: ToGameMessage) -> tuple[GameState, list[Message]]: ...
 
 
 class GameManager:
     def __init__(
         self,
         game_repo: BaseGameStateRepo,
-        game_engine: CanReceiveToGameMessage,
-        front_end: CanReceiveGameToPlayerMessages,
+        game_engine: BackendMessageHandler,
+        front_end_interface: FrontEndMessageHandler,
     ) -> None:
         assert isinstance(game_repo, BaseGameStateRepo)
-        assert isinstance(game_engine, CanReceiveToGameMessage)
-        assert isinstance(front_end, CanReceiveGameToPlayerMessages)
+        assert isinstance(game_engine, BackendMessageHandler)
+        assert isinstance(front_end_interface, FrontEndMessageHandler)
         self.game_repo = game_repo
         self.game_engine = game_engine
-        self.front_end = front_end
+        self.front_end = front_end_interface
+
+    def update_players(self, game_id: GameId, players: list[PlayerId]) -> None:
+        game_state = self.game_repo.get_game_state(game_id)
+        game_update_messages = [GameUpdate(game_id=game_id, player_id=p, game_state=game_state, message="") for p in players]
+        self.front_end.handle_player_messages(msgs=game_update_messages)  # type: ignore
 
     def handle_player_message(self, game_id: GameId, msg: PlayerToGameMessage) -> None:
         # TODO Make this atomic
         game_state = self.game_repo.get_game_state(game_id)
-
         updated_game_state, msgs_to_players = self._handle_message(game_state=game_state, msg=msg)
         ids = game_state.players.human_player_ids
-        game_update_messages = [GameUpdate(player_id=p, game_state=updated_game_state, message="") for p in ids]
+        game_update_messages = [GameUpdate(game_id=game_id, player_id=p, game_state=updated_game_state, message="") for p in ids]
         msgs_to_players.extend(game_update_messages)
 
         self.front_end.handle_player_messages(msgs=msgs_to_players)
