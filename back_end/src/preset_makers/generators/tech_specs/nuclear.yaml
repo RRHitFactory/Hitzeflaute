@@ -1,0 +1,31 @@
+capacity:
+  base: 1137
+  change_per_round: 200
+  max: 3300
+  min: 0
+
+normalised_power_std: 0.0
+
+capital_cost_per_mw:
+  base: 1600
+  change_per_round: -100
+  max: 1600
+  min: 300
+
+fixed_cost:
+  base: 1000
+  change_per_round: 0
+  max: 1000
+  min: 0
+
+marginal_cost:
+  base: 15  # 7 (opex var) + 8 (uranium)
+  change_per_round: 0
+  max: 15
+  min: 15
+
+lifespan:
+  base: 45
+  change_per_round: 0
+  max: 50
+  min: 5

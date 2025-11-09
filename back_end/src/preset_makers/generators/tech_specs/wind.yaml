@@ -1,0 +1,31 @@
+capacity:
+  base: 100  # offshore wind
+  change_per_round: 50
+  max: 1200
+  min: 0
+
+normalised_power_std: 0.05
+
+capital_cost_per_mw:
+  base: 340
+  change_per_round: -12
+  max: 340
+  min: 110
+
+fixed_cost:
+  base: 390
+  change_per_round: 0
+  max: 390
+  min: 0
+
+marginal_cost:
+  base: 8
+  change_per_round: 0
+  max: 8
+  min: 8
+
+lifespan:
+  base: 25
+  change_per_round: 0
+  max: 50
+  min: 5
