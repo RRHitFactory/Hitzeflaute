@@ -4,10 +4,9 @@ import yaml
 import numpy as np
 
 from dataclasses import dataclass
-from functools import cached_property
 
-from src.models.ids import AssetId, PlayerId, BusId
-from src.models.assets import AssetInfo, AssetType
+from back_end.src.models.ids import AssetId, PlayerId, BusId
+from back_end.src.models.assets import AssetInfo, AssetType
 
 
 @dataclass
@@ -38,14 +37,14 @@ class TechnologySpecs:
     @classmethod
     def from_yaml(cls, technology_name: str) -> "TechnologySpecs":
 
-        with open(os.path.dirname(f"{__file__}/tech_specs/") + f"/{technology_name}.yaml", "r") as file:
+        with open(f"{os.path.dirname(__file__)}\\tech_specs\\{technology_name}.yaml", "r") as file:
             data = yaml.safe_load(file)
 
         return cls(
             technology_name=technology_name,
             capacity=TechEvolutionIndicator(**data["capacity"]),
             normalised_power_std=data["normalised_power_std"],
-            capital_cost_per_mw=TechEvolutionIndicator(**data["capital_cost"]),
+            capital_cost_per_mw=TechEvolutionIndicator(**data["capital_cost_per_mw"]),
             fixed_cost=TechEvolutionIndicator(**data["fixed_cost"]),
             marginal_cost=TechEvolutionIndicator(**data["marginal_cost"]),
             lifespan=TechEvolutionIndicator(**data["lifespan"]),
@@ -54,19 +53,21 @@ class TechnologySpecs:
 
 class GeneratorMaker:
 
-    @cached_property
-    def available_technologies(self) -> list[str]:
+    @classmethod
+    def available_technologies(cls) -> list[str]:
         return [
             technology_name.split(".")[0]
-            for technology_name in os.listdir(os.path.dirname(f"{__file__}/tech_specs/"))
+            for technology_name in os.listdir(f"{os.path.dirname(__file__)}\\tech_specs\\")
         ]
 
-    def parse_technology_specs(self, technology_name: str) -> TechnologySpecs:
-        assert technology_name in self.available_technologies, \
-            f"Technology not available, select from: {self.available_technologies}."
+    @classmethod
+    def parse_technology_specs(cls, technology_name: str) -> TechnologySpecs:
+        assert technology_name in cls.available_technologies(), \
+            f"Technology not available, select from: {cls.available_technologies()}."
         return TechnologySpecs.from_yaml(technology_name)
 
-    def clipped_linear_function(self, tech_var: TechEvolutionIndicator, current_round: int) -> float:
+    @classmethod
+    def clipped_linear_function(cls, tech_var: TechEvolutionIndicator, current_round: int) -> float:
         """ f(x) = a * x + b"""
         return np.clip(
             a=tech_var.change_per_round * current_round + tech_var.base,
@@ -74,29 +75,36 @@ class GeneratorMaker:
             a_max=tech_var.max
         )
 
-    def compute_power_std(self, current_round: int, tech_specs: TechnologySpecs) -> float:
-        return tech_specs.normalised_power_std * self.compute_capacity(current_round, tech_specs)
+    @classmethod
+    def compute_power_std(cls, current_round: int, tech_specs: TechnologySpecs) -> float:
+        return tech_specs.normalised_power_std * cls.compute_capacity(current_round, tech_specs)
 
-    def compute_capacity(self, current_round: int, tech_specs: TechnologySpecs) -> float:
-        return self.clipped_linear_function(tech_var=tech_specs.capacity, current_round=current_round)
+    @classmethod
+    def compute_capacity(cls, current_round: int, tech_specs: TechnologySpecs) -> float:
+        return cls.clipped_linear_function(tech_var=tech_specs.capacity, current_round=current_round)
 
-    def compute_capital_cost(self, current_round: int, tech_specs: TechnologySpecs) -> float:
-        return self.clipped_linear_function(
+    @classmethod
+    def compute_capital_cost(cls, current_round: int, tech_specs: TechnologySpecs) -> float:
+        return cls.clipped_linear_function(
             tech_var=tech_specs.capital_cost_per_mw,
             current_round=current_round
-        ) * self.compute_capacity(current_round, tech_specs)
+        ) * cls.compute_capacity(current_round, tech_specs)
 
-    def compute_fixed_operating_cost(self, current_round: int, tech_specs: TechnologySpecs) -> float:
-        return self.clipped_linear_function(tech_var=tech_specs.fixed_cost, current_round=current_round)
+    @classmethod
+    def compute_fixed_operating_cost(cls, current_round: int, tech_specs: TechnologySpecs) -> float:
+        return cls.clipped_linear_function(tech_var=tech_specs.fixed_cost, current_round=current_round)
 
-    def compute_marginal_cost(self, current_round: int, tech_specs: TechnologySpecs) -> float:
-        return self.clipped_linear_function(tech_var=tech_specs.marginal_cost, current_round=current_round)
+    @classmethod
+    def compute_marginal_cost(cls, current_round: int, tech_specs: TechnologySpecs) -> float:
+        return cls.clipped_linear_function(tech_var=tech_specs.marginal_cost, current_round=current_round)
 
-    def compute_health(self, current_round: int, tech_specs: TechnologySpecs) -> int:
-        return math.floor(self.clipped_linear_function(tech_var=tech_specs.lifespan, current_round=current_round))
+    @classmethod
+    def compute_health(cls, current_round: int, tech_specs: TechnologySpecs) -> int:
+        return math.floor(cls.clipped_linear_function(tech_var=tech_specs.lifespan, current_round=current_round))
 
+    @classmethod
     def make(
-            self,
+            cls,
             technology_name: str,
             asset_id: AssetId,
             bus_id: BusId,
@@ -104,7 +112,7 @@ class GeneratorMaker:
             player_id: PlayerId=PlayerId.get_npc()
     ) -> AssetInfo:
         """Create a generator with properties based on the current round."""
-        tech_specs = self.parse_technology_specs(technology_name)
+        tech_specs = cls.parse_technology_specs(technology_name)
         return AssetInfo(
             id=asset_id,
             owner_player=player_id,
@@ -113,11 +121,11 @@ class GeneratorMaker:
             birthday=current_round,
             asset_technology=tech_specs.technology_name,
             is_for_sale=player_id == PlayerId.get_npc(),
-            power_expected=self.compute_capacity(current_round, tech_specs),
-            power_std=self.compute_power_std(current_round, tech_specs),
-            minimum_acquisition_price=self.compute_capital_cost(current_round, tech_specs),
-            fixed_operating_cost=self.compute_fixed_operating_cost(current_round, tech_specs),
-            marginal_cost=self.compute_marginal_cost(current_round, tech_specs),
-            bid_price=self.compute_marginal_cost(current_round, tech_specs),
-            health=self.compute_health(current_round, tech_specs),
+            power_expected=cls.compute_capacity(current_round, tech_specs),
+            power_std=cls.compute_power_std(current_round, tech_specs),
+            minimum_acquisition_price=cls.compute_capital_cost(current_round, tech_specs),
+            fixed_operating_cost=cls.compute_fixed_operating_cost(current_round, tech_specs),
+            marginal_cost=cls.compute_marginal_cost(current_round, tech_specs),
+            bid_price=cls.compute_marginal_cost(current_round, tech_specs),
+            health=cls.compute_health(current_round, tech_specs),
         )
