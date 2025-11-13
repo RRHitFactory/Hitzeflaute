@@ -1,0 +1,31 @@
+capacity:
+  base: 743  # Gas CCGT
+  change_per_round: 50
+  max: 2744
+  min: 0
+
+normalised_power_std: 0.0
+
+capital_cost_per_mw:
+  base: 130
+  change_per_round: -4
+  max: 130
+  min: 45
+
+fixed_cost:
+  base: 200
+  change_per_round: 0
+  max: 200
+  min: 0
+
+marginal_cost:
+  base: 128  # 5 (opex var) + 63 (nat gas) + 60 (CO2)
+  change_per_round: 8  # (-18 (nat gas) + 190 (CO2)) / 21 years
+  max: 288
+  min: 128
+
+lifespan:
+  base: 30
+  change_per_round: 0
+  max: 50
+  min: 5

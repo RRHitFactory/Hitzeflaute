@@ -1,0 +1,53 @@
+references
+[1] https://documents1.worldbank.org/curated/en/125521593437517815/pdf/Demystifying-the-Costs-of-Electricity-Generation-Technologies.pdf
+[2] https://iea.blob.core.windows.net/assets/ae17da3d-e8a5-4163-a3ec-2e6fb0b5677d/Projected-Costs-of-Generating-Electricity-2020.pdf
+[3] https://www.ise.fraunhofer.de/content/dam/ise/en/documents/publications/studies/EN2024_ISE_Study_Levelized_Cost_of_Electricity_Renewable_Energy_Technologies.pdf
+[4] https://www.lazard.com/media/5tlbhyla/lazards-lcoeplus-june-2025-_vf.pdf
+
+# the technoeconomic evolution specs can be improved if we find a good source
+# to avoid the need of very large player balances, when references mention EUR/kW, assume it is per MW and 1 USD = 1 EUR
+# important: document any deviation from these guidelines as comments in the yaml
+
+========================
+tech_name.yaml
+------------------------
+capacity:
+  base: {median net capacity [2: Table 3.1]}
+  change_per_round: 50
+  max: 2 * {max net capacity [2: Table 3.1]}
+  min: 0
+
+normalised_power_std: 0.05 for RES; 0.0 for non-RES (assuming controllability)
+
+capital_cost_per_mw:   # divide capital costs by 10 and assume that prices per kW are per MW
+  base: {investment 2024 high [3: Table 1]} / 10
+  change_per_round: {(investment 2024 low - investment 2024 high) [3: Table 1]} / 100  # normally, this should be negative to reflect technology development
+  max: {investment 2024 high [3: Table 1]} / 10
+  min: {investment 2024 low [3: Table 1]} / 2 /10
+
+fixed_cost:  # assume EUR/kW are per round, so capacity does not impact the fixed costs
+  base: {OPEX fix [3: Table 2]} * 10
+  change_per_round: assume 0 for now
+  max: {OPEX fix [3: Table 2]} * 10
+  min: 0
+
+marginal_cost:  # here convert to EUR/MWh
+  base: {OPEX var [3: Table 2]} * 1000
+        + {fuel price 2024 [3: Table 5]} / {efficiency 2024 [3: Table 6]}
+        + {high value CO2 cert. price 2024 [3: Table 7]} / {efficiency 2024 [3: Table 6]} * carbon intensity [below]  # the units in the figure already give EUR/MWh. Pick a value visually from the chart for 2024
+  change_per_round: ({fuel price 2045 - 2024 [3: Table 5]} / {efficiency 2024 [3: Table 6]}
+        + {high value CO2 cert. price 2045 - 2024 [3: Table 7]} / {efficiency 2024 [3: Table 6]} * carbon intensity [below])
+        / 21 years  # the units in the figure already give EUR/MWh. Pick a value visually from the chart for 2024
+  max: max(base, base + 20 rounds)
+  min: min(base, base + 20 rounds)
+
+  # carbon intensities:
+  # lignite: 1.1 tCO2/MWh
+  # natural gas: 0.4 tCO2/MWh
+  # coal: 0.9 tCO2/MWh
+
+lifespan:
+  base: Lifetime in years [3: Table 2]
+  change_per_round: 0
+  max: 50
+  min: 5

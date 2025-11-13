@@ -1,0 +1,31 @@
+capacity:
+  base: 20  # solar
+  change_per_round: 50
+  max: 200
+  min: 0
+
+normalised_power_std: 0.05
+
+capital_cost_per_mw:  # PV utility-scale
+  base: 90
+  change_per_round: -2
+  max: 90
+  min: 35
+
+fixed_cost:
+  base: 133
+  change_per_round: 0
+  max: 133
+  min: 0
+
+marginal_cost:
+  base: 0
+  change_per_round: 0
+  max: 0
+  min: 0
+
+lifespan:
+  base: 30
+  change_per_round: 0
+  max: 50
+  min: 5
