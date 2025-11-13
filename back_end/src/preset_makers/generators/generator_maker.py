@@ -9,29 +9,31 @@ from back_end.src.models.ids import AssetId, PlayerId, BusId
 from back_end.src.models.assets import AssetInfo, AssetType
 
 
-@dataclass
+@dataclass(frozen=True)
 class TechEvolutionIndicator:
     base: float
     change_per_round: float
     max: float
     min: float
 
+    def __post_init__(self):
+        assert self.min <= self.base <= self.max, \
+            "Base value must be within min and max bounds."
 
-@dataclass
+    def value_at_round(self, round_number: int) -> float:
+        """ Linear function with clipping at min and max """
+        val = self.base + self.change_per_round * round_number
+        return np.clip(val, self.min, self.max)
+
+
+@dataclass(frozen=True)
 class TechnologySpecs:
     technology_name: str
-    # capacity and production uncertainty data
     capacity: TechEvolutionIndicator
     normalised_power_std: float  # as a fraction of capacity
-
-    # purchase cost
     capital_cost_per_mw: TechEvolutionIndicator
-
-    # operating costs
     fixed_cost: TechEvolutionIndicator
     marginal_cost: TechEvolutionIndicator
-
-    # lifespan
     lifespan: TechEvolutionIndicator
 
     @classmethod
@@ -81,26 +83,23 @@ class GeneratorMaker:
 
     @classmethod
     def compute_capacity(cls, current_round: int, tech_specs: TechnologySpecs) -> float:
-        return cls.clipped_linear_function(tech_var=tech_specs.capacity, current_round=current_round)
+        return tech_specs.capacity.value_at_round(current_round)
 
     @classmethod
     def compute_capital_cost(cls, current_round: int, tech_specs: TechnologySpecs) -> float:
-        return cls.clipped_linear_function(
-            tech_var=tech_specs.capital_cost_per_mw,
-            current_round=current_round
-        ) * cls.compute_capacity(current_round, tech_specs)
+        return tech_specs.capital_cost_per_mw.value_at_round(current_round) * cls.compute_capacity(current_round, tech_specs)
 
     @classmethod
     def compute_fixed_operating_cost(cls, current_round: int, tech_specs: TechnologySpecs) -> float:
-        return cls.clipped_linear_function(tech_var=tech_specs.fixed_cost, current_round=current_round)
+        return tech_specs.fixed_cost.value_at_round(current_round)
 
     @classmethod
     def compute_marginal_cost(cls, current_round: int, tech_specs: TechnologySpecs) -> float:
-        return cls.clipped_linear_function(tech_var=tech_specs.marginal_cost, current_round=current_round)
+        return tech_specs.marginal_cost.value_at_round(current_round)
 
     @classmethod
     def compute_health(cls, current_round: int, tech_specs: TechnologySpecs) -> int:
-        return math.floor(cls.clipped_linear_function(tech_var=tech_specs.lifespan, current_round=current_round))
+        return math.floor(tech_specs.lifespan.value_at_round(current_round))
 
     @classmethod
     def make(
@@ -119,7 +118,7 @@ class GeneratorMaker:
             asset_type=AssetType.GENERATOR,
             bus=bus_id,
             birthday=current_round,
-            asset_technology=tech_specs.technology_name,
+            technology=tech_specs.technology_name,
             is_for_sale=player_id == PlayerId.get_npc(),
             power_expected=cls.compute_capacity(current_round, tech_specs),
             power_std=cls.compute_power_std(current_round, tech_specs),

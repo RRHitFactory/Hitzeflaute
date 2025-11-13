@@ -33,7 +33,7 @@ class AssetInfo(LightDc):
     health: int = 0
     is_active: bool = True
     birthday: int = 1  # Round when the asset was created
-    asset_technology: str = ""
+    technology: str = ""
 
     def __post_init__(self) -> None:
         assert self.power_std >= 0, "Asset power standard deviation must be non-negative"

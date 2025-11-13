@@ -32,10 +32,19 @@ fixed_cost:  # assume EUR/kW are per round, so capacity does not impact the fixe
   min: 0
 
 marginal_cost:  # here convert to EUR/MWh
-  base: {OPEX var [3: Figure 5]} * 1000 + {fuel price 2024 [3: Table 5]} + {high value CO2 cert. price 2024 [3: Table 7]}  # the units in the figure already give EUR/MWh. Pick a value visually from the chart for 2024
-  change_per_round: ({fuel price 2045 - 2024 [3: Table 5]} + {high value CO2 cert. price 2045 - 2024 [3: Table 7]}) / 21 years  # the units in the figure already give EUR/MWh. Pick a value visually from the chart for 2024
+  base: {OPEX var [3: Table 2]} * 1000
+        + {fuel price 2024 [3: Table 5]} / {efficiency 2024 [3: Table 6]}
+        + {high value CO2 cert. price 2024 [3: Table 7]} / {efficiency 2024 [3: Table 6]} * carbon intensity [below]  # the units in the figure already give EUR/MWh. Pick a value visually from the chart for 2024
+  change_per_round: ({fuel price 2045 - 2024 [3: Table 5]} / {efficiency 2024 [3: Table 6]}
+        + {high value CO2 cert. price 2045 - 2024 [3: Table 7]} / {efficiency 2024 [3: Table 6]} * carbon intensity [below])
+        / 21 years  # the units in the figure already give EUR/MWh. Pick a value visually from the chart for 2024
   max: max(base, base + 20 rounds)
   min: min(base, base + 20 rounds)
+
+  # carbon intensities:
+  # lignite: 1.1 tCO2/MWh
+  # natural gas: 0.4 tCO2/MWh
+  # coal: 0.9 tCO2/MWh
 
 lifespan:
   base: Lifetime in years [3: Table 2]

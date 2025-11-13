@@ -19,10 +19,10 @@ fixed_cost:
   min: 0
 
 marginal_cost:
-  base: 133  # 5 (opex var) + 38 (nat gas) + 90 (CO2)
-  change_per_round: 13  # (-11 (nat gas) + 285 (CO2)) / 21 years
-  max: 393
-  min: 133
+  base: 128  # 5 (opex var) + 63 (nat gas) + 60 (CO2)
+  change_per_round: 8  # (-18 (nat gas) + 190 (CO2)) / 21 years
+  max: 288
+  min: 128
 
 lifespan:
   base: 30

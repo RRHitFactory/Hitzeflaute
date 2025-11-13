@@ -19,10 +19,10 @@ fixed_cost:
   min: 0
 
 marginal_cost:
-  base: 15  # 7 (opex var) + 8 (uranium)
+  base: 30  # 7 (opex var) + 23 (uranium)
   change_per_round: 0
-  max: 15
-  min: 15
+  max: 30
+  min: 30
 
 lifespan:
   base: 45
