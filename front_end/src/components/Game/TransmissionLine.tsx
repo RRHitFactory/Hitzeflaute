@@ -162,7 +162,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         <g className="purchase-button" opacity="0.9">
           <circle
             cx={midX}
-            cy={midY - 20}
+            cy={midY}
             r="10"
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
@@ -174,7 +174,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
           />
           <text
             x={midX}
-            y={midY - 16}
+            y={midY + 4}
             textAnchor="middle"
             fontSize="10"
             fill="white"

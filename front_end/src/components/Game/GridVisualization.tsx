@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BusWithDisplayCoords,
   DisplayBounds,
   GamePhase,
   GameState,
@@ -107,7 +108,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     gameState.game_settings.map_area,
     displayBounds,
     getBusesArray,
-  ]);
+  ]) as BusWithDisplayCoords[];
 
   // Find bus by ID (with display coordinates)
   const getBusById = (id: number) =>
