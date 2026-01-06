@@ -101,7 +101,10 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         gameState.game_settings.map_area,
         displayBounds,
       );
-      return { ...bus, displayX: displayCoords.x, displayY: displayCoords.y };
+      return {
+        ...bus,
+        display_position: displayCoords,
+      } as BusWithDisplayCoords;
     });
   }, [
     gameState.buses,
@@ -126,8 +129,8 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
       const angleStep = (2 * Math.PI) / Math.max(assets.length, 4);
       const angle = index * angleStep;
 
-      const x = bus.displayX + offsetRadius * Math.cos(angle);
-      const y = bus.displayY + offsetRadius * Math.sin(angle);
+      const x = bus.display_position.x + offsetRadius * Math.cos(angle);
+      const y = bus.display_position.y + offsetRadius * Math.sin(angle);
 
       return { asset, position: { x, y } };
     });

@@ -1,11 +1,16 @@
 "use client";
 
+import {
+  BusWithDisplayCoords,
+  HoverableElement,
+  Player,
+  TransmissionLine,
+} from "@/types/game";
 import React from "react";
-import { TransmissionLine, Bus, HoverableElement, Player } from "@/types/game";
 
 interface TransmissionLineProps {
   line: TransmissionLine;
-  buses: Bus[];
+  buses: BusWithDisplayCoords[];
   owner: Player;
   onHover: (element: HoverableElement, event: React.MouseEvent) => void;
   onLeave: () => void;
@@ -80,15 +85,17 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     const r = Math.floor(parseInt(hex.substr(0, 2), 16) * factor);
     const g = Math.floor(parseInt(hex.substr(2, 2), 16) * factor);
     const b = Math.floor(parseInt(hex.substr(4, 2), 16) * factor);
-    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+    return `#${r.toString(16).padStart(2, "0")}${g
+      .toString(16)
+      .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
   };
 
   // Create curved line with multiple points similar to the Python implementation
   // Use display coordinates if available, fallback to original coordinates
-  const fromX = (fromBus as any).displayX || fromBus.x;
-  const fromY = (fromBus as any).displayY || fromBus.y;
-  const toX = (toBus as any).displayX || toBus.x;
-  const toY = (toBus as any).displayY || toBus.y;
+  const fromX = fromBus.display_position.x || fromBus.x;
+  const fromY = fromBus.display_position.y || fromBus.y;
+  const toX = toBus.display_position.x || toBus.x;
+  const toY = toBus.display_position.y || toBus.y;
 
   const vector = { x: toX - fromX, y: toY - fromY };
   const midX = (fromX + toX) / 2;
@@ -99,7 +106,9 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const offsetX = vector.y * curveOffset;
   const offsetY = -vector.x * curveOffset;
 
-  const pathData = `M ${fromX} ${fromY} Q ${midX + offsetX} ${midY + offsetY} ${toX} ${toY}`;
+  const pathData = `M ${fromX} ${fromY} Q ${midX + offsetX} ${
+    midY + offsetY
+  } ${toX} ${toY}`;
 
   // Check if player can afford this line
   const canAfford =

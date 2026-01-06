@@ -14,8 +14,7 @@ export interface Position {
 }
 
 export interface BusWithDisplayCoords extends Bus {
-  displayX: number;
-  displayY: number;
+  display_position: Position;
 }
 
 export interface TransmissionLine {

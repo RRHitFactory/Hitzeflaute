@@ -127,10 +127,10 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   const getBuyLocation = (bus: BusWithDisplayCoords, position: Position) => {
-    const x_offset = position.x - bus.displayX;
-    const y_offset = position.y - bus.displayY;
-    const buy_x = bus.displayX + x_offset * 2.2;
-    const buy_y = bus.displayY + y_offset * 2.2;
+    const x_offset = position.x - bus.display_position.x;
+    const y_offset = position.y - bus.display_position.y;
+    const buy_x = bus.display_position.x + x_offset * 2.2;
+    const buy_y = bus.display_position.y + y_offset * 2.2;
     return { x: buy_x, y: buy_y } as Position;
   };
 
@@ -249,7 +249,7 @@ const AssetComponent: React.FC<AssetProps> = ({
           />
           <text
             x={buyLocation.x}
-            y={buyLocation.y + 3.5}
+            y={buyLocation.y + 4}
             textAnchor="middle"
             fontSize="10"
             fill="white"
