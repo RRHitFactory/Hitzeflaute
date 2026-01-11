@@ -1,13 +1,19 @@
 "use client";
 
+import {
+  Asset,
+  BusWithDisplayCoords,
+  HoverableElement,
+  Player,
+  Position,
+} from "@/types/game";
 import React from "react";
-import { Asset, Bus, HoverableElement, Player } from "@/types/game";
 
 interface AssetProps {
   asset: Asset;
-  bus: Bus;
+  bus: BusWithDisplayCoords;
   owner: Player;
-  position: { x: number; y: number };
+  position: Position;
   onHover: (element: HoverableElement, event: React.MouseEvent) => void;
   onLeave: () => void;
   isPurchasable?: boolean;
@@ -105,7 +111,9 @@ const AssetComponent: React.FC<AssetProps> = ({
     const r = Math.floor(parseInt(hex.substr(0, 2), 16) * factor);
     const g = Math.floor(parseInt(hex.substr(2, 2), 16) * factor);
     const b = Math.floor(parseInt(hex.substr(4, 2), 16) * factor);
-    return `#${r.toString(16).padStart(2, "0")}${g.toString(16).padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
+    return `#${r.toString(16).padStart(2, "0")}${g
+      .toString(16)
+      .padStart(2, "0")}${b.toString(16).padStart(2, "0")}`;
   };
 
   const getContrastColor = (bgColor: string) => {
@@ -118,6 +126,15 @@ const AssetComponent: React.FC<AssetProps> = ({
     return brightness > 128 ? "#000000" : "#FFFFFF";
   };
 
+  const getBuyLocation = (bus: BusWithDisplayCoords, position: Position) => {
+    const x_offset = position.x - bus.display_position.x;
+    const y_offset = position.y - bus.display_position.y;
+    const buy_x = bus.display_position.x + x_offset * 2.2;
+    const buy_y = bus.display_position.y + y_offset * 2.2;
+    return { x: buy_x, y: buy_y } as Position;
+  };
+
+  const buyLocation = getBuyLocation(bus, position);
   const radius = 5; // Increased from 12
   const fillColor = getAssetColor();
   const textColor = getContrastColor(fillColor);
@@ -219,8 +236,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       {isPurchasable && (
         <g className="purchase-button" opacity="0.9">
           <circle
-            cx={position.x + 25}
-            cy={position.y - 20}
+            cx={buyLocation.x}
+            cy={buyLocation.y}
             r="10"
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
@@ -231,8 +248,8 @@ const AssetComponent: React.FC<AssetProps> = ({
             onMouseLeave={onLeave}
           />
           <text
-            x={position.x + 25}
-            y={position.y - 16}
+            x={buyLocation.x}
+            y={buyLocation.y + 4}
             textAnchor="middle"
             fontSize="10"
             fill="white"

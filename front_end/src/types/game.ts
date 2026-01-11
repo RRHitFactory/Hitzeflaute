@@ -8,6 +8,15 @@ export interface Bus {
   color: string;
 }
 
+export interface Position {
+  x: number;
+  y: number;
+}
+
+export interface BusWithDisplayCoords extends Bus {
+  display_position: Position;
+}
+
 export interface TransmissionLine {
   id: number;
   bus1: number;

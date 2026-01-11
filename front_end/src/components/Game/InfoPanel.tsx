@@ -1,11 +1,11 @@
 "use client";
 
+import { HoverableElement, Position } from "@/types/game";
 import React from "react";
-import { HoverableElement } from "@/types/game";
 
 interface InfoPanelProps {
   element: HoverableElement;
-  position: { x: number; y: number };
+  position: Position;
 }
 
 const InfoPanel: React.FC<InfoPanelProps> = ({ element, position }) => {
