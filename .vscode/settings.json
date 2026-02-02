@@ -68,5 +68,6 @@
             "selfParameter": "#e181ff",
             "clsParameter": "#e181ff",
         }
-    }
+    },
+    "makefile.configureOnOpen": false
 }
