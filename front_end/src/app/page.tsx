@@ -110,7 +110,7 @@ export default function Home() {
     initializeGame();
 
     // Cleanup is now handled by the useGameWebSocket hook
-  }, []); // Run only once on mount
+  }, [createGame]); // Run when createGame changes
 
   const handlePurchaseAsset = (assetId: number) => {
     if (!wsClient || !wsClient.isConnected()) {

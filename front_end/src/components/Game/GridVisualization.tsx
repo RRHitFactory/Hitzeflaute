@@ -9,7 +9,7 @@ import {
   mapBackendToDisplay,
   NPC_PLAYER_ID,
 } from "@/types/game";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
 import AssetComponent from "./Asset";
 import BusComponent from "./Bus";
@@ -68,29 +68,44 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   };
 
   // Helper to get array from either array or repo structure
-  const getBusesArray = () =>
-    Array.isArray(gameState.buses)
-      ? gameState.buses
-      : gameState.buses?.data || [];
-  const getAssetsArray = () =>
-    Array.isArray(gameState.assets)
-      ? gameState.assets
-      : gameState.assets?.data || [];
-  const getTransmissionArray = () =>
-    Array.isArray(gameState.transmission)
-      ? gameState.transmission
-      : gameState.transmission?.data || [];
-  const getPlayersArray = () =>
-    Array.isArray(gameState.players)
-      ? gameState.players
-      : gameState.players?.data || [];
+  const getBusesArray = useCallback(
+    () =>
+      Array.isArray(gameState.buses)
+        ? gameState.buses
+        : gameState.buses?.data || [],
+    [gameState.buses],
+  );
+  const getAssetsArray = useCallback(
+    () =>
+      Array.isArray(gameState.assets)
+        ? gameState.assets
+        : gameState.assets?.data || [],
+    [gameState.assets],
+  );
+  const getTransmissionArray = useCallback(
+    () =>
+      Array.isArray(gameState.transmission)
+        ? gameState.transmission
+        : gameState.transmission?.data || [],
+    [gameState.transmission],
+  );
+  const getPlayersArray = useCallback(
+    () =>
+      Array.isArray(gameState.players)
+        ? gameState.players
+        : gameState.players?.data || [],
+    [gameState.players],
+  );
 
   // Display bounds for coordinate mapping
-  const displayBounds: DisplayBounds = {
-    width: 400, // SVG viewBox width
-    height: 300, // SVG viewBox height
-    padding: 20, // Padding from edges
-  };
+  const displayBounds = useMemo(
+    () => ({
+      width: 400, // SVG viewBox width
+      height: 300, // SVG viewBox height
+      padding: 20, // Padding from edges
+    }),
+    [],
+  );
 
   // Map backend coordinates to display coordinates
   const busesWithDisplayCoords = useMemo(() => {
@@ -107,7 +122,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
       } as BusWithDisplayCoords;
     });
   }, [
-    gameState.buses,
     gameState.game_settings.map_area,
     displayBounds,
     getBusesArray,

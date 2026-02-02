@@ -10,7 +10,6 @@ import traceback
 from pathlib import Path
 
 import uvicorn
-from back_end.src.models.server_models import CreateGameRequest, CreateGameResponse, GameStateResponse, WebsocketMessage
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -24,6 +23,7 @@ from src.models.message import (
     GameToPlayerMessage,
     GameUpdate,
 )
+from src.models.server_models import CreateGameRequest, CreateGameResponse, GameStateResponse, WebsocketMessage
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)

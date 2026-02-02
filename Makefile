@@ -56,14 +56,15 @@ run-frontend:
 	@echo "Starting frontend..."
 	@cd front_end && \
 	( \
+		npm run build && npm run dev & \
 		if [[ "$$OSTYPE" == "msys"* ]] || [[ "$$OSTYPE" == "cygwin"* ]]; then \
-			cmd /c start "" "http://localhost:3000" & \
+			cmd /c start "" "http://localhost:3000"; \
 		elif [[ "$$OSTYPE" == "darwin"* ]]; then \
-			open "http://localhost:3000" & \
+			open "http://localhost:3000"; \
 		else \
-			xdg-open "http://localhost:3000" & \
+			xdg-open "http://localhost:3000"; \
 		fi; \
-		npm run build && npm run dev \
+		wait \
 	)
 
 install: install-backend install-frontend
