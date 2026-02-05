@@ -4,11 +4,14 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, Self, runtime_checkable
 
+import pandas as pd
+
 from src.tools.typing import IntId
 
 type Primitive = int | float | str | bool
 type SimpleDict = dict[str, Primitive]
-type ComplexDict = dict[str, Primitive | SimpleDict | ComplexDict]
+type SerializedDf = dict[str, list[float] | list[str]]
+type ComplexDict = dict[str, Primitive | SimpleDict | ComplexDict | SerializedDf | list[Primitive]]
 primitives = (int, float, str, bool)
 
 
@@ -130,7 +133,7 @@ class SerializableDcRecursive:
             field_value = simple_dict[k]
             assert isinstance(field_type, type), f"Field type {field_type} for key {k} is not a type."
             if issubclass(field_type, Serializable) and isinstance(field_value, dict):
-                init_dict[k] = deserialize_dict(x=field_value, t=field_type)
+                init_dict[k] = deserialize_dict(x=field_value, t=field_type)  # type: ignore
             else:
                 init_dict[k] = deserialize_value(x=field_value, t=field_type)  # type: ignore
         return cls(**init_dict)  # noqa
@@ -138,3 +141,11 @@ class SerializableDcRecursive:
     @classmethod
     def get_serializable_fields(cls) -> dict[str, type[Serializable] | type[SimpleValue]]:
         return {k: v for k, v in cls.__dataclass_fields__.items()}
+
+
+def dataframe_to_dict(df: pd.DataFrame) -> SerializedDf:
+    return {"columns": df.columns.tolist(), "index": df.index.tolist(), "values": df.values.tolist()}  # type: ignore
+
+
+def dict_to_dataframe(df_dict: SerializedDf) -> pd.DataFrame:
+    return pd.DataFrame(data=df_dict["values"], index=df_dict["index"], columns=df_dict["columns"])

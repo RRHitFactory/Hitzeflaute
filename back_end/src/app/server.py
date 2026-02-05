@@ -10,6 +10,7 @@ import traceback
 from pathlib import Path
 
 import uvicorn
+from back_end.src.app.tools.reduce_message import reduce_message
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -75,7 +76,8 @@ class WebSocketFrontEnd:
         for msg in msgs:
             try:
                 # Convert message to simple dict for JSON serialization
-                message = WebsocketMessage.from_py_message(msg)
+                reduced = reduce_message(msg)
+                message = WebsocketMessage.from_py_message(reduced)
                 import asyncio
 
                 loop = asyncio.get_event_loop()

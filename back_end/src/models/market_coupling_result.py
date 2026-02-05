@@ -1,8 +1,10 @@
-from typing import Self, cast
+from dataclasses import dataclass
+from typing import Self
 
 import pandas as pd
 
-from src.tools.serialization import SimpleDict
+from src.models.ids import BusId, TransmissionId
+from src.tools.serialization import ComplexDict, SerializedDf, dataframe_to_dict, dict_to_dataframe
 
 
 class MarketCouplingResult:
@@ -79,18 +81,19 @@ class MarketCouplingResult:
         """
         return self._assets_dispatch.copy()
 
-    def to_simple_dict(self) -> dict[str, SimpleDict]:
+    def to_simple_dict(self) -> ComplexDict:
         simple_dict = {
-            "bus_prices": self._bus_prices.to_dict(),
-            "transmission_flows": self._transmission_flows.to_dict(),
-            "assets_dispatch": self._assets_dispatch.to_dict(),
+            "bus_prices": dataframe_to_dict(self._bus_prices),
+            "transmission_flows": dataframe_to_dict(self._transmission_flows),
+            "assets_dispatch": dataframe_to_dict(self._assets_dispatch),
         }
-        return cast(dict[str, SimpleDict], simple_dict)
+        return simple_dict  # type: ignore
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: dict[str, SimpleDict]) -> Self:
+    def from_simple_dict(cls, simple_dict: ComplexDict) -> Self:
         def get_one(key: str, column_index_name: str) -> pd.DataFrame:
-            df = pd.DataFrame.from_dict(simple_dict[key])
+            df_data: SerializedDf = simple_dict[key]  # type: ignore
+            df = dict_to_dataframe(df_data)
             df.index.name = "time"
             df.index = df.index.map(int)
             df.columns.name = column_index_name
@@ -101,4 +104,32 @@ class MarketCouplingResult:
             bus_prices=get_one(key="bus_prices", column_index_name="Bus"),
             transmission_flows=get_one(key="transmission_flows", column_index_name="Line"),
             assets_dispatch=get_one(key="assets_dispatch", column_index_name="Asset"),
+        )
+
+
+@dataclass(frozen=True)
+class MarketCouplingSummary:
+    bus_results: dict[BusId, tuple[float, pd.DataFrame, pd.DataFrame]]  # price, generation df, load df
+    line_results: dict[TransmissionId, pd.DataFrame]
+
+    def to_simple_dict(self) -> ComplexDict:
+        simple_dict = {
+            "bus_results": {str(bus_id): (price, dataframe_to_dict(getn_df), dataframe_to_dict(load_df)) for bus_id, (price, getn_df, load_df) in self.bus_results.items()},
+            "line_results": {str(line_id): dataframe_to_dict(df) for line_id, df in self.line_results.items()},
+        }
+        return simple_dict  # type: ignore
+
+    @classmethod
+    def from_simple_dict(cls, simple_dict: ComplexDict) -> Self:
+        bus_results = {
+            BusId(int(bus_id_str)): dict_to_dataframe(df_data)  # type: ignore
+            for bus_id_str, df_data in simple_dict["bus_results"].items()  # type: ignore
+        }
+        line_results = {
+            TransmissionId(int(line_id_str)): dict_to_dataframe(df_data)  # type: ignore
+            for line_id_str, df_data in simple_dict["line_results"].items()  # type: ignore
+        }
+        return cls(
+            bus_results=bus_results,
+            line_results=line_results,
         )

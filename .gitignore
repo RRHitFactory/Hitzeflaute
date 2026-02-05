@@ -2,6 +2,7 @@
 back_end/src/game_cache/*.json
 back_end/src/game_cache/*.html
 back_end/tests/bad_states/*.json
+run_vibe.bat
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

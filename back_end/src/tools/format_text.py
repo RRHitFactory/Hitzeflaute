@@ -7,3 +7,7 @@ def format_money(amount: float, per_mwh: bool = False) -> str:
 
 def format_price(amount: float) -> str:
     return format_money(amount=amount, per_mwh=True)
+
+
+def format_power(amount: float) -> str:
+    return f"{amount:.0f} MWh"
