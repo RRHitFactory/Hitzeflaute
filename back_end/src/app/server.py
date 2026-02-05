@@ -10,7 +10,6 @@ import traceback
 from pathlib import Path
 
 import uvicorn
-from back_end.src.app.tools.reduce_message import reduce_message
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
@@ -18,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from src.app.game_manager import GameManager
 from src.app.game_repo.file_game_repo import FileGameStateRepo
+from src.app.tools.reduce_message import reduce_message
 from src.engine.engine import Engine
 from src.models.ids import GameId, PlayerId
 from src.models.message import (

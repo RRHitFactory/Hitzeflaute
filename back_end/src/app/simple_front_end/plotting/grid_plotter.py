@@ -17,7 +17,7 @@ from src.models.colors import Color
 from src.models.game_state import GameState
 from src.models.geometry import Point, Shape
 from src.models.ids import BusId
-from back_end.src.tools.format_text import format_money
+from src.tools.format_text import format_money
 
 
 class GridPlotter:

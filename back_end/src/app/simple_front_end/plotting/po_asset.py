@@ -12,7 +12,7 @@ from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color, get_contrasting_color
 from src.models.geometry import Point
 from src.models.player import Player
-from back_end.src.tools.format_text import format_money, format_price
+from src.tools.format_text import format_money, format_price
 
 
 @dataclass(frozen=True)
