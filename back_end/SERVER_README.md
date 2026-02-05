@@ -31,33 +31,50 @@ The server combines:
 
 ### 1. Install Dependencies
 
+From the project root:
+```bash
+make install-backend  # Installs uv and runs uv sync
+```
+
+Or manually:
 ```bash
 cd back_end
-uv sync  # Install Python dependencies including FastAPI, uvicorn, websockets
+python -m venv .venv
+source .venv/bin/activate  # Linux/Mac
+# or
+.venv\Scripts\activate  # Windows
+python -m pip install uv
+uv sync
 ```
 
 ### 2. Build Frontend (Optional)
 
+From the project root:
+```bash
+make install-frontend  # Installs npm dependencies
+```
+
+Then build:
 ```bash
 cd front_end
-npm install
 npm run build  # Creates dist/ folder for serving
 ```
 
 ### 3. Start the Server
 
-**Option A: Using the batch file (Windows)**
+**Option A: Using make (Recommended)**
 ```bash
-cd back_end
-start_server.bat
+make run-backend
 ```
+
+This activates the venv and runs `start_server.py`.
 
 **Option B: Using Python directly**
 ```bash
 cd back_end
-.venv/Scripts/activate  # Windows
-# or
 source .venv/bin/activate  # Linux/Mac
+# or
+.venv\Scripts\activate  # Windows
 
 python start_server.py
 ```
@@ -65,7 +82,8 @@ python start_server.py
 **Option C: Using uvicorn directly**
 ```bash
 cd back_end
-.venv/Scripts/activate
+source .venv/bin/activate  # Linux/Mac
+
 uvicorn src.app.server:app --reload --host 127.0.0.1 --port 8000
 ```
 
