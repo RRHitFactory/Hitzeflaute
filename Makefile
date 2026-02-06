@@ -1,17 +1,24 @@
 SHELL := /bin/bash
 
 # Check if we're running FROM bash (only on Windows - Git Bash check)
-UNAME_S := $(shell uname -s)
+# Only check for Git Bash if we're actually on Windows
+ifeq ($(OS),Windows_NT)
+UNAME_S := $(shell uname -s 2>/dev/null || echo MINGW64_NT)
 ifeq ($(UNAME_S),MINGW64_NT)
-BASH_CHECK := $(shell bash -c 'echo $$MSYSTEM')
+BASH_CHECK := $(shell bash -c 'echo $$MSYSTEM' 2>/dev/null || echo MINGW64_NT)
 ifeq ($(BASH_CHECK),)
 $(error ERROR: This Makefile must be run from Git Bash, not PowerShell. Install Git Bash (https://gitforwindows.org), open a Git Bash terminal, navigate to this directory, and run 'make install' from there.)
 endif
 endif
+endif
 
 # Cross-platform detection of venv python (prefers POSIX venv, then Windows venv, falls back to system python)
-VENV_PY := $(shell if [ -f back_end/.venv/bin/python ]; then echo back_end/.venv/bin/python; elif [ -f back_end/.venv/Scripts/python.exe ]; then echo back_end/.venv/Scripts/python.exe; else echo python; fi)
-VENV_PY := $(shell if [ -f back_end/.venv/bin/python ]; then echo back_end/.venv/bin/python; elif [ -f back_end/.venv/Scripts/python.exe ]; then echo back_end/.venv/Scripts/python.exe; else echo python; fi)
+# For Windows, we'll use a simpler approach
+ifeq ($(OS),Windows_NT)
+VENV_PY := .venv\Scripts\python.exe
+else
+VENV_PY := $(shell if [ -f .venv/bin/python ]; then echo .venv/bin/python; elif [ -f .venv/Scripts/python.exe ]; then echo .venv/Scripts/python.exe; else echo python; fi)
+endif
 
 .PHONY: help format format-backend format-frontend run run-backend run-frontend install install-backend install-frontend
 
@@ -30,7 +37,7 @@ format: format-backend format-frontend
 
 format-backend:
 	@echo "Formatting backend with ruff..."
-	$(VENV_PY) -m ruff check back_end/src --output-format=full --fix
+	cd back_end && $(VENV_PY) -m ruff check src --output-format=full --fix
 
 format-frontend:
 	@echo "Formatting frontend with prettier..."
