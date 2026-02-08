@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from src.app.game_manager import GameManager
 from src.app.game_repo.file_game_repo import FileGameStateRepo
+from src.app.logging import setup_logger
 from src.engine.engine import Engine
 from src.models.ids import GameId, PlayerId
 from src.models.message import (
@@ -25,9 +26,28 @@ from src.models.message import (
 )
 from src.models.server_models import CreateGameRequest, CreateGameResponse, GameStateResponse, WebsocketMessage
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure separate loggers for console and file
+console_logger = logging.getLogger(__name__ + ":console")
+file_logger = logging.getLogger(__name__ + ":file")
+setup_logger(console_logger, kind="console")
+setup_logger(file_logger, kind="file", log_file_path="server.log", level=logging.DEBUG)
+
+
+def log_exception_with_traceback(error_message: str, exception: Exception) -> None:
+    """
+    Log an exception with full traceback to file while keeping console message simple.
+
+    Args:
+        error_message: The error message to log
+        exception: The exception that occurred
+    """
+    # Simple message to console
+    console_logger.error(error_message)
+
+    # Detailed message with traceback to file
+    traceback_str = "".join(traceback.format_tb(exception.__traceback__))
+    detailed_message = f"{error_message}\nFull traceback:\n{traceback_str}\nException: {str(exception)}"
+    file_logger.error(detailed_message)
 
 
 class ConnectionManager:
@@ -42,13 +62,13 @@ class ConnectionManager:
         if game_id not in self.active_connections:
             self.active_connections[game_id] = {}
         self.active_connections[game_id][player_id] = websocket
-        logger.info(f"Player {player_id} connected to game {game_id}")
+        console_logger.info(f"Player {player_id} connected to game {game_id}")
 
     def disconnect(self, game_id: GameId, player_id: PlayerId):
         if game_id in self.active_connections:
             if player_id in self.active_connections[game_id]:
                 del self.active_connections[game_id][player_id]
-                logger.info(f"Player {player_id} disconnected from game {game_id}")
+                console_logger.info(f"Player {player_id} disconnected from game {game_id}")
             if not self.active_connections[game_id]:
                 del self.active_connections[game_id]
 
@@ -60,7 +80,8 @@ class ConnectionManager:
             try:
                 await websocket.send_text(message.to_string())
             except Exception as e:
-                logger.error(f"Error sending message to {player_id} in game {game_id}: {e}")
+                error_msg = f"Error sending message to {player_id} in game {game_id}: {e}"
+                log_exception_with_traceback(error_msg, e)
                 self.disconnect(game_id, player_id)
 
 
@@ -87,7 +108,8 @@ class WebSocketFrontEnd:
                     loop.run_until_complete(self.connection_manager.send_to_one_player(message))
 
             except Exception as e:
-                logger.error(f"Error handling message {msg}: {e}")
+                error_msg = f"Error handling message {msg}: {e}"
+                log_exception_with_traceback(error_msg, e)
 
 
 # Initialize FastAPI app
@@ -138,7 +160,7 @@ async def create_game(request: CreateGameRequest):
 
         return CreateGameResponse(game_id=str(game_id), message=f"Game created successfully with {len(request.player_names)} players")
     except Exception as e:
-        logger.error(f"Error creating game: {e}")
+        log_exception_with_traceback(f"Error creating game: {e}", e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to create game: {str(e)}")
 
 
@@ -149,7 +171,7 @@ async def list_games():
         game_ids = game_repo.list_game_ids()
         return {"games": [str(game_id) for game_id in game_ids], "count": len(game_ids)}
     except Exception as e:
-        logger.error(f"Error listing games: {e}")
+        log_exception_with_traceback(f"Error listing games: {e}", e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to list games: {str(e)}")
 
 
@@ -161,7 +183,7 @@ async def get_game_state(game_id: str):
 
         return GameStateResponse(game_state=game_state.to_simple_dict(), success=True, message="Game state retrieved successfully")
     except Exception as e:
-        logger.error(f"Error getting game state for {game_id}: {e}")
+        log_exception_with_traceback(f"Error getting game state for {game_id}: {e}", e)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Game {game_id} not found or error retrieving state: {str(e)}")
 
 
@@ -172,7 +194,7 @@ async def delete_game(game_id: str):
         game_repo.delete_game_state(GameId(int(game_id)))
         return {"message": f"Game {game_id} deleted successfully"}
     except Exception as e:
-        logger.error(f"Error deleting game {game_id}: {e}")
+        log_exception_with_traceback(f"Error deleting game {game_id}: {e}", e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to delete game: {str(e)}")
 
 
@@ -192,7 +214,7 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str, player_id: str)
         message = WebsocketMessage.from_py_message(GameUpdate(game_id=game_id_true, player_id=player_id_true, game_state=game_state, message=""))
         await websocket.send_text(message.to_string())
     except Exception as e:
-        logger.error(f"Error sending initial game state: {e}")
+        log_exception_with_traceback(f"Error sending initial game state: {e}", e)
 
     try:
         while True:
@@ -202,20 +224,20 @@ async def websocket_endpoint(websocket: WebSocket, game_id: str, player_id: str)
             try:
                 message = WebsocketMessage.from_string(data)
                 await handle_websocket_message(message)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
                 err = f"Invalid JSON received from {player_id_true} in game {game_id_true}: {data}"
-                logger.error(err)
+                log_exception_with_traceback(f"Error handling invalid JSON: {err}", e)
                 err_msg = WebsocketMessage.make_error(game_id=game_id_true, player_id=player_id_true, error_message=err)
                 await websocket.send_text(err_msg.to_string())
             except Exception as e:
                 err = f"Error handling message from {player_id_true} in game {game_id_true}: {e}"
-                logger.error(err)
+                log_exception_with_traceback(err, e)
                 err_msg = WebsocketMessage.make_error(game_id=game_id_true, player_id=player_id_true, error_message=err)
                 await websocket.send_text(err_msg.to_string())
 
-    except WebSocketDisconnect:
+    except WebSocketDisconnect as e:
         connection_manager.disconnect(game_id_true, player_id_true)
-        logger.info(f"Player {player_id_true} disconnected from game {game_id_true}")
+        log_exception_with_traceback(f"Player {player_id_true} disconnected from game {game_id_true}", e)
 
 
 async def handle_websocket_message(message: WebsocketMessage) -> None:
@@ -231,7 +253,8 @@ async def handle_websocket_message(message: WebsocketMessage) -> None:
             game_manager.handle_player_message(game_id=message.game_id_obj, msg=message.to_py_message())
 
     except Exception as e:
-        logger.error(f"Error creating player message: {e}: {traceback.format_exc()}")
+        error_msg = f"Error creating player message: {e}"
+        log_exception_with_traceback(error_msg, e)
         # Send error back to client
         message = WebsocketMessage.make_error(game_id=message.game_id_obj, player_id=message.player_id_obj, error_message=f"Error processing {message.message_type}: {str(e)}")
         await connection_manager.send_to_one_player(message)
