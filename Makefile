@@ -1,12 +1,10 @@
 SHELL := /bin/bash
 
 # Check if we're running FROM bash (only on Windows - Git Bash check)
-UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S),MINGW64_NT)
-BASH_CHECK := $(shell bash -c 'echo $$MSYSTEM')
-ifeq ($(BASH_CHECK),)
-$(error ERROR: This Makefile must be run from Git Bash, not PowerShell. Install Git Bash (https://gitforwindows.org), open a Git Bash terminal, navigate to this directory, and run 'make install' from there.)
-endif
+# Simple test - if we can't find bash, we're not in Git Bash
+BASH_TEST := $(shell where bash)
+ifeq ($(BASH_TEST),)
+$(error ERROR: This Makefile must be run from Git Bash, not PowerShell or Windows Command Prompt. Install Git Bash (https://gitforwindows.org) or open a Git Bash terminal)
 endif
 
 # Cross-platform detection of venv python (prefers POSIX venv, then Windows venv, falls back to system python)
