@@ -2,11 +2,8 @@
 
 echo "Running pre-commit checks..."
 
-# Change to the repository root directory
-cd "$(git rev-parse --show-toplevel)" || exit 1
-
-# Run the individual commands instead of using make pre-commit to avoid path issues
-if make fix-imports && make format; then
+# Run make pre-commit
+if make pre-commit; then
     echo "Pre-commit checks passed!"
     
     # Add any modified files to the commit
