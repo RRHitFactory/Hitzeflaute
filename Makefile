@@ -11,15 +11,17 @@ endif
 VENV_PY := $(shell if [ -f back_end/.venv/bin/python ]; then echo back_end/.venv/bin/python; elif [ -f back_end/.venv/Scripts/python.exe ]; then echo back_end/.venv/Scripts/python.exe; else echo python; fi)
 VENV_PY := $(shell if [ -f back_end/.venv/bin/python ]; then echo back_end/.venv/bin/python; elif [ -f back_end/.venv/Scripts/python.exe ]; then echo back_end/.venv/Scripts/python.exe; else echo python; fi)
 
-.PHONY: help format format-backend format-frontend run run-backend run-frontend install install-backend install-frontend
+.PHONY: help format format-backend format-frontend run run-backend run-frontend install install-backend install-frontend fix-imports pre-commit
 
 help:
 	@echo "make format            - format backend and frontend"
 	@echo "make format-backend    - format backend with ruff"
 	@echo "make format-frontend   - format frontend with prettier"
+	@echo "make fix-imports       - fix imports in back_end/src (replace 'from backend.src' with 'from src')"
 	@echo "make install           - install backend and frontend dependencies"
 	@echo "make install-backend   - install backend dependencies (creates back_end/.venv, prefers uv sync)"
 	@echo "make install-frontend  - install frontend dependencies (npm/yarn/pnpm)"
+	@echo "make pre-commit        - run fix-imports and format (good for pre-commit hook)"
 	@echo "make run               - try to start backend and frontend (see run-backend/run-frontend)"
 	@echo "make run-backend       - start backend (tries common scripts/commands)"
 	@echo "make run-frontend      - start frontend (tries common scripts/commands)"
@@ -33,6 +35,23 @@ format-backend:
 format-frontend:
 	@echo "Formatting frontend with prettier..."
 	cd front_end && npx prettier --write "**/*.{ts,tsx,js,jsx}"
+
+pre-commit:
+	@echo "Running pre-commit tasks..."
+	$(MAKE) fix-imports && \
+	$(MAKE) format
+
+fix-imports:
+	@echo "Fixing imports in back_end/src..."
+	@cd back_end && \
+	if [ -d "src" ]; then \
+	  find src -name "*.py" -type f -exec grep -l -E "from (backend|back_end)\.src" {} \; | while read -r file; do \
+	    echo "Fixing imports in $$file"; \
+	    sed -i.bak -E 's/from (backend|back_end)\.src/from src/g' "$$file" && rm -f "$$file.bak"; \
+	  done && echo "Import fix completed" || echo "No files found with backend/back_end.src imports"; \
+	else \
+	  echo "Error: src directory not found in back_end/"; \
+	fi
 
 # Run targets
 run:
