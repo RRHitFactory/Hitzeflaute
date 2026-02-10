@@ -26,6 +26,5 @@ A game based on electricity market coupling
 To automatically run code formatting and import fixes before each commit, you can set up a Git pre-commit hook:
 
 1. Copy `scripts/pre-commit` to `.git/hooks/pre-commit` (.git is probably a hidden folder)
-2. Make it executable if it is not already
-3. Add the following content:
+2. Make it executable if needed by security settings on your os
 
