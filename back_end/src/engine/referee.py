@@ -27,6 +27,8 @@ class Referee:
     @classmethod
     def validate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
         purchase_repo: AssetRepo | TransmissionRepo
+        purchase_repo_ids: list[AssetId] | list[TransmissionId]
+
         if isinstance(purchase_id, AssetId):
             purchase_type = "asset"
             purchase_repo = gs.assets
