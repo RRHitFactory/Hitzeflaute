@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.models.asset_repo import AssetRepo
+from src.models.assets import AssetRepo
 from src.models.game_state import GameState
 from src.models.ids import AssetId, PlayerId, TransmissionId
 from src.models.message import (
@@ -13,8 +13,7 @@ from src.models.message import (
     T_Id,
     TransmissionWornMessage,
 )
-from src.models.transmission import TransmissionInfo
-from src.models.transmission_repo import TransmissionRepo
+from src.models.transmission import TransmissionInfo, TransmissionRepo
 
 
 class Referee:
