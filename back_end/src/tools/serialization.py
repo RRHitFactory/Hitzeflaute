@@ -166,12 +166,16 @@ class SerializableDcSimple:
 
     @classmethod
     def from_simple_dict(cls, simple_dict: FlatDict | SimpleDict) -> Self:
-        init_dict = {k: cls.process_one(field_value=simple_dict[k], field_type=v) for k, v in cls.get_serializable_fields().items()}  # type: ignore
+        init_dict = {k: cls.process_one(field_value=simple_dict[k], field_type=v.type) for k, v in cls.get_serializable_fields().items()}  # type: ignore
         return cls(**init_dict)  # noqa
 
     @classmethod
     def get_serializable_field_keys(cls) -> list[str]:
         return list(cls.__dataclass_fields__.keys())
+
+    @classmethod
+    def get_serializable_fields(cls) -> dict[str, Field]:
+        return {k: v for k, v in cls.__dataclass_fields__.items()}
 
 
 def dataframe_to_dict(df: pd.DataFrame) -> SerializedDf:
