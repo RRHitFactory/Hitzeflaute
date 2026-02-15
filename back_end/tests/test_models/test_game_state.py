@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 from src.models.game_state import GameState
 from src.tools.serialization import deserialize, serialize
 from tests.base_test import BaseTest
@@ -19,10 +21,12 @@ class TestGameState(BaseTest):
 
     def test_update(self):
         # Test the update method of GameState
-        game_state_1 = GameStateMaker().make()
-        game_state_2 = GameStateMaker().make()
+        game_state_1 = replace(GameStateMaker().make(), market_coupling_result=None, market_summary=None)
+        game_state_2 = replace(GameStateMaker().make(), market_coupling_result=None, market_summary=None)
+        self.assertNotEqual(game_state_1, game_state_2)
 
         dict_vars = dict(vars(game_state_1))
+        dict_vars = {k: v for k, v in dict_vars.items() if v is not None}
 
         game_state_2 = game_state_2.update(*dict_vars.values())
         self.assertEqual(game_state_1, game_state_2)

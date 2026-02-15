@@ -1,14 +1,16 @@
 import json
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Protocol, Self, get_args, get_origin, runtime_checkable
 
+import pandas as pd
+
 from src.tools.typing import IntId
 
 type Primitive = int | float | str | bool
-type SimpleDict = dict[str, Primitive]
-type ComplexDict = dict[str, Primitive | SimpleDict | list[SimpleValue]]
+type FlatDict = dict[str, Primitive]
+type SerializedDf = dict[str, list[float] | list[str]]
+type SimpleDict = dict[str, Primitive | FlatDict | SimpleDict | SerializedDf | list[Primitive]]
 primitives = (int, float, str, bool)
 
 
@@ -40,10 +42,10 @@ def get_list_inner_type(field_type) -> type | None:
 
 @runtime_checkable
 class Serializable(Protocol):
-    def to_simple_dict(self) -> SimpleDict | ComplexDict: ...
+    def to_simple_dict(self) -> FlatDict | SimpleDict: ...
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: SimpleDict | ComplexDict) -> Self: ...
+    def from_simple_dict(cls, simple_dict: FlatDict | SimpleDict) -> Self: ...
 
 
 def serialize(x: Serializable) -> str:
@@ -104,24 +106,12 @@ def un_simplify_optional_type[T: SimpleValue](x: Primitive | None, t: type[T]) -
 
 
 @dataclass(frozen=True)
-class SerializableBase(ABC):
-    @abstractmethod
-    def to_simple_dict(self) -> SimpleDict:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
-        pass
-
-
-@dataclass(frozen=True)
-class SerializableDcSimple:
-    def to_simple_dict(self) -> SimpleDict:
+class SerializableDcFlat:
+    def to_simple_dict(self) -> FlatDict:
         return {k: simplify_type(x=self.__getattribute__(k)) for k in self.get_serializable_fields().keys()}
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
+    def from_simple_dict(cls, simple_dict: FlatDict) -> Self:
         init_dict = {
             k: un_simplify_type(x=simple_dict[k], t=v.type)
             for k, v in cls.get_serializable_fields().items()  # noqa
@@ -134,9 +124,9 @@ class SerializableDcSimple:
 
 
 @dataclass(frozen=True)
-class SerializableDcRecursive:
-    def to_simple_dict(self) -> ComplexDict:
-        def serialize_field(x: Serializable | list[Primitive]) -> Primitive | SimpleDict | ComplexDict | list[Primitive]:
+class SerializableDcSimple:
+    def to_simple_dict(self) -> SimpleDict:
+        def serialize_field(x: Serializable | list[Primitive]) -> Primitive | FlatDict | SimpleDict | list[Primitive]:
             if isinstance(x, Serializable):
                 return x.to_simple_dict()
             if isinstance(x, list):
@@ -147,7 +137,7 @@ class SerializableDcRecursive:
 
     @staticmethod
     def process_one(field_value: Any, field_type: type) -> Any:
-        def deserialize_dict[T: Serializable](x: SimpleDict | ComplexDict, t: type[T]) -> T:
+        def deserialize_dict[T: Serializable](x: FlatDict | SimpleDict, t: type[T]) -> T:
             return t.from_simple_dict(x)
 
         def deserialize_value[T: SimpleValue](x: Primitive, t: type[T]) -> T:
@@ -175,10 +165,18 @@ class SerializableDcRecursive:
         return field_type(field_value)
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: ComplexDict) -> Self:
+    def from_simple_dict(cls, simple_dict: FlatDict | SimpleDict) -> Self:
         init_dict = {k: cls.process_one(field_value=simple_dict[k], field_type=v) for k, v in cls.get_serializable_fields().items()}  # type: ignore
         return cls(**init_dict)  # noqa
 
     @classmethod
     def get_serializable_fields(cls) -> dict[str, type[Serializable] | type[SimpleValue | list]]:
         return {k: v.type for k, v in cls.__dataclass_fields__.items()}
+
+
+def dataframe_to_dict(df: pd.DataFrame) -> SerializedDf:
+    return {"columns": df.columns.tolist(), "index": df.index.tolist(), "values": df.values.tolist()}  # type: ignore
+
+
+def dict_to_dataframe(df_dict: SerializedDf) -> pd.DataFrame:
+    return pd.DataFrame(data=df_dict["values"], index=df_dict["index"], columns=df_dict["columns"])

@@ -12,7 +12,7 @@ import pandas as pd
 
 from src.models.data.light_dc import LightDc
 from src.tools.random_choice import random_choice
-from src.tools.serialization import SimpleDict, simplify_type
+from src.tools.serialization import FlatDict, simplify_type
 
 type Condition = dict[str, Any] | Callable[[pd.Series], bool]
 type Operator = Literal["or", "and", "not", None]
@@ -61,7 +61,7 @@ class LdcRepo[T_LightDc: LightDc](ABC):
         if simple_x not in self._df.index:
             raise KeyError(f"Element with id {x} not found in {self.__class__.__name__}")
         row = self.df.loc[simple_x]
-        return self._get_dc_type().from_simple_dict(cast(SimpleDict, {**row.to_dict(), "id": x}))
+        return self._get_dc_type().from_simple_dict(cast(FlatDict, {**row.to_dict(), "id": x}))
 
     def __iter__(self) -> Iterator[T_LightDc]:
         for dc_id in self._df.index:

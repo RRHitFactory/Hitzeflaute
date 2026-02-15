@@ -6,11 +6,11 @@ from src.models.assets import AssetId
 from src.models.game_state import GameState, Phase
 from src.models.ids import GameId, PlayerId
 from src.models.transmission import TransmissionId
-from src.tools.serialization import SerializableDcRecursive
+from src.tools.serialization import SerializableDcSimple
 
 
 @dataclass(frozen=True)
-class Message(ABC, SerializableDcRecursive):
+class Message(ABC, SerializableDcSimple):
     game_id: GameId
 
 

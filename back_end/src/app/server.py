@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from src.app.game_manager import GameManager
 from src.app.game_repo.file_game_repo import FileGameStateRepo
 from src.app.logging import setup_logger
+from src.app.tools.reduce_message import reduce_message
 from src.engine.engine import Engine
 from src.models.ids import GameId, PlayerId
 from src.models.message import (
@@ -96,7 +97,8 @@ class WebSocketFrontEnd:
         for msg in msgs:
             try:
                 # Convert message to simple dict for JSON serialization
-                message = WebsocketMessage.from_py_message(msg)
+                reduced = reduce_message(msg)
+                message = WebsocketMessage.from_py_message(reduced)
                 import asyncio
 
                 loop = asyncio.get_event_loop()

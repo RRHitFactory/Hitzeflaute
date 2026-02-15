@@ -7,7 +7,7 @@ from src.models.assets import AssetInfo, AssetRepo
 from src.models.buses import BusFullException, BusRepo
 from src.models.game_settings import GameSettings
 from src.models.ids import BusId, GameId, PlayerId, Round
-from src.models.market_coupling_result import MarketCouplingResult
+from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.serialization import simplify_type, un_simplify_type
@@ -38,7 +38,7 @@ class Phase(IntEnum):
         return Phase(next_index)
 
 
-type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | Round
+type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round
 
 
 @dataclass(frozen=True)
@@ -51,6 +51,7 @@ class GameState:
     assets: AssetRepo
     transmission: TransmissionRepo
     market_coupling_result: MarketCouplingResult | None
+    market_summary: MarketCouplingSummary | None = None
     game_round: Round = Round(1)
 
     def __post_init__(self) -> None:
@@ -127,6 +128,7 @@ class GameState:
             "assets": self.assets.to_simple_dict(),
             "transmission": self.transmission.to_simple_dict(),
             "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
+            "market_summary": (self.market_summary.to_simple_dict() if self.market_summary else None),
             "game_round": self.game_round,
         }
 
@@ -141,5 +143,6 @@ class GameState:
             assets=AssetRepo.from_simple_dict(simple_dict["assets"]),
             transmission=TransmissionRepo.from_simple_dict(simple_dict["transmission"]),
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
+            market_summary=(MarketCouplingSummary.from_simple_dict(simple_dict["market_summary"]) if simple_dict.get("market_summary") else None),
             game_round=Round(simple_dict["game_round"]),
         )
