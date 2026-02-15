@@ -22,8 +22,6 @@ def setup_logger(logger: logging.Logger, kind: Literal["console", "file"], log_f
 
         # Create a file handler
         handler = logging.FileHandler(log_file_path)
-        handler.setLevel(level)
-
         # Create a detailed formatter for file logging
         file_formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s")
         handler.setFormatter(file_formatter)
@@ -31,9 +29,9 @@ def setup_logger(logger: logging.Logger, kind: Literal["console", "file"], log_f
     else:
         # Create a simple formatter for console logging
         handler = logging.StreamHandler()
-        handler.setLevel(logging.INFO)  # Console only shows INFO and above
         console_formatter = logging.Formatter("%(levelname)s: %(message)s")
         handler.setFormatter(console_formatter)
 
+    handler.setLevel(level)
     logger.addHandler(handler)
     logger.setLevel(level)  # Keep the most permissive level
