@@ -75,7 +75,7 @@ ban-relative-imports = "all"
 
 [tool.mypy]
 python_version = "3.12"
-exclude = "back_end/src/app/simple_front_end/"
+exclude = "src/app/simple_front_end/"
 ignore_missing_imports = true
 follow_imports = "silent"
 check_untyped_defs = false
