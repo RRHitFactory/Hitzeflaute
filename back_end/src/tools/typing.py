@@ -25,5 +25,3 @@ class IntId(int):
     def as_int(self) -> int:
         return int(self)
 
-
-a = 2
