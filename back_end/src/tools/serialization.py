@@ -1,5 +1,4 @@
 import json
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Protocol, Self, runtime_checkable
@@ -9,18 +8,18 @@ import pandas as pd
 from src.tools.typing import IntId
 
 type Primitive = int | float | str | bool
-type SimpleDict = dict[str, Primitive]
+type FlatDict = dict[str, Primitive]
 type SerializedDf = dict[str, list[float] | list[str]]
-type ComplexDict = dict[str, Primitive | SimpleDict | ComplexDict | SerializedDf | list[Primitive]]
+type SimpleDict = dict[str, Primitive | FlatDict | SimpleDict | SerializedDf | list[Primitive]]
 primitives = (int, float, str, bool)
 
 
 @runtime_checkable
 class Serializable(Protocol):
-    def to_simple_dict(self) -> SimpleDict | ComplexDict: ...
+    def to_simple_dict(self) -> FlatDict | SimpleDict: ...
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: SimpleDict | ComplexDict) -> Self: ...
+    def from_simple_dict(cls, simple_dict: FlatDict | SimpleDict) -> Self: ...
 
 
 def serialize(x: Serializable) -> str:
@@ -81,24 +80,12 @@ def un_simplify_optional_type[T: SimpleValue](x: Primitive | None, t: type[T]) -
 
 
 @dataclass(frozen=True)
-class SerializableBase(ABC):
-    @abstractmethod
-    def to_simple_dict(self) -> SimpleDict:
-        pass
-
-    @classmethod
-    @abstractmethod
-    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
-        pass
-
-
-@dataclass(frozen=True)
-class SerializableDcSimple:
-    def to_simple_dict(self) -> SimpleDict:
+class SerializableDcFlat:
+    def to_simple_dict(self) -> FlatDict:
         return {k: simplify_type(x=self.__getattribute__(k)) for k in self.get_serializable_fields().keys()}
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
+    def from_simple_dict(cls, simple_dict: FlatDict) -> Self:
         init_dict = {
             k: un_simplify_type(x=simple_dict[k], t=v.type)
             for k, v in cls.get_serializable_fields().items()  # noqa
@@ -111,9 +98,9 @@ class SerializableDcSimple:
 
 
 @dataclass(frozen=True)
-class SerializableDcRecursive:
-    def to_simple_dict(self) -> ComplexDict:
-        def serialize_field(x: Serializable) -> Primitive | SimpleDict | ComplexDict:
+class SerializableDcSimple:
+    def to_simple_dict(self) -> SimpleDict:
+        def serialize_field(x: Serializable) -> Primitive | FlatDict | SimpleDict:
             if isinstance(x, Serializable):
                 return x.to_simple_dict()
             return simplify_type(x)
@@ -121,8 +108,8 @@ class SerializableDcRecursive:
         return {k: serialize_field(x=self.__getattribute__(k)) for k in self.get_serializable_fields().keys()}
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: ComplexDict) -> Self:
-        def deserialize_dict[T: Serializable](x: SimpleDict | ComplexDict, t: type[T]) -> T:
+    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
+        def deserialize_dict[T: Serializable](x: FlatDict | SimpleDict, t: type[T]) -> T:
             return t.from_simple_dict(x)
 
         def deserialize_value[T: SimpleValue](x: Primitive, t: type[T]) -> T:

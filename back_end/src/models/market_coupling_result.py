@@ -4,7 +4,7 @@ from typing import Self
 import pandas as pd
 
 from src.models.ids import BusId, TransmissionId
-from src.tools.serialization import ComplexDict, SerializedDf, dataframe_to_dict, dict_to_dataframe
+from src.tools.serialization import SerializedDf, SimpleDict, dataframe_to_dict, dict_to_dataframe
 
 
 class MarketCouplingResult:
@@ -81,7 +81,7 @@ class MarketCouplingResult:
         """
         return self._assets_dispatch.copy()
 
-    def to_simple_dict(self) -> ComplexDict:
+    def to_simple_dict(self) -> SimpleDict:
         simple_dict = {
             "bus_prices": dataframe_to_dict(self._bus_prices),
             "transmission_flows": dataframe_to_dict(self._transmission_flows),
@@ -90,7 +90,7 @@ class MarketCouplingResult:
         return simple_dict  # type: ignore
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: ComplexDict) -> Self:
+    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
         def get_one(key: str, column_index_name: str) -> pd.DataFrame:
             df_data: SerializedDf = simple_dict[key]  # type: ignore
             df = dict_to_dataframe(df_data)
@@ -112,7 +112,7 @@ class MarketCouplingSummary:
     bus_results: dict[BusId, tuple[float, pd.DataFrame, pd.DataFrame]]  # price, generation df, load df
     line_results: dict[TransmissionId, pd.DataFrame]
 
-    def to_simple_dict(self) -> ComplexDict:
+    def to_simple_dict(self) -> SimpleDict:
         simple_dict = {
             "bus_results": {str(bus_id): (price, dataframe_to_dict(getn_df), dataframe_to_dict(load_df)) for bus_id, (price, getn_df, load_df) in self.bus_results.items()},
             "line_results": {str(line_id): dataframe_to_dict(df) for line_id, df in self.line_results.items()},
@@ -120,16 +120,5 @@ class MarketCouplingSummary:
         return simple_dict  # type: ignore
 
     @classmethod
-    def from_simple_dict(cls, simple_dict: ComplexDict) -> Self:
-        bus_results = {
-            BusId(int(bus_id_str)): dict_to_dataframe(df_data)  # type: ignore
-            for bus_id_str, df_data in simple_dict["bus_results"].items()  # type: ignore
-        }
-        line_results = {
-            TransmissionId(int(line_id_str)): dict_to_dataframe(df_data)  # type: ignore
-            for line_id_str, df_data in simple_dict["line_results"].items()  # type: ignore
-        }
-        return cls(
-            bus_results=bus_results,
-            line_results=line_results,
-        )
+    def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
+        raise NotImplementedError("Deserialization of MarketCouplingSummary is not implemented yet")
