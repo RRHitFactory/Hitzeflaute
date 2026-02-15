@@ -8,12 +8,8 @@ $(error ERROR: This Makefile must be run from Git Bash, not PowerShell or Window
 endif
 
 # Cross-platform detection of venv python (prefers POSIX venv, then Windows venv, falls back to system python)
-# For Windows, we'll use a simpler approach
-ifeq ($(OS),Windows_NT)
-VENV_PY := .venv\Scripts\python.exe
-else
-VENV_PY := $(shell if [ -f .venv/bin/python ]; then echo .venv/bin/python; elif [ -f .venv/Scripts/python.exe ]; then echo .venv/Scripts/python.exe; else echo python; fi)
-endif
+VENV_PY := $(shell if [ -f back_end/.venv/bin/python ]; then echo back_end/.venv/bin/python; elif [ -f back_end/.venv/Scripts/python.exe ]; then echo back_end/.venv/Scripts/python.exe; else echo python; fi)
+VENV_PY := $(shell if [ -f back_end/.venv/bin/python ]; then echo back_end/.venv/bin/python; elif [ -f back_end/.venv/Scripts/python.exe ]; then echo back_end/.venv/Scripts/python.exe; else echo python; fi)
 
 .PHONY: help format format-backend format-frontend run run-backend run-frontend install install-backend install-frontend fix-imports pre-commit
 
@@ -34,7 +30,7 @@ format: format-backend format-frontend
 
 format-backend:
 	@echo "Formatting backend with ruff..."
-	cd back_end && $(VENV_PY) -m ruff check src --output-format=full --fix
+	$(VENV_PY) -m ruff check back_end/src --output-format=full --fix
 
 format-frontend:
 	@echo "Formatting frontend with prettier..."
