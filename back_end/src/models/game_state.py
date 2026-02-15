@@ -116,7 +116,7 @@ class GameState:
             assert attr_name is not None, f"Attribute in position {k} of with value {attr} of {type(attr)} is not a valid GameState attribute."
             append_to_map(attr_name, attr)
 
-        return replace(self, **map_new_attributes)
+        return replace(self, **map_new_attributes)  # type: ignore[arg-type]
 
     def to_simple_dict(self) -> dict:
         return {

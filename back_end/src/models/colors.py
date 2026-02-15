@@ -52,18 +52,20 @@ class Color:
         abc = (a, b, c)
         assert all(0 <= value <= 255 for value in abc), f"Values must be between 0 and 255. Received {abc}."
 
-        self._color_model = color_model
+        self._color_model: str = color_model
         self._abc = abc
 
     def __str__(self) -> str:
-        al, bl, cl = self._color_model
+        al: str = self._color_model[0]
+        bl: str = self._color_model[1]
+        cl: str = self._color_model[2]
         a, b, c = self._abc
         return f"<Color({al}={a}, {bl}={b}, {cl}={c})>"
 
     def __repr__(self) -> str:
         return str(self)
 
-    def __eq__(self, other: "Color") -> bool:
+    def __eq__(self, other: object, /) -> bool:
         if not isinstance(other, Color):
             return False
         return self.rgb_hex_str == other.rgb_hex_str
@@ -84,36 +86,30 @@ class Color:
     @cached_property
     def rgb(self) -> tuple[int, int, int]:
         if self._color_model == "rgb":
-            r, g, b = self._abc
-            return r, g, b
+            return self._abc
         if self._color_model == "hsv":
             h, s, v = self._abc
             r, g, b = colorsys.hsv_to_rgb(h / 255, s / 255, v / 255)
         else:
             h, l, s = self._abc
             r, g, b = colorsys.hls_to_rgb(h / 255, l / 255, s / 255)
-        r, g, b = round(r * 255), round(g * 255), round(b * 255)
-        return r, g, b
+        return round(r * 255), round(g * 255), round(b * 255)
 
     @cached_property
     def hsv(self) -> tuple[int, int, int]:
         if self._color_model == "hsv":
-            h, s, v = self._abc
-        else:
-            r, g, b = self.rgb
-            h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-            h, s, v = round(h * 255), round(s * 255), round(v * 255)
-        return h, s, v
+            return self._abc
+        r, g, b = self.rgb
+        h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        return round(h * 255), round(s * 255), round(v * 255)
 
     @cached_property
     def hls(self) -> tuple[int, int, int]:
         if self._color_model == "hls":
-            h, l, s = self._abc
-        else:
-            r, g, b = self.rgb
-            h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-            h, l, s = round(h * 255), round(l * 255), round(s * 255)
-        return h, l, s
+            return self._abc
+        r, g, b = self.rgb
+        h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+        return round(h * 255), round(l * 255), round(s * 255)
 
     @cached_property
     def rgb_hex_str(self) -> str:

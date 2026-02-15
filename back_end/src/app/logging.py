@@ -17,6 +17,8 @@ def setup_logger(logger: logging.Logger, kind: Literal["console", "file"], log_f
         level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
     """
     assert kind in {"console", "file"}, "Invalid logging kind. Must be 'console' or 'file'."
+
+    handler: logging.FileHandler | logging.StreamHandler
     if kind == "file":
         assert log_file_path is not None, "log_file_path must be provided for file logging."
 

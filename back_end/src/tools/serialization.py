@@ -1,5 +1,5 @@
 import json
-from dataclasses import dataclass
+from dataclasses import Field, dataclass
 from enum import Enum
 from typing import Any, Protocol, Self, get_args, get_origin, runtime_checkable
 
@@ -87,15 +87,15 @@ def simplify_optional_type(
     return simplify_type(x)
 
 
-def un_simplify_type[T: SimpleValue](x: Primitive, t: type[T]) -> T:
+def un_simplify_type[T: SimpleValue](x: Primitive, t: type[T]) -> T:  # type: ignore[return-value]
     if issubclass(t, Stringable):
         return t.from_string(str(x))
     if t in primitives:
-        return t(x)
+        return t(x)  # type: ignore[return-value]
     if issubclass(t, Enum):
-        return t(x)
+        return t(x)  # type: ignore[return-value]
     if issubclass(t, IntId):
-        return t(x)
+        return t(x)  # type: ignore[return-value]
     raise TypeError(f"Unsupported type {t}")
 
 
@@ -113,13 +113,13 @@ class SerializableDcFlat:
     @classmethod
     def from_simple_dict(cls, simple_dict: FlatDict) -> Self:
         init_dict = {
-            k: un_simplify_type(x=simple_dict[k], t=v.type)
-            for k, v in cls.get_serializable_fields().items()  # noqa
+            k: un_simplify_type(x=simple_dict[k], t=v.type)  # type: ignore
+            for k, v in cls.get_serializable_fields().items()
         }
         return cls(**init_dict)  # noqa
 
     @classmethod
-    def get_serializable_fields(cls) -> dict[str, type]:
+    def get_serializable_fields(cls) -> dict[str, Field]:
         return {k: v for k, v in cls.__dataclass_fields__.items() if k != "allow_recursion"}
 
 
@@ -133,7 +133,7 @@ class SerializableDcSimple:
                 return [simplify_type(i) for i in x]
             return simplify_type(x)
 
-        return {k: serialize_field(x=self.__getattribute__(k)) for k in self.get_serializable_fields().keys()}  # type: ignore
+        return {k: serialize_field(x=self.__getattribute__(k)) for k in self.get_serializable_field_keys()}  # type: ignore
 
     @staticmethod
     def process_one(field_value: Any, field_type: type) -> Any:
@@ -170,8 +170,8 @@ class SerializableDcSimple:
         return cls(**init_dict)  # noqa
 
     @classmethod
-    def get_serializable_fields(cls) -> dict[str, type[Serializable] | type[SimpleValue | list]]:
-        return {k: v.type for k, v in cls.__dataclass_fields__.items()}
+    def get_serializable_field_keys(cls) -> list[str]:
+        return list(cls.__dataclass_fields__.keys())
 
 
 def dataframe_to_dict(df: pd.DataFrame) -> SerializedDf:

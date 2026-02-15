@@ -31,7 +31,7 @@ from src.models.server_models import CreateGameRequest, CreateGameResponse, Game
 console_logger = logging.getLogger(__name__ + ":console")
 file_logger = logging.getLogger(__name__ + ":file")
 setup_logger(console_logger, kind="console")
-setup_logger(file_logger, kind="file", log_file_path="server.log", level=logging.DEBUG)
+setup_logger(file_logger, kind="file", level=logging.DEBUG)
 
 
 def log_exception_with_traceback(error_message: str, exception: Exception) -> None:
@@ -54,7 +54,7 @@ def log_exception_with_traceback(error_message: str, exception: Exception) -> No
 class ConnectionManager:
     """Manages WebSocket connections for real-time communication"""
 
-    def __init__(self):
+    def __init__(self) -> None:
         # Dictionary mapping game_id -> player_id -> WebSocket
         self.active_connections: dict[GameId, dict[PlayerId, WebSocket]] = {}
 

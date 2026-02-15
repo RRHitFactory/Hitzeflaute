@@ -101,7 +101,7 @@ class TransmissionTopologyMaker:
         connections = []
         possible_connections = TransmissionTopologyMaker._get_bus_combinations(bus_repo)
         for _ in range(n_connections):
-            bus1, bus2 = random_choice(possible_connections, replace=False)
+            bus1, bus2 = random_choice(possible_connections)
             connections.append({"bus1": BusId(bus1), "bus2": BusId(bus2)})
         return connections
 

@@ -1,5 +1,6 @@
 import numpy as np
 
+from src.models.asset_repo import AssetRepo
 from src.models.game_state import GameState
 from src.models.ids import AssetId, PlayerId, TransmissionId
 from src.models.message import (
@@ -13,6 +14,7 @@ from src.models.message import (
     TransmissionWornMessage,
 )
 from src.models.transmission import TransmissionInfo
+from src.models.transmission_repo import TransmissionRepo
 
 
 class Referee:
@@ -25,14 +27,17 @@ class Referee:
     # BEFORE MARKET COUPLING
     @classmethod
     def validate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
+        purchase_repo: AssetRepo | TransmissionRepo
         if isinstance(purchase_id, AssetId):
             purchase_type = "asset"
             purchase_repo = gs.assets
+            assert isinstance(purchase_repo, AssetRepo)
             purchase_repo_ids = purchase_repo.asset_ids
 
         elif isinstance(purchase_id, TransmissionId):
             purchase_type = "transmission"
             purchase_repo = gs.transmission
+            assert isinstance(purchase_repo, TransmissionRepo)
             purchase_repo_ids = purchase_repo.transmission_ids
 
         else:

@@ -97,7 +97,8 @@ class BusSocketManager:
             raise BusFullException(f"Requested {n} buses, but only {len(self.free_buses)} buses with free sockets available.")
         buses = random_choice_multi(x=self.free_buses, size=n, replace=False)
         if use:
-            [self.use_socket(b) for b in buses]
+            for b in buses:
+                self.use_socket(b)
         return buses
 
     def get_bus_with_free_socket(self, use: bool = False, excluding: BusId | None = None) -> BusId:

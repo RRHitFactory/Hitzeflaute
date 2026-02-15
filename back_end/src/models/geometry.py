@@ -94,7 +94,7 @@ class Shape:
             return Shape(points=self.points + other.points, shape_type=ShapeType.UNKOWN)
         raise TypeError(f"Cannot add {type(other)} to Geometry")
 
-    def __eq__(self, other: "Shape") -> bool:
+    def __eq__(self, other: object, /) -> bool:
         if not isinstance(other, Shape):
             return False
         if not self.shape_type == other.shape_type:
@@ -156,7 +156,8 @@ class Shape:
 
     @classmethod
     def from_simple_dict(cls, simple_dict: dict[str, list[dict[str, float]] | str]) -> Self:
-        points = [Point.from_simple_dict(point) for point in simple_dict["points"]]
+        point_dicts: list[dict[str, float]] = simple_dict["points"]  # type: ignore
+        points = [Point.from_simple_dict(p) for p in point_dicts]
         shape_type = ShapeType(simple_dict["shape_type"])
         return cls(points=points, shape_type=shape_type)
 
