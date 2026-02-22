@@ -9,7 +9,6 @@ from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
     AuctionClearedMessage,
     BuyRequest,
-    BuyResponse,
     ConcludePhase,
     EndTurn,
     Message,
@@ -17,7 +16,6 @@ from src.models.message import (
     OperateAssetResponse,
     OperateLineRequest,
     OperateLineResponse,
-    T_Id,
     ToGameMessage,
     UpdateBidRequest,
     UpdateBidResponse,
@@ -343,46 +341,6 @@ class Engine:
             )
 
         return new_game_state, msgs
-
-    @classmethod
-    def _validate_purchase(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
-        if isinstance(msg.purchase_id, AssetId):
-            purchase_type = "asset"
-            purchase_repo = gs.assets
-            purchase_repo_ids = purchase_repo.asset_ids
-
-        elif isinstance(msg.purchase_id, TransmissionId):
-            purchase_type = "transmission"
-            purchase_repo = gs.transmission
-            purchase_repo_ids = purchase_repo.transmission_ids
-
-        else:
-            raise NotImplementedError(f"Message type {type(msg)} not implemented for purchase validation.")
-
-        purchase_id = msg.purchase_id
-        player = gs.players[msg.player_id]
-
-        def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
-            failed_response = BuyResponse(
-                game_id=gs.game_id,
-                player_id=msg.player_id,
-                success=False,
-                message=failed_message,
-                purchase_id=purchase_id,
-            )
-            return [failed_response]
-
-        if purchase_id not in purchase_repo_ids:
-            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
-        purchase_obj = purchase_repo[purchase_id]
-
-        if not purchase_obj.is_for_sale:
-            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} is not for sale.")
-
-        elif player.money < purchase_obj.minimum_acquisition_price:
-            return make_failed_response(f"Sorry, player {msg.player_id} cannot afford {purchase_type} {purchase_id}.")
-
-        return []
 
     @classmethod
     def _validate_update_bid(cls, gs: GameState, msg: UpdateBidRequest) -> list[Message]:

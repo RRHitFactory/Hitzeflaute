@@ -41,7 +41,11 @@ jobs:
     - name: Lint with ruff
       run: uv run ruff check src --output-format=full
       working-directory: ./back_end
-    
+
+    - name: Check types with mypy
+      run: uv run mypy src --config-file=pyproject.toml
+      working-directory: ./back_end
+  
     - name: Test with pytest
       run: uv run pytest tests
       working-directory: ./back_end

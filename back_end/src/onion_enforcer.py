@@ -40,11 +40,11 @@ class ProjectStructureRule:
         import_names = self.upper.get_import_names()
 
         if isinstance(self.lower, Module):
-            file_iter = self.lower.path.rglob("*.py")
+            files = [p for p in self.lower.path.rglob("*.py")]
         else:
-            file_iter = [self.lower.path]
+            files = [self.lower.path]
 
-        for py_file in file_iter:
+        for py_file in files:
             with py_file.open("r", encoding="utf-8") as f:
                 for k, line in enumerate(f):
                     if not (line.startswith("import") or line.startswith("from")):

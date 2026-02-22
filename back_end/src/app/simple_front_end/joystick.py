@@ -114,6 +114,7 @@ class Joystick:
 
     def start_asset(self, asset_id: int) -> None:
         message = OperateAssetRequest(
+            game_id=self._game_id,
             player_id=self._current_player_id,
             asset_id=AssetId(asset_id),
             action="startup",
@@ -122,6 +123,7 @@ class Joystick:
 
     def shutdown_asset(self, asset_id: int) -> None:
         message = OperateAssetRequest(
+            game_id=self._game_id,
             player_id=self._current_player_id,
             asset_id=AssetId(asset_id),
             action="shutdown",

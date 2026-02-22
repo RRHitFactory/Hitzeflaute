@@ -106,7 +106,8 @@ class GridPlotter:
         player_table = cls.make_player_table(game_state=game_state)
         top_table = cls.make_top_table(game_state=game_state)
 
-        return player_table + top_table + [playable_map] + buses + txs + assets  # type: ignore
+        combined: list[PlotObject] = player_table + top_table + [playable_map] + buses + txs + assets
+        return combined
 
     @classmethod
     def make_top_table(cls, game_state: GameState) -> list[ShapePlotObject]:

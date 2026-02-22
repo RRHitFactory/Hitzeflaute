@@ -173,7 +173,7 @@ class LayoutPlanner:
         else:
             preferred_side2 = "bl" if vector.x > 0 else "tr"
 
-        return preferred_side1, preferred_side2  # type: ignore[return]
+        return preferred_side1, preferred_side2
 
     @classmethod
     def get_orientation_of_bus(cls, bus: Bus) -> BusOrientation:

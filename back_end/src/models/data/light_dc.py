@@ -18,7 +18,7 @@ class LightDc(SerializableDcFlat):
 
     @classmethod
     def from_simple_dict(cls, simple_dict: FlatDict) -> Self:
-        init_dict = {k: un_simplify_type(x=simple_dict[k], t=v.type) for k, v in cls.get_serializable_fields().items()}
+        init_dict = {k: un_simplify_type(x=simple_dict[k], t=v.type) for k, v in cls.get_serializable_fields().items()}  # type: ignore
         return cls(**init_dict)  # noqa
 
 

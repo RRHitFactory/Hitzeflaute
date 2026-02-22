@@ -38,7 +38,7 @@ class MarketCouplingCalculator:
         :return: A PyPSA network object
         """
         network = pypsa.Network()
-        network.set_snapshots(pd.Index([0], name="time"))  # Single snapshot for simplicity
+        network.set_snapshots(pd.Index([0], name="time"))  # type: ignore
 
         network.add(class_name="Carrier", name="AC")
         for bus in game_state.buses:
