@@ -1,15 +1,13 @@
 SHELL := /bin/bash
 
-# Check if we're running FROM bash (cross-platform check)
-# On Windows, use 'where bash', on Unix-like systems use 'command -v bash'
+# Check if we're running FROM bash if on windows
 ifeq ($(OS),Windows_NT)
 BASH_TEST := $(shell where bash)
-else
-BASH_TEST := $(shell command -v bash)
-endif
 ifeq ($(BASH_TEST),)
 $(error ERROR: Bash not found. This Makefile requires bash to be installed and available in PATH)
 endif
+endif
+
 
 # Cross-platform detection of venv python (prefers POSIX venv, then Windows venv, falls back to system python)
 VENV_PY := $(shell if [ -f back_end/.venv/bin/python ]; then echo back_end/.venv/bin/python; elif [ -f back_end/.venv/Scripts/python.exe ]; then echo back_end/.venv/Scripts/python.exe; else echo python; fi)
