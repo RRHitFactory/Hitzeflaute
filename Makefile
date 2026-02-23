@@ -1,10 +1,14 @@
 SHELL := /bin/bash
 
-# Check if we're running FROM bash (only on Windows - Git Bash check)
-# Simple test - if we can't find bash, we're not in Git Bash
+# Check if we're running FROM bash (cross-platform check)
+# On Windows, use 'where bash', on Unix-like systems use 'command -v bash'
+ifeq ($(OS),Windows_NT)
 BASH_TEST := $(shell where bash)
+else
+BASH_TEST := $(shell command -v bash)
+endif
 ifeq ($(BASH_TEST),)
-$(error ERROR: This Makefile must be run from Git Bash, not PowerShell or Windows Command Prompt. Install Git Bash (https://gitforwindows.org) or open a Git Bash terminal)
+$(error ERROR: Bash not found. This Makefile requires bash to be installed and available in PATH)
 endif
 
 # Cross-platform detection of venv python (prefers POSIX venv, then Windows venv, falls back to system python)
