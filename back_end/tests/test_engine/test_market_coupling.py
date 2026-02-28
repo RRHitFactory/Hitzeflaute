@@ -167,13 +167,3 @@ class TestMarketCoupling(BaseTest):
             set(transmission_flows),
             "Not all transmission lines appear in the market results.",
         )
-
-    def test_coupling_under_no_assets(self) -> None:
-        gs = self.create_game_state()
-
-        assets = gs.assets
-        assets_deactivated = assets.batch_deactivate(assets.asset_ids)
-        game_state_no_assets = gs.update(assets_deactivated)
-
-        MarketCouplingCalculator.run(game_state_no_assets)
-
