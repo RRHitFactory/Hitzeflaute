@@ -22,7 +22,9 @@ class MarketCouplingCalculator:
     @classmethod
     def run(cls, game_state: GameState) -> MarketCouplingResult:
         network = cls.create_pypsa_network(game_state)
-        cls.optimize_network(network=network, game_state=game_state)
+        if len(game_state.assets.only_active) > 0:
+            cls.optimize_network(network=network, game_state=game_state)
+            logging.getLogger(__name__).info("No active assets, skipping market coupling.")
 
         return MarketCouplingResult(
             bus_prices=cls.get_bus_prices(network),
