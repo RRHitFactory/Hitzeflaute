@@ -21,6 +21,7 @@
     "@types/react-dom": "^18",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.45.0",
+    "baseline-browser-mapping": "^2.9.14",
     "eslint": "^8",
     "eslint-config-next": "15.5.4",
     "postcss": "^8",
