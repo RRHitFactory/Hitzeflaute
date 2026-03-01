@@ -8,21 +8,36 @@ interface BusProps {
   owner: Player;
   onHover: (element: HoverableElement, event: React.MouseEvent) => void;
   onLeave: () => void;
+  onClickProp?: (busId: number, event: React.MouseEvent) => void;
+  viewMode?: "normal" | "market";
 }
 
-const BusComponent: React.FC<BusProps> = ({ bus, owner, onHover, onLeave }) => {
+const BusComponent: React.FC<BusProps> = ({ bus, owner, onHover, onLeave, onClickProp, viewMode = "normal" }) => {
   const handleMouseEnter = (event: React.MouseEvent) => {
-    onHover(
-      {
-        type: "bus",
-        id: bus.id,
-        title: `Bus${bus.id}`,
-        data: {
-          Owner: owner.name,
+    if (viewMode === "normal") {
+      onHover(
+        {
+          type: "bus",
+          id: bus.id,
+          title: `Bus${bus.id}`,
+          data: {
+            Owner: owner.name,
+          },
         },
-      },
-      event,
-    );
+        event,
+      );
+    } else {
+      // In market view, still send hover event but with minimal data
+      onHover(
+        {
+          type: "bus",
+          id: bus.id,
+          title: `Bus${bus.id}`,
+          data: {},
+        },
+        event,
+      );
+    }
   };
 
   return (
@@ -36,6 +51,7 @@ const BusComponent: React.FC<BusProps> = ({ bus, owner, onHover, onLeave }) => {
         fill="transparent"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={onLeave}
+        onClick={(event) => onClickProp?.(bus.id, event)}
         style={{ cursor: "pointer" }}
       />
       {/* Visible bus */}

@@ -17,6 +17,8 @@ interface TransmissionLineProps {
   isPurchasable?: boolean;
   onPurchase?: (lineId: number) => void;
   playerMoney?: number;
+  viewMode?: "normal" | "market";
+  onClick?: (lineId: number, event: React.MouseEvent) => void;
 }
 
 const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
@@ -28,6 +30,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   isPurchasable = false,
   onPurchase,
   playerMoney = 0,
+  viewMode = "normal",
+  onClick,
 }) => {
   const fromBus = buses.find((b) => b.id === line.bus1);
   const toBus = buses.find((b) => b.id === line.bus2);
@@ -133,8 +137,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
 
   return (
     <g>
-      {/* Glow effect for purchasable lines */}
-      {isPurchasable && (
+      {/* Glow effect for purchasable lines (hidden in market view) */}
+      {isPurchasable && viewMode === "normal" && (
         <path
           d={pathData}
           stroke="#ffd700"
@@ -153,21 +157,22 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         fill="none"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={onLeave}
+        onClick={(event) => onClick?.(line.id, event)}
         style={{ cursor: "pointer" }}
       />
 
       {/* Main transmission line */}
       <path
         d={pathData}
-        stroke={isPurchasable ? "#ffd700" : getLineColor()}
-        strokeWidth={isPurchasable ? 6 : 5}
+        stroke={viewMode === "normal" ? (isPurchasable ? "#ffd700" : getLineColor()) : getLineColor()}
+        strokeWidth={viewMode === "normal" ? (isPurchasable ? 6 : 5) : 5}
         fill="none"
         opacity={0.9}
         pointerEvents="none"
       />
 
-      {/* Purchase button for purchasable lines */}
-      {isPurchasable && (
+      {/* Purchase button for purchasable lines (hidden in market view) */}
+      {isPurchasable && viewMode === "normal" && (
         <g className="purchase-button" opacity="0.9">
           <circle
             cx={midX}

@@ -2,19 +2,21 @@
 
 import {
   BusWithDisplayCoords,
-  DisplayBounds,
   GamePhase,
   GameState,
   HoverableElement,
   mapBackendToDisplay,
-  NPC_PLAYER_ID,
+  NPC_PLAYER_ID
 } from "@/types/game";
 import React, { useCallback, useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
+import ViewToggle from "../UI/ViewToggle";
 import AssetComponent from "./Asset";
 import BusComponent from "./Bus";
+import BusResultsTable from "./BusResultsTable";
 import InfoPanel from "./InfoPanel";
 import TransmissionLineComponent from "./TransmissionLine";
+import TransmissionResultsTable from "./TransmissionResultsTable";
 
 interface GridVisualizationProps {
   gameState: GameState;
@@ -35,6 +37,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     null,
   );
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const [selectedBusForMarket, setSelectedBusForMarket] = useState<number | null>(null);
+  const [selectedLineForMarket, setSelectedLineForMarket] = useState<number | null>(null);
+  const [marketPanelPosition, setMarketPanelPosition] = useState({ x: 0, y: 0 });
   const [confirmationDialog, setConfirmationDialog] = useState<{
     isOpen: boolean;
     type: "asset" | "line";
@@ -42,6 +47,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     title: string;
     price: number;
   }>({ isOpen: false, type: "asset", id: -1, title: "", price: 0 });
+  const [viewMode, setViewMode] = useState<"normal" | "market">("normal");
 
   const handleElementHover = (
     element: HoverableElement,
@@ -65,6 +71,60 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   const handleMouseLeave = () => {
     setHoveredElement(null);
+  };
+
+  const handleBusClickForMarket = (busId: number, event: React.MouseEvent) => {
+    const svgRect = event.currentTarget.closest("svg")?.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    if (svgRect) {
+      // Position relative to the SVG container
+      const elementX = rect.left + rect.width / 2 - svgRect.left;
+      const elementY = rect.top + rect.height / 2 - svgRect.top;
+
+      // Toggle market panel for this bus
+      if (selectedBusForMarket === busId) {
+        setSelectedBusForMarket(null);
+      } else {
+        setSelectedBusForMarket(busId);
+        setSelectedLineForMarket(null); // Clear line selection
+        setMarketPanelPosition({
+          x: elementX,
+          y: elementY,
+        });
+      }
+    }
+  };
+
+  const handleLineClickForMarket = (lineId: number, event: React.MouseEvent) => {
+    const svgRect = event.currentTarget.closest("svg")?.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    if (svgRect) {
+      // Position relative to the SVG container - use midpoint of line
+      const line = getTransmissionArray().find(l => l.id === lineId);
+      if (line) {
+        const fromBus = busesWithDisplayCoords.find(b => b.id === line.bus1);
+        const toBus = busesWithDisplayCoords.find(b => b.id === line.bus2);
+        
+        if (fromBus && toBus) {
+          const elementX = (fromBus.display_position.x + toBus.display_position.x) / 2;
+          const elementY = (fromBus.display_position.y + toBus.display_position.y) / 2;
+
+          // Toggle market panel for this line
+          if (selectedLineForMarket === lineId) {
+            setSelectedLineForMarket(null);
+          } else {
+            setSelectedLineForMarket(lineId);
+            setSelectedBusForMarket(null); // Clear bus selection
+            setMarketPanelPosition({
+              x: elementX,
+              y: elementY,
+            });
+          }
+        }
+      }
+    }
   };
 
   // Helper to get array from either array or repo structure
@@ -270,8 +330,20 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     });
   };
 
+  // Check if market summary data is available
+  const hasMarketData = !!gameState.market_summary;
+
   return (
     <div className="relative w-full h-[500px] bg-gray-50 rounded-lg border overflow-hidden">
+      {/* View Toggle in top left corner */}
+      <div className="absolute top-2 left-2 z-10">
+        <ViewToggle
+          viewMode={viewMode}
+          onToggle={setViewMode}
+          hasMarketData={hasMarketData}
+        />
+      </div>
+
       <svg
         width="100%"
         height="100%"
@@ -296,6 +368,8 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               isPurchasable={isPurchasable}
               onPurchase={handleLinePurchaseRequest}
               playerMoney={getCurrentPlayerMoney()}
+              viewMode={viewMode}
+              onClick={viewMode === "market" ? handleLineClickForMarket : undefined}
             />
           );
         })}
@@ -311,6 +385,8 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               owner={owner}
               onHover={handleElementHover}
               onLeave={handleMouseLeave}
+              onClickProp={viewMode === "market" ? handleBusClickForMarket : undefined}
+              viewMode={viewMode}
             />
           );
         })}
@@ -336,15 +412,34 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 isBiddable={isAssetBiddable(asset)}
                 onBid={onBidAsset}
                 currentPlayer={currentPlayer}
+                viewMode={viewMode}
               />
             );
           }),
         )}
       </svg>
 
-      {/* Info Panel */}
-      {hoveredElement && (
+      {/* Info Panel or Market Results Table */}
+      {hoveredElement && viewMode === "normal" && (
         <InfoPanel element={hoveredElement} position={hoverPosition} />
+      )}
+
+      {selectedBusForMarket && viewMode === "market" && gameState.market_summary && (
+        <BusResultsTable
+          busId={selectedBusForMarket}
+          marketSummary={gameState.market_summary}
+          position={marketPanelPosition}
+          onClose={() => setSelectedBusForMarket(null)}
+        />
+      )}
+
+      {selectedLineForMarket && viewMode === "market" && gameState.market_summary && (
+        <TransmissionResultsTable
+          lineId={selectedLineForMarket}
+          marketSummary={gameState.market_summary}
+          position={marketPanelPosition}
+          onClose={() => setSelectedLineForMarket(null)}
+        />
       )}
 
       {/* Purchase Confirmation Dialog */}

@@ -47,7 +47,7 @@ def reduce_one_line(game_state: GameState, coupling_result: MarketCouplingResult
     return pd.Series(data).to_frame(name="")
 
 
-def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult, bus_id: BusId) -> tuple[float, pd.DataFrame, pd.DataFrame]:
+def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult, bus_id: BusId) -> tuple[float, pd.DataFrame, pd.DataFrame, float]:
     """
     Reduces the game state by removing unnecessary data for a single bus
     """
@@ -81,6 +81,12 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
 
     load_df = pd.DataFrame([make_load_row(asset_id) for asset_id in loads.asset_ids])
 
+    net_position: float = 0.0
+    if len(gen_df):
+        net_position += gen_df["produced_power"].sum()
+    if len(load_df):
+        net_position -= load_df["consumed_power"].sum()
+
     price = coupling_result.bus_prices[bus_id].mean()
 
-    return price, gen_df, load_df
+    return float(price), gen_df, load_df, float(net_position)
