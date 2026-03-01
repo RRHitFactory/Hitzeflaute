@@ -65,7 +65,7 @@ class Engine:
     def reject_player_message_if_not_in_turn(
         cls,
         game_state: GameState,
-        msg: PlayerToGameMessage,
+        msg: ToGameMessage,
     ) -> tuple[GameState, list[Message]] | None:
 
         if not issubclass(type(msg), PlayerToGameMessage):
