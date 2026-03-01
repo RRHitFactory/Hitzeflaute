@@ -15,7 +15,7 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
   lineId,
   marketSummary,
   position,
-  onClose
+  onClose,
 }) => {
   // Calculate positioning to avoid going off-screen
   const panelWidth = 300;
@@ -24,12 +24,6 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
 
   let left = position.x + offset;
   let top = position.y - panelHeight / 2; // Center on click position
-
-  // Adjust horizontal position if it would go off-screen
-  if (left + panelWidth > 500) {
-    // SVG viewBox width
-    left = position.x - panelWidth - offset;
-  }
 
   // Adjust vertical position if it would go off-screen
   if (top < 0) {
@@ -41,7 +35,7 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
 
   // Get line results from market summary
   const lineResults = marketSummary.line_results[lineId.toString()];
-  
+
   if (!lineResults) {
     return null;
   }
@@ -71,48 +65,69 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
           ×
         </button>
       </div>
-      
+
       <div className="space-y-2 pr-2">
         <table className="w-full text-xs">
           <tbody>
             {parsedLineResults.index.map((label, index) => {
               const rowData = parsedLineResults.data[index];
               if (!rowData || rowData.length === 0) return null;
-              
+
               // Skip the line_id row as it's redundant
-              if (label === 'line_id') return null;
-              
+              if (label === "line_id") return null;
+
               const value = rowData[0];
               let displayValue = String(value);
-              
+
               // Special formatting based on column name
-              if (typeof label === 'string') {
-                if (label.toLowerCase().includes('health')) {
+              if (typeof label === "string") {
+                if (label.toLowerCase().includes("health")) {
                   // Format health as integer
                   const healthValue = parseInt(value);
-                  displayValue = isNaN(healthValue) ? String(value) : healthValue.toString();
-                } else if (label.toLowerCase().includes('capacity') || label.toLowerCase().includes('flow')) {
+                  displayValue = isNaN(healthValue)
+                    ? String(value)
+                    : healthValue.toString();
+                } else if (
+                  label.toLowerCase().includes("capacity") ||
+                  label.toLowerCase().includes("flow")
+                ) {
                   // Add MW suffix to capacity and flow
-                  const numericValue = typeof value === 'number' ? value : parseFloat(value);
-                  displayValue = isNaN(numericValue) ? String(value) : `${formatNumber(numericValue, 1)} MW`;
-                } else if (label.toLowerCase().includes('power')) {
+                  const numericValue =
+                    typeof value === "number" ? value : parseFloat(value);
+                  displayValue = isNaN(numericValue)
+                    ? String(value)
+                    : `${formatNumber(numericValue, 1)} MW`;
+                } else if (label.toLowerCase().includes("power")) {
                   // Add MW suffix to power values
-                  const numericValue = typeof value === 'number' ? value : parseFloat(value);
-                  displayValue = isNaN(numericValue) ? String(value) : `${formatNumber(numericValue, 1)} MW`;
-                } else if (label.toLowerCase().includes('price')) {
+                  const numericValue =
+                    typeof value === "number" ? value : parseFloat(value);
+                  displayValue = isNaN(numericValue)
+                    ? String(value)
+                    : `${formatNumber(numericValue, 1)} MW`;
+                } else if (label.toLowerCase().includes("price")) {
                   // Add €/MWh suffix to price values
-                  const numericValue = typeof value === 'number' ? value : parseFloat(value);
-                  displayValue = isNaN(numericValue) ? String(value) : `${formatNumber(numericValue, 2)} €/MWh`;
+                  const numericValue =
+                    typeof value === "number" ? value : parseFloat(value);
+                  displayValue = isNaN(numericValue)
+                    ? String(value)
+                    : `${formatNumber(numericValue, 2)} €/MWh`;
                 } else {
                   // Default formatting for other values
-                  displayValue = typeof value === 'number' ? formatNumber(value, 2) : String(value);
+                  displayValue =
+                    typeof value === "number"
+                      ? formatNumber(value, 2)
+                      : String(value);
                 }
               }
-              
+
               return (
                 <tr key={index} className="border-t border-gray-100">
-                  <td className="py-1 pr-2 text-gray-600 font-medium">{label}</td>
-                  <td className="py-1 pr-2 text-gray-900 font-bold">{displayValue}</td>
+                  <td className="py-1 pr-2 text-gray-600 font-medium">
+                    {label}
+                  </td>
+                  <td className="py-1 pr-2 text-gray-900 font-bold">
+                    {displayValue}
+                  </td>
                 </tr>
               );
             })}

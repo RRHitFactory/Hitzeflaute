@@ -19,6 +19,9 @@ interface TransmissionLineProps {
   playerMoney?: number;
   viewMode?: "normal" | "market";
   onClick?: (lineId: number, event: React.MouseEvent) => void;
+  maxFlow?: number;
+  actualPower?: number;
+  showFlowAnimation?: boolean;
 }
 
 const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
@@ -32,6 +35,9 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   playerMoney = 0,
   viewMode = "normal",
   onClick,
+  maxFlow = 1,
+  actualPower = 0,
+  showFlowAnimation = false,
 }) => {
   const fromBus = buses.find((b) => b.id === line.bus1);
   const toBus = buses.find((b) => b.id === line.bus2);
@@ -83,6 +89,43 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     return owner.color;
   };
 
+  // Helper function to create arrow path for flow direction along the curved line
+  const getArrowPath = (
+    midX: number,
+    midY: number,
+    fromX: number,
+    fromY: number,
+    toX: number,
+    toY: number,
+  ) => {
+    // Calculate the control point for the quadratic Bézier curve (same as the line's curve)
+    const vector = { x: toX - fromX, y: toY - fromY };
+    const trueMidX = (fromX + toX) / 2;
+    const trueMidY = (fromY + toY) / 2;
+
+    const arrowX = (trueMidX + midX) / 2;
+    const arrowY = (trueMidY + midY) / 2;
+
+    const angle = Math.atan2(vector.y, vector.x) + Math.PI; // +180 degrees to face flow direction
+
+    const arrowSize = 22;
+
+    // Create arrow path
+    const arrowPath = `M ${arrowX} ${arrowY}`;
+
+    const af = 0.86;
+    const inset = 0.6;
+    // Make arrow more elongated by using a narrower angle spread
+    const point1X = arrowX + Math.cos(angle + Math.PI * af) * arrowSize;
+    const point1Y = arrowY + Math.sin(angle + Math.PI * af) * arrowSize;
+    const point2X = arrowX + Math.cos(angle + Math.PI) * arrowSize * inset;
+    const point2Y = arrowY + Math.sin(angle + Math.PI) * arrowSize * inset;
+    const point3X = arrowX + Math.cos(angle - Math.PI * af) * arrowSize;
+    const point3Y = arrowY + Math.sin(angle - Math.PI * af) * arrowSize;
+
+    return `${arrowPath} L ${point1X} ${point1Y} L ${point2X} ${point2Y} L ${point3X} ${point3Y} Z`;
+  };
+
   const adjustColor = (color: string, factor: number) => {
     // Simple color darkening for open lines
     const hex = color.replace("#", "");
@@ -110,8 +153,10 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const offsetX = vector.y * curveOffset;
   const offsetY = -vector.x * curveOffset;
 
-  const pathData = `M ${fromX} ${fromY} Q ${midX + offsetX} ${
-    midY + offsetY
+  const mid_point = { x: midX + offsetX, y: midY + offsetY };
+
+  const pathData = `M ${fromX} ${fromY} Q ${mid_point.x} ${
+    mid_point.y
   } ${toX} ${toY}`;
 
   // Check if player can afford this line
@@ -134,6 +179,11 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
       event,
     );
   };
+
+  // Calculate flow animation properties using actual power from market summary
+  const flowValue = actualPower ?? 0;
+  const flowRatio =
+    maxFlow > 0 ? Math.abs(Number(flowValue) || 0) / maxFlow : 0;
 
   return (
     <g>
@@ -164,12 +214,29 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
       {/* Main transmission line */}
       <path
         d={pathData}
-        stroke={viewMode === "normal" ? (isPurchasable ? "#ffd700" : getLineColor()) : getLineColor()}
+        stroke={
+          viewMode === "normal"
+            ? isPurchasable
+              ? "#ffd700"
+              : getLineColor()
+            : getLineColor()
+        }
         strokeWidth={viewMode === "normal" ? (isPurchasable ? 6 : 5) : 5}
         fill="none"
         opacity={0.9}
         pointerEvents="none"
       />
+
+      {/* Flow direction indicator (arrow) - only show in market view with significant flow */}
+      {viewMode === "market" && showFlowAnimation && flowRatio > 0.1 && (
+        <path
+          d={getArrowPath(mid_point.x, mid_point.y, fromX, fromY, toX, toY)}
+          stroke="#000000" // Dark gray color
+          strokeWidth={1}
+          fill="#7a7a7a" // Dark gray color
+          opacity={0.9}
+        />
+      )}
 
       {/* Purchase button for purchasable lines (hidden in market view) */}
       {isPurchasable && viewMode === "normal" && (

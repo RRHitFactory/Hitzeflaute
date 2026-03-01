@@ -218,8 +218,22 @@ const AssetComponent: React.FC<AssetProps> = ({
         cy={position.y}
         r={radius}
         fill={fillColor}
-        stroke={viewMode === "normal" ? (isPurchasable ? "#ffd700" : isBiddable ? "#3b82f6" : "#374151") : "#374151"}
-        strokeWidth={viewMode === "normal" ? (isPurchasable || isBiddable ? "2" : "1") : "1"}
+        stroke={
+          viewMode === "normal"
+            ? isPurchasable
+              ? "#ffd700"
+              : isBiddable
+                ? "#3b82f6"
+                : "#374151"
+            : "#374151"
+        }
+        strokeWidth={
+          viewMode === "normal"
+            ? isPurchasable || isBiddable
+              ? "2"
+              : "1"
+            : "1"
+        }
         pointerEvents="none"
       />{" "}
       {/* Asset type text */}

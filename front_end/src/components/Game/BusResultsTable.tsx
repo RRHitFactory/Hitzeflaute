@@ -11,11 +11,11 @@ interface BusResultsTableProps {
   onClose: () => void;
 }
 
-const BusResultsTable: React.FC<BusResultsTableProps> = ({ 
-  busId, 
-  marketSummary, 
+const BusResultsTable: React.FC<BusResultsTableProps> = ({
+  busId,
+  marketSummary,
   position,
-  onClose
+  onClose,
 }) => {
   // Calculate positioning to avoid going off-screen
   const panelWidth = 300;
@@ -24,12 +24,6 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
 
   let left = position.x + offset;
   let top = position.y - panelHeight / 2; // Center on click position
-
-  // Adjust horizontal position if it would go off-screen
-  if (left + panelWidth > 500) {
-    // SVG viewBox width
-    left = position.x - panelWidth - offset;
-  }
 
   // Adjust vertical position if it would go off-screen
   if (top < 0) {
@@ -41,7 +35,7 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
 
   // Get bus results from market summary
   const busResults = marketSummary.bus_results[busId.toString()];
-  
+
   if (!busResults) {
     return null;
   }
@@ -53,14 +47,14 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
 
   // Helper function to get unit suffix based on column name
   const getUnitSuffix = (columnName: string): string => {
-    if (typeof columnName === 'string') {
-      if (columnName.toLowerCase().includes('power')) {
-        return 'MW';
-      } else if (columnName.toLowerCase().includes('price')) {
-        return '€/MWh';
+    if (typeof columnName === "string") {
+      if (columnName.toLowerCase().includes("power")) {
+        return "MW";
+      } else if (columnName.toLowerCase().includes("price")) {
+        return "€/MWh";
       }
     }
-    return '';
+    return "";
   };
 
   return (
@@ -85,22 +79,26 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
           ×
         </button>
       </div>
-      
+
       <div className="space-y-2 pr-2">
         <div className="flex justify-between text-xs">
           <span className="text-gray-600 font-medium">Market Price:</span>
-          <span className="text-gray-900 font-bold">{formatNumber(price, 2)} €/MWh</span>
+          <span className="text-gray-900 font-bold">
+            {formatNumber(price, 2)} €/MWh
+          </span>
         </div>
         {/* Net Position Display */}
-        {typeof net_position !== 'undefined' && (
+        {typeof net_position !== "undefined" && (
           <div className="flex justify-between text-xs">
             <span className="text-gray-600 font-medium">Net Position:</span>
             <span className="text-gray-900 font-bold">
-              {typeof net_position === 'number' ? (
-                net_position > 0 ? `Exporting ${formatNumber(net_position, 1)} MW` :
-                net_position < 0 ? `Importing ${formatNumber(Math.abs(net_position), 1)} MW` :
-                'Balanced'
-              ) : String(net_position)}
+              {typeof net_position === "number"
+                ? net_position > 0
+                  ? `Exporting ${formatNumber(net_position, 1)} MW`
+                  : net_position < 0
+                    ? `Importing ${formatNumber(Math.abs(net_position), 1)} MW`
+                    : "Balanced"
+                : String(net_position)}
             </span>
           </div>
         )}
@@ -113,44 +111,67 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
                   <tr className="text-left text-gray-600">
                     <th className="pb-1 pr-2">Generator</th>
                     {(() => {
-                      const assetIdColIndex = generationData.columns.findIndex(col => col === 'asset_id');
-                      return generationData.data.map((row: any, rowIdx: number) => {
-                        const assetId = assetIdColIndex >= 0 ? row[assetIdColIndex] : rowIdx;
-                        return (
-                          <th key={rowIdx} className="pb-1 pr-2">{assetId}</th>
-                        );
-                      });
+                      const assetIdColIndex = generationData.columns.findIndex(
+                        (col) => col === "asset_id",
+                      );
+                      return generationData.data.map(
+                        (row: any, rowIdx: number) => {
+                          const assetId =
+                            assetIdColIndex >= 0
+                              ? row[assetIdColIndex]
+                              : rowIdx;
+                          return (
+                            <th key={rowIdx} className="pb-1 pr-2">
+                              {assetId}
+                            </th>
+                          );
+                        },
+                      );
                     })()}
                   </tr>
                 </thead>
                 <tbody>
-                  {generationData.columns.map((colName: any, colIdx: number) => {
-                    // Skip the asset_id column in the body
-                    if (colName === 'asset_id') return null;
-                    
-                    const suffix = getUnitSuffix(colName);
-                    const rowTitle = suffix ? `${colName} (${suffix})` : colName;
-                    return (
-                      <tr key={colIdx} className="border-t border-gray-100">
-                        <td className="py-1 pr-2 text-gray-600 font-medium">{rowTitle}</td>
-                        {generationData.data.map((row: any, rowIdx: number) => {
-                          let cellValue = row[colIdx];
-                          
-                          // Special handling for owner_player column
-                          if (colName === 'owner_player') {
-                            const ownerId = parseInt(cellValue);
-                            cellValue = ownerId === -1 ? 'NPC' : ownerId.toString();
-                          } else {
-                            cellValue = formatNumber(cellValue, 1);
-                          }
-                          
-                          return (
-                            <td key={rowIdx} className="py-1 pr-2 text-gray-900">{cellValue}</td>
-                          );
-                        })}
-                      </tr>
-                    );
-                  })}
+                  {generationData.columns.map(
+                    (colName: any, colIdx: number) => {
+                      // Skip the asset_id column in the body
+                      if (colName === "asset_id") return null;
+
+                      const suffix = getUnitSuffix(colName);
+                      const rowTitle = suffix
+                        ? `${colName} (${suffix})`
+                        : colName;
+                      return (
+                        <tr key={colIdx} className="border-t border-gray-100">
+                          <td className="py-1 pr-2 text-gray-600 font-medium">
+                            {rowTitle}
+                          </td>
+                          {generationData.data.map(
+                            (row: any, rowIdx: number) => {
+                              let cellValue = row[colIdx];
+
+                              // Special handling for owner_player column
+                              if (colName === "owner_player") {
+                                const ownerId = parseInt(cellValue);
+                                cellValue =
+                                  ownerId === -1 ? "NPC" : ownerId.toString();
+                              } else {
+                                cellValue = formatNumber(cellValue, 1);
+                              }
+
+                              return (
+                                <td
+                                  key={rowIdx}
+                                  className="py-1 pr-2 text-gray-900"
+                                >
+                                  {cellValue}
+                                </td>
+                              );
+                            },
+                          )}
+                        </tr>
+                      );
+                    },
+                  )}
                 </tbody>
               </table>
             </div>
@@ -165,11 +186,16 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
                   <tr className="text-left text-gray-600">
                     <th className="pb-1 pr-2">Load</th>
                     {(() => {
-                      const loadIdColIndex = loadData.columns.findIndex(col => col === 'load_id');
+                      const loadIdColIndex = loadData.columns.findIndex(
+                        (col) => col === "load_id",
+                      );
                       return loadData.data.map((row: any, rowIdx: number) => {
-                        const loadId = loadIdColIndex >= 0 ? row[loadIdColIndex] : rowIdx;
+                        const loadId =
+                          loadIdColIndex >= 0 ? row[loadIdColIndex] : rowIdx;
                         return (
-                          <th key={rowIdx} className="pb-1 pr-2">{loadId}</th>
+                          <th key={rowIdx} className="pb-1 pr-2">
+                            {loadId}
+                          </th>
                         );
                       });
                     })()}
@@ -178,26 +204,36 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
                 <tbody>
                   {loadData.columns.map((colName: any, colIdx: number) => {
                     // Skip the asset_id column in the body
-                    if (colName === 'asset_id') return null;
-                    
+                    if (colName === "asset_id") return null;
+
                     const suffix = getUnitSuffix(colName);
-                    const rowTitle = suffix ? `${colName} (${suffix})` : colName;
+                    const rowTitle = suffix
+                      ? `${colName} (${suffix})`
+                      : colName;
                     return (
                       <tr key={colIdx} className="border-t border-gray-100">
-                        <td className="py-1 pr-2 text-gray-600 font-medium">{rowTitle}</td>
+                        <td className="py-1 pr-2 text-gray-600 font-medium">
+                          {rowTitle}
+                        </td>
                         {loadData.data.map((row: any, rowIdx: number) => {
                           let cellValue = row[colIdx];
-                          
+
                           // Special handling for owner_player column
-                          if (colName === 'owner_player') {
+                          if (colName === "owner_player") {
                             const ownerId = parseInt(cellValue);
-                            cellValue = ownerId === -1 ? 'NPC' : ownerId.toString();
+                            cellValue =
+                              ownerId === -1 ? "NPC" : ownerId.toString();
                           } else {
                             cellValue = formatNumber(cellValue, 1);
                           }
-                          
+
                           return (
-                            <td key={rowIdx} className="py-1 pr-2 text-gray-900">{cellValue}</td>
+                            <td
+                              key={rowIdx}
+                              className="py-1 pr-2 text-gray-900"
+                            >
+                              {cellValue}
+                            </td>
                           );
                         })}
                       </tr>

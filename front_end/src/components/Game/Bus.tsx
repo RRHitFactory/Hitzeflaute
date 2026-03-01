@@ -12,7 +12,14 @@ interface BusProps {
   viewMode?: "normal" | "market";
 }
 
-const BusComponent: React.FC<BusProps> = ({ bus, owner, onHover, onLeave, onClickProp, viewMode = "normal" }) => {
+const BusComponent: React.FC<BusProps> = ({
+  bus,
+  owner,
+  onHover,
+  onLeave,
+  onClickProp,
+  viewMode = "normal",
+}) => {
   const handleMouseEnter = (event: React.MouseEvent) => {
     if (viewMode === "normal") {
       onHover(
