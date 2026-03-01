@@ -31,14 +31,19 @@ from tests.utils.game_state_maker import (
 from tests.utils.repo_maker import BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
 
 
+def give_turn_to_player(gs: GameState, player_id: PlayerId) -> GameState:
+    return gs.update(gs.players.start_turn(player_id))
+
+
 class DummyMessage(PlayerToGameMessage):
     pass
 
 
 class TestEngine(BaseTest):
     def test_bad_message(self) -> None:
-        game_state = GameStateMaker().make()
-        dumb_message = DummyMessage(game_id=GameId(1), player_id=PlayerId(5))
+        player_id = PlayerId(0)
+        game_state = give_turn_to_player(GameStateMaker().make(), player_id)
+        dumb_message = DummyMessage(game_id=GameId(1), player_id=player_id)
         with self.assertRaises(NotImplementedError):
             Engine.handle_message(game_state=game_state, msg=dumb_message)  # noqa
 
@@ -146,6 +151,7 @@ class TestEngine(BaseTest):
         transmission_repo += not_my_line
 
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_transmission_repo(transmission_repo).add_phase(Phase.SNEAKY_TRICKS).make()
+        game_state = give_turn_to_player(game_state, player.id)
 
         # Test operating a line that I own
         open_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=my_line.id, action="open")
@@ -214,6 +220,7 @@ class TestEngine(BaseTest):
         asset_repo = asset_repo + my_generator + my_load + broke_player_load
 
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.BIDDING).make()
+        game_state = give_turn_to_player(game_state, player.id)
 
         # Test deactivate my generator
         deactivate_asset = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=my_generator.id, action="shutdown")
