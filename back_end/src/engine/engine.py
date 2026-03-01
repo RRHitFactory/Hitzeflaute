@@ -68,7 +68,7 @@ class Engine:
         msg: ToGameMessage,
     ) -> tuple[GameState, list[Message]] | None:
 
-        if not issubclass(type(msg), PlayerToGameMessage):
+        if not isinstance(msg, PlayerToGameMessage):
             return None
 
         requesting_player_id = msg.player_id
