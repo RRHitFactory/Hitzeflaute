@@ -14,6 +14,7 @@ from src.models.message import (
     OperateLineResponse,
     PlayerToGameMessage,
     TransmissionWornMessage,
+    PlayerNotInTurn,
 )
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
@@ -40,6 +41,20 @@ class TestEngine(BaseTest):
         dumb_message = DummyMessage(game_id=GameId(1), player_id=PlayerId(5))
         with self.assertRaises(NotImplementedError):
             Engine.handle_message(game_state=game_state, msg=dumb_message)  # noqa
+
+    def test_player_not_in_turn(self) -> None:
+        game_state = GameStateMaker().make()
+        player_not_in_turn = game_state.players.player_ids[0]
+
+        new_player_repo = game_state.players.end_turn(player_not_in_turn).add_money(player_not_in_turn, 1e6)
+        construction_phase = Phase(0)
+        game_state = game_state.update(new_player_repo, construction_phase)
+
+        player_msg = BuyRequest(game_state.game_id, player_not_in_turn, game_state.assets.asset_ids[-1])
+        result_game_state, failed_message = Engine.handle_message(
+            game_state=game_state, msg=player_msg
+        )
+        self.assertIsInstance(failed_message[0], PlayerNotInTurn)
 
     def test_buy_asset_message(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()

@@ -79,6 +79,9 @@ class ConcludePhase(InternalMessage):
 class GameUpdate(GameToPlayerMessage):
     game_state: GameState
 
+@dataclass(frozen=True)
+class PlayerNotInTurn(GameToPlayerMessage):
+    pass
 
 @dataclass(frozen=True)
 class UpdateBidResponse(GameToPlayerMessage):

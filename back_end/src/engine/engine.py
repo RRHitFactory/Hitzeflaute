@@ -16,6 +16,8 @@ from src.models.message import (
     OperateAssetResponse,
     OperateLineRequest,
     OperateLineResponse,
+    PlayerNotInTurn,
+    PlayerToGameMessage,
     ToGameMessage,
     UpdateBidRequest,
     UpdateBidResponse,
@@ -35,6 +37,10 @@ class Engine:
         :return: The new game state and a list of messages to be sent
         """
         # Handle the message based on its type
+        reject_player_not_in_turn = cls.reject_player_message_if_not_in_turn(game_state=game_state, msg=msg)
+        if reject_player_not_in_turn is not None:
+            return reject_player_not_in_turn
+
         if isinstance(msg, ConcludePhase):
             return cls.handle_new_phase_message(game_state=game_state, msg=msg)
         elif isinstance(msg, UpdateBidRequest):
@@ -54,6 +60,26 @@ class Engine:
             return cls.handle_end_turn_message(game_state=game_state, msg=msg)
         else:
             raise NotImplementedError(f"message type {type(msg)} not implemented.")
+
+    @classmethod
+    def reject_player_message_if_not_in_turn(
+        cls,
+        game_state: GameState,
+        msg: PlayerToGameMessage,
+    ) -> tuple[GameState, list[Message]] | None:
+
+        if not issubclass(type(msg), PlayerToGameMessage):
+            return None
+
+        requesting_player_id = msg.player_id
+        if game_state.players[requesting_player_id].is_having_turn:
+            return None
+        else:
+            return game_state, [PlayerNotInTurn(
+                player_id=requesting_player_id,
+                game_id=game_state.game_id,
+                message=f"Player {requesting_player_id} cannot play when it is not their turn."
+            )]
 
     @classmethod
     def handle_new_phase_message(
