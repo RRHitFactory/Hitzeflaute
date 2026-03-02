@@ -20,7 +20,7 @@ interface TransmissionLineProps {
   viewMode?: "normal" | "market";
   onClick?: (lineId: number, event: React.MouseEvent) => void;
   maxFlow?: number;
-  actualPower?: number;
+  actualFlow?: number;
   showFlowAnimation?: boolean;
 }
 
@@ -36,7 +36,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   viewMode = "normal",
   onClick,
   maxFlow = 1,
-  actualPower = 0,
+  actualFlow = 0,
   showFlowAnimation = false,
 }) => {
   const fromBus = buses.find((b) => b.id === line.bus1);
@@ -97,6 +97,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     fromY: number,
     toX: number,
     toY: number,
+    flowForward: boolean
   ) => {
     // Calculate the control point for the quadratic Bézier curve (same as the line's curve)
     const vector = { x: toX - fromX, y: toY - fromY };
@@ -106,7 +107,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     const arrowX = (trueMidX + midX) / 2;
     const arrowY = (trueMidY + midY) / 2;
 
-    const angle = Math.atan2(vector.y, vector.x) + Math.PI; // +180 degrees to face flow direction
+    const angle = Math.atan2(vector.y, vector.x) + (flowForward ? 0 : Math.PI); // +180 degrees to face flow direction
 
     const arrowSize = 22;
 
@@ -181,9 +182,13 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   };
 
   // Calculate flow animation properties using actual power from market summary
-  const flowValue = actualPower ?? 0;
+  const flowValue = actualFlow ?? 0;
   const flowRatio =
     maxFlow > 0 ? Math.abs(Number(flowValue) || 0) / maxFlow : 0;
+  const flowForward = flowValue >= 0
+
+  // Debug logs
+  console.log(`Line ${line.id}: actualFlow=${actualFlow}, flowForward=${flowForward}, flowRatio=${flowRatio}`);
 
   return (
     <g>
@@ -230,7 +235,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
       {/* Flow direction indicator (arrow) - only show in market view with significant flow */}
       {viewMode === "market" && showFlowAnimation && flowRatio > 0.1 && (
         <path
-          d={getArrowPath(mid_point.x, mid_point.y, fromX, fromY, toX, toY)}
+          d={getArrowPath(mid_point.x, mid_point.y, fromX, fromY, toX, toY, flowForward)}
           stroke="#000000" // Dark gray color
           strokeWidth={1}
           fill="#7a7a7a" // Dark gray color

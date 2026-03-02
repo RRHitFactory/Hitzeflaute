@@ -2,7 +2,7 @@
 
 import { MarketCouplingSummary } from "@/types/game";
 import React from "react";
-import { parseDataFrame, formatNumber } from "./utils";
+import { parseDataFrameToDict, formatNumber } from "./utils";
 
 interface TransmissionResultsTableProps {
   lineId: number;
@@ -40,8 +40,20 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
     return null;
   }
 
-  // Parse the line results using parseDataFrame
-  const parsedLineResults = parseDataFrame(lineResults);
+  // Parse the line results using parseDataFrameToDict
+  const parsedLineDict = parseDataFrameToDict(lineResults);
+
+  // Debug log to show the dictionary format
+  console.log(`Line ${lineId} results dict:`, parsedLineDict);
+
+  // Define the order of fields to display
+  const fieldOrder = [
+    "health",
+    "capacity", 
+    "flow",
+    "direction",
+    "price_spread"
+  ];
 
   return (
     <div
@@ -69,63 +81,59 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
       <div className="space-y-2 pr-2">
         <table className="w-full text-xs">
           <tbody>
-            {parsedLineResults.index.map((label, index) => {
-              const rowData = parsedLineResults.data[index];
-              if (!rowData || rowData.length === 0) return null;
+            {fieldOrder.map((field, index) => {
+              const hasField = parsedLineDict.hasOwnProperty(field);
+              console.log(`Field ${field}: hasField=${hasField}, value=${hasField ? parsedLineDict[field] : 'N/A'}`);
+              
+              if (!hasField) return null;
 
-              // Skip the line_id row as it's redundant
-              if (label === "line_id") return null;
-
-              const value = rowData[0];
+              const value = parsedLineDict[field];
               let displayValue = String(value);
 
-              // Special formatting based on column name
-              if (typeof label === "string") {
-                if (label.toLowerCase().includes("health")) {
-                  // Format health as integer
-                  const healthValue = parseInt(value);
-                  displayValue = isNaN(healthValue)
-                    ? String(value)
-                    : healthValue.toString();
-                } else if (
-                  label.toLowerCase().includes("capacity") ||
-                  label.toLowerCase().includes("flow")
-                ) {
-                  // Add MW suffix to capacity and flow
-                  const numericValue =
-                    typeof value === "number" ? value : parseFloat(value);
-                  displayValue = isNaN(numericValue)
-                    ? String(value)
-                    : `${formatNumber(numericValue, 1)} MW`;
-                } else if (label.toLowerCase().includes("power")) {
-                  // Add MW suffix to power values
-                  const numericValue =
-                    typeof value === "number" ? value : parseFloat(value);
-                  displayValue = isNaN(numericValue)
-                    ? String(value)
-                    : `${formatNumber(numericValue, 1)} MW`;
-                } else if (label.toLowerCase().includes("price")) {
-                  // Add €/MWh suffix to price values
-                  const numericValue =
-                    typeof value === "number" ? value : parseFloat(value);
-                  displayValue = isNaN(numericValue)
-                    ? String(value)
-                    : `${formatNumber(numericValue, 2)} €/MWh`;
-                } else {
-                  // Default formatting for other values
-                  displayValue =
-                    typeof value === "number"
-                      ? formatNumber(value, 2)
-                      : String(value);
-                }
+              // Special formatting based on field name
+              if (field === "health") {
+                // Format health as integer
+                const healthValue = parseInt(value);
+                displayValue = isNaN(healthValue)
+                  ? String(value)
+                  : healthValue.toString();
+              } else if (field === "capacity" || field === "flow") {
+                // Add MW suffix to capacity and flow
+                const numericValue =
+                  typeof value === "number" ? value : parseFloat(value);
+                displayValue = isNaN(numericValue)
+                  ? String(value)
+                  : `${formatNumber(numericValue, 1)} MW`;
+              } else if (field === "price_spread") {
+                // Add €/MWh suffix to price values
+                const numericValue =
+                  typeof value === "number" ? value : parseFloat(value);
+                displayValue = isNaN(numericValue)
+                  ? String(value)
+                  : `${formatNumber(numericValue, 2)} €/MWh`;
+                
+                console.log(`Price spread: ${numericValue}, display: ${displayValue}, negative: ${numericValue < 0}`);
+              } else {
+                // Default formatting for other values
+                displayValue =
+                  typeof value === "number"
+                    ? formatNumber(value, 2)
+                    : String(value);
               }
+
+              // Determine styling for price_spread
+              const numericValueForStyling = typeof value === "number" ? value : parseFloat(value);
+              const isNegativePriceSpread = field === "price_spread" && !isNaN(numericValueForStyling) && numericValueForStyling < 0;
+              const priceSpreadClass = isNegativePriceSpread ? "text-red-600 font-bold" : "text-gray-900 font-bold";
+              
+              console.log(`Field ${field} styling: negative=${isNegativePriceSpread}, class=${priceSpreadClass}`);
 
               return (
                 <tr key={index} className="border-t border-gray-100">
                   <td className="py-1 pr-2 text-gray-600 font-medium">
-                    {label}
+                    {field}
                   </td>
-                  <td className="py-1 pr-2 text-gray-900 font-bold">
+                  <td className={`py-1 pr-2 ${priceSpreadClass}`}>
                     {displayValue}
                   </td>
                 </tr>

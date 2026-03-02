@@ -37,13 +37,17 @@ def reduce_game_state(game_state: GameState) -> GameState:
 def reduce_one_line(game_state: GameState, coupling_result: MarketCouplingResult, line_id: TransmissionId) -> pd.DataFrame:
     line = game_state.transmission[line_id]
 
-    data = {
-        "line_id": str(line_id),
-        "health": line.health,
-        "capacity": line.capacity,
-        "flow": coupling_result.transmission_flows[line_id].sum(),
-        "direction": f"{line.bus1} -> {line.bus2}",
-    }
+    flow = float(coupling_result.transmission_flows[line_id].sum())
+    b1_price = float(coupling_result.bus_prices.loc[0, line.bus1])
+    b2_price = float(coupling_result.bus_prices.loc[0, line.bus2])
+    if flow >= 0 - 1e-3:
+        direction = f"{line.bus1} -> {line.bus2}"
+        price_spread = b2_price - b1_price
+    else:
+        direction = f"{line.bus2} -> {line.bus1}"
+        price_spread = b1_price - b2_price
+
+    data = {"line_id": str(line_id), "health": line.health, "capacity": line.capacity, "raw_flow": flow, "flow": abs(flow), "direction": direction, "price_spread": price_spread}
     return pd.Series(data).to_frame(name="")
 
 
@@ -58,13 +62,7 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
     def make_gen_row(asset_id: AssetId) -> dict[str, str | float]:
         asset = gens[asset_id]
         produced_power = coupling_result.assets_dispatch[asset_id].sum()
-        return {
-            "asset_id": str(asset_id),
-            "owner_player": str(asset.owner_player),
-            "produced_power": produced_power,
-            "marginal_price": asset.marginal_cost,
-            "bid_price": asset.bid_price,
-        }
+        return {"asset_id": str(asset_id), "owner_player": str(asset.owner_player), "produced_power": produced_power, "marginal_price": asset.marginal_cost, "bid_price": asset.bid_price}
 
     gen_df = pd.DataFrame([make_gen_row(asset_id) for asset_id in gens.asset_ids])
 
@@ -82,9 +80,9 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
     load_df = pd.DataFrame([make_load_row(asset_id) for asset_id in loads.asset_ids])
 
     net_position: float = 0.0
-    if len(gen_df):
+    if len(gen_df) > 0:
         net_position += gen_df["produced_power"].sum()
-    if len(load_df):
+    if len(load_df) > 0:
         net_position -= load_df["consumed_power"].sum()
 
     price = coupling_result.bus_prices[bus_id].mean()

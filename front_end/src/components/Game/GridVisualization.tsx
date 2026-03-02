@@ -1,14 +1,13 @@
 "use client";
 
 import {
-  BusWithDisplayCoords,
-  GamePhase,
-  GameState,
-  HoverableElement,
-  mapBackendToDisplay,
-  NPC_PLAYER_ID,
+    BusWithDisplayCoords,
+    GamePhase,
+    GameState,
+    HoverableElement,
+    mapBackendToDisplay,
+    NPC_PLAYER_ID,
 } from "@/types/game";
-import { parseDataFrame } from "./utils";
 import React, { useCallback, useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
 import ViewToggle from "../UI/ViewToggle";
@@ -18,6 +17,7 @@ import BusResultsTable from "./BusResultsTable";
 import InfoPanel from "./InfoPanel";
 import TransmissionLineComponent from "./TransmissionLine";
 import TransmissionResultsTable from "./TransmissionResultsTable";
+import { parseDataFrame, parseDataFrameToDict } from "./utils";
 
 interface GridVisualizationProps {
   gameState: GameState;
@@ -229,17 +229,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Check if asset is purchasable
   const isAssetPurchasable = (asset: any) => {
-    console.log("Checking asset purchasability:", {
-      assetId: asset.id,
-      phase: gameState.phase,
-      isConstruction: gameState.phase === GamePhase.CONSTRUCTION,
-      ownerPlayer: asset.owner_player,
-      isNPC: asset.owner_player === NPC_PLAYER_ID,
-      minPrice: asset.minimum_acquisition_price,
-      hasPrice: asset.minimum_acquisition_price > 0,
-      isForSale: asset.is_for_sale,
-    });
-
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
       asset.owner_player === NPC_PLAYER_ID &&
@@ -256,17 +245,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     );
   }; // Check if transmission line is purchasable
   const isLinePurchasable = (line: any) => {
-    console.log("Checking line purchasability:", {
-      lineId: line.id,
-      phase: gameState.phase,
-      isConstruction: gameState.phase === GamePhase.CONSTRUCTION,
-      ownerPlayer: line.owner_player,
-      isNPC: line.owner_player === NPC_PLAYER_ID,
-      minPrice: line.minimum_acquisition_price,
-      hasPrice: line.minimum_acquisition_price > 0,
-      isForSale: line.is_for_sale,
-    });
-
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
       line.owner_player === NPC_PLAYER_ID &&
@@ -353,15 +331,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     ? Object.entries(gameState.market_summary.line_results || {}).reduce(
         (max, [lineId, lineResult]) => {
           try {
-            const parsedData = parseDataFrame(lineResult);
-            if (
-              parsedData.data &&
-              parsedData.data.length > 0 &&
-              parsedData.data[0].length > 0
-            ) {
-              const power = parsedData.data[0][0] ?? 0; // Get power from parsed dataframe
-              return Math.max(max, Math.abs(Number(power) || 0));
-            }
+            const parsedDict = parseDataFrameToDict(lineResult);
+            const power = parsedDict?.flow ?? 0; // Get power from parsed dict
+            return Math.max(max, Math.abs(Number(power) || 0));
           } catch (error) {
             console.warn(`Error parsing line ${lineId} data:`, error);
           }
@@ -401,14 +373,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
           let linePower = 0;
           if (lineResult) {
             try {
-              const parsedData = parseDataFrame(lineResult);
-              if (
-                parsedData.data &&
-                parsedData.data.length > 0 &&
-                parsedData.data[0].length > 0
-              ) {
-                linePower = parsedData.data[0][0] ?? 0;
-              }
+              const parsedDict = parseDataFrameToDict(lineResult);
+              console.log(`Line ${line.id} parsed dict:`, parsedDict);
+              linePower = parsedDict?.raw_flow ?? 0;
             } catch (error) {
               console.warn(`Error parsing line ${line.id} data:`, error);
             }
@@ -430,7 +397,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 viewMode === "market" ? handleLineClickForMarket : undefined
               }
               maxFlow={maxFlow}
-              actualPower={linePower}
+              actualFlow={linePower}
               showFlowAnimation={true}
             />
           );
