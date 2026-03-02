@@ -86,4 +86,5 @@ warn_return_any = false
 show_error_codes = true
 namespace_packages = true
 
-
+[tool.ty.environment]
+python = "./back_end/.venv"
