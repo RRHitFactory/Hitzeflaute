@@ -97,7 +97,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     fromY: number,
     toX: number,
     toY: number,
-    flowForward: boolean
+    flowForward: boolean,
   ) => {
     // Calculate the control point for the quadratic Bézier curve (same as the line's curve)
     const vector = { x: toX - fromX, y: toY - fromY };
@@ -185,10 +185,12 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const flowValue = actualFlow ?? 0;
   const flowRatio =
     maxFlow > 0 ? Math.abs(Number(flowValue) || 0) / maxFlow : 0;
-  const flowForward = flowValue >= 0
+  const flowForward = flowValue >= 0;
 
   // Debug logs
-  console.log(`Line ${line.id}: actualFlow=${actualFlow}, flowForward=${flowForward}, flowRatio=${flowRatio}`);
+  console.log(
+    `Line ${line.id}: actualFlow=${actualFlow}, flowForward=${flowForward}, flowRatio=${flowRatio}`,
+  );
 
   return (
     <g>
@@ -235,7 +237,15 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
       {/* Flow direction indicator (arrow) - only show in market view with significant flow */}
       {viewMode === "market" && showFlowAnimation && flowRatio > 0.1 && (
         <path
-          d={getArrowPath(mid_point.x, mid_point.y, fromX, fromY, toX, toY, flowForward)}
+          d={getArrowPath(
+            mid_point.x,
+            mid_point.y,
+            fromX,
+            fromY,
+            toX,
+            toY,
+            flowForward,
+          )}
           stroke="#000000" // Dark gray color
           strokeWidth={1}
           fill="#7a7a7a" // Dark gray color

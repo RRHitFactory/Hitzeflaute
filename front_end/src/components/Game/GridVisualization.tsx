@@ -1,12 +1,12 @@
 "use client";
 
 import {
-    BusWithDisplayCoords,
-    GamePhase,
-    GameState,
-    HoverableElement,
-    mapBackendToDisplay,
-    NPC_PLAYER_ID,
+  BusWithDisplayCoords,
+  GamePhase,
+  GameState,
+  HoverableElement,
+  mapBackendToDisplay,
+  NPC_PLAYER_ID,
 } from "@/types/game";
 import React, { useCallback, useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";

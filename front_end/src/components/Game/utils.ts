@@ -14,11 +14,9 @@ export const parseDataFrame = (
   };
 };
 
-export const parseDataFrameToDict = (
-  dfData: any,
-): {[key: string]: any} => {
+export const parseDataFrameToDict = (dfData: any): { [key: string]: any } => {
   console.log("parseDataFrameToDict input:", dfData);
-  
+
   if (!dfData || !dfData.columns || !dfData.index || !dfData.values) {
     console.log("Missing required properties in dfData");
     return {};
@@ -26,10 +24,10 @@ export const parseDataFrameToDict = (
 
   // Create dictionary from index and data
   const dict: { [key: string]: any } = {};
-  
+
   console.log("Index:", dfData.index);
   console.log("Values:", dfData.values);
-  
+
   // Handle different data structures
   if (Array.isArray(dfData.index) && Array.isArray(dfData.values)) {
     // Case 1: Standard structure with separate index and values arrays
@@ -38,11 +36,15 @@ export const parseDataFrameToDict = (
         dict[key] = dfData.values[i];
       }
     });
-  } else if (typeof dfData === 'object' && dfData.index && dfData.values) {
+  } else if (typeof dfData === "object" && dfData.index && dfData.values) {
     // Case 2: Try to match index with values[0] array
-    const valuesArray = Array.isArray(dfData.values) ? dfData.values : [dfData.values];
-    const indexArray = Array.isArray(dfData.index) ? dfData.index : [dfData.index];
-    
+    const valuesArray = Array.isArray(dfData.values)
+      ? dfData.values
+      : [dfData.values];
+    const indexArray = Array.isArray(dfData.index)
+      ? dfData.index
+      : [dfData.index];
+
     if (valuesArray.length > 0 && Array.isArray(valuesArray[0])) {
       const firstRow = valuesArray[0];
       indexArray.forEach((key: string, i: number) => {
@@ -52,7 +54,7 @@ export const parseDataFrameToDict = (
       });
     }
   }
-  
+
   console.log("parseDataFrameToDict output:", dict);
   return dict;
 };

@@ -49,10 +49,10 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
   // Define the order of fields to display
   const fieldOrder = [
     "health",
-    "capacity", 
+    "capacity",
     "flow",
     "direction",
-    "price_spread"
+    "price_spread",
   ];
 
   return (
@@ -83,8 +83,10 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
           <tbody>
             {fieldOrder.map((field, index) => {
               const hasField = parsedLineDict.hasOwnProperty(field);
-              console.log(`Field ${field}: hasField=${hasField}, value=${hasField ? parsedLineDict[field] : 'N/A'}`);
-              
+              console.log(
+                `Field ${field}: hasField=${hasField}, value=${hasField ? parsedLineDict[field] : "N/A"}`,
+              );
+
               if (!hasField) return null;
 
               const value = parsedLineDict[field];
@@ -111,8 +113,10 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
                 displayValue = isNaN(numericValue)
                   ? String(value)
                   : `${formatNumber(numericValue, 2)} €/MWh`;
-                
-                console.log(`Price spread: ${numericValue}, display: ${displayValue}, negative: ${numericValue < 0}`);
+
+                console.log(
+                  `Price spread: ${numericValue}, display: ${displayValue}, negative: ${numericValue < 0}`,
+                );
               } else {
                 // Default formatting for other values
                 displayValue =
@@ -122,11 +126,19 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
               }
 
               // Determine styling for price_spread
-              const numericValueForStyling = typeof value === "number" ? value : parseFloat(value);
-              const isNegativePriceSpread = field === "price_spread" && !isNaN(numericValueForStyling) && numericValueForStyling < 0;
-              const priceSpreadClass = isNegativePriceSpread ? "text-red-600 font-bold" : "text-gray-900 font-bold";
-              
-              console.log(`Field ${field} styling: negative=${isNegativePriceSpread}, class=${priceSpreadClass}`);
+              const numericValueForStyling =
+                typeof value === "number" ? value : parseFloat(value);
+              const isNegativePriceSpread =
+                field === "price_spread" &&
+                !isNaN(numericValueForStyling) &&
+                numericValueForStyling < 0;
+              const priceSpreadClass = isNegativePriceSpread
+                ? "text-red-600 font-bold"
+                : "text-gray-900 font-bold";
+
+              console.log(
+                `Field ${field} styling: negative=${isNegativePriceSpread}, class=${priceSpreadClass}`,
+              );
 
               return (
                 <tr key={index} className="border-t border-gray-100">
