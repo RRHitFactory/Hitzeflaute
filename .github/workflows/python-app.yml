@@ -34,8 +34,8 @@ jobs:
       run: uv sync --locked --all-extras --dev
       working-directory: ./back_end
 
-    - name: Check onion architecture
-      run: uv run python -m src.onion_enforcer
+    - name: Lint imports
+      run: uv run lint-imports
       working-directory: ./back_end
 
     - name: Lint with ruff

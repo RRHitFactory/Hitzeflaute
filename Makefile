@@ -44,7 +44,7 @@ pre-commit:
 	$(MAKE) format
 
 fix-imports:
-	@echo "Fixing imports in back_end/src..."
+	@echo "Fixing and linting imports in back_end/src..."
 	@cd back_end && \
 	if [ -d "src" ]; then \
 	  find src -name "*.py" -type f -exec grep -l -E "from (backend|back_end)\.src" {} \; | while read -r file; do \
@@ -53,6 +53,13 @@ fix-imports:
 	  done && echo "Import fix completed" || echo "No files found with backend/back_end.src imports"; \
 	else \
 	  echo "Error: src directory not found in back_end/"; \
+	fi && \
+	if [ -f ".venv/Scripts/lint-imports.exe" ]; then \
+	  ./.venv/Scripts/lint-imports.exe; \
+	elif [ -f ".venv/bin/lint-imports" ]; then \
+	  ./.venv/bin/lint-imports; \
+	else \
+	  echo "lint-imports not found"; \
 	fi
 
 # Run targets
