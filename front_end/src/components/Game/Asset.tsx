@@ -22,6 +22,7 @@ interface AssetProps {
   isBiddable?: boolean;
   onBid?: (assetId: number, newBidPrice: number) => void;
   currentPlayer?: number;
+  viewMode?: "normal" | "market";
 }
 
 const AssetComponent: React.FC<AssetProps> = ({
@@ -37,6 +38,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   isBiddable = false,
   onBid,
   currentPlayer,
+  viewMode = "normal",
 }) => {
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
@@ -173,8 +175,8 @@ const AssetComponent: React.FC<AssetProps> = ({
 
   return (
     <g>
-      {/* Glow effect for purchasable assets */}
-      {isPurchasable && (
+      {/* Glow effect for purchasable assets (hidden in market view) */}
+      {isPurchasable && viewMode === "normal" && (
         <circle
           cx={position.x}
           cy={position.y}
@@ -186,8 +188,8 @@ const AssetComponent: React.FC<AssetProps> = ({
           className="animate-pulse"
         />
       )}
-      {/* Glow effect for biddable assets */}
-      {isBiddable && (
+      {/* Glow effect for biddable assets (hidden in market view) */}
+      {isBiddable && viewMode === "normal" && (
         <circle
           cx={position.x}
           cy={position.y}
@@ -216,8 +218,22 @@ const AssetComponent: React.FC<AssetProps> = ({
         cy={position.y}
         r={radius}
         fill={fillColor}
-        stroke={isPurchasable ? "#ffd700" : isBiddable ? "#3b82f6" : "#374151"}
-        strokeWidth={isPurchasable || isBiddable ? "2" : "1"}
+        stroke={
+          viewMode === "normal"
+            ? isPurchasable
+              ? "#ffd700"
+              : isBiddable
+                ? "#3b82f6"
+                : "#374151"
+            : "#374151"
+        }
+        strokeWidth={
+          viewMode === "normal"
+            ? isPurchasable || isBiddable
+              ? "2"
+              : "1"
+            : "1"
+        }
         pointerEvents="none"
       />{" "}
       {/* Asset type text */}
@@ -232,8 +248,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       >
         {getAssetText()}
       </text>
-      {/* Purchase button for purchasable assets */}
-      {isPurchasable && (
+      {/* Purchase button for purchasable assets (hidden in market view) */}
+      {isPurchasable && viewMode === "normal" && (
         <g className="purchase-button" opacity="0.9">
           <circle
             cx={buyLocation.x}

@@ -245,6 +245,7 @@ export interface GameState {
   assets: { class: string; data: Asset[] }; // Can be array or repo structure
   players: { class: string; data: Player[] }; // Can be array or repo structure from backend
   market_coupling_result: MarketCouplingResult | null;
+  market_summary: MarketCouplingSummary | null;
 }
 
 export interface Point {
@@ -280,6 +281,18 @@ export interface MarketCouplingResult {
   total_generation: number;
   total_demand: number;
   [key: string]: any; // Allow for additional result fields
+}
+
+export interface DataFrame {
+  columns: any[];
+  index: any[];
+  values: any[][]; // 2D array of values
+}
+
+export interface MarketCouplingSummary {
+  bus_results: Record<string, [number, DataFrame, DataFrame, number]>; // bus_id -> [price, generation_df, load_df, net_position]
+  line_results: Record<string, DataFrame>; // line_id -> flow_df
+  [key: string]: any; // Allow for additional summary fields
 }
 
 export interface HoverableElement {

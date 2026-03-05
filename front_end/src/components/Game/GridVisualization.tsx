@@ -2,7 +2,6 @@
 
 import {
   BusWithDisplayCoords,
-  DisplayBounds,
   GamePhase,
   GameState,
   HoverableElement,
@@ -11,10 +10,14 @@ import {
 } from "@/types/game";
 import React, { useCallback, useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
+import ViewToggle from "../UI/ViewToggle";
 import AssetComponent from "./Asset";
 import BusComponent from "./Bus";
+import BusResultsTable from "./BusResultsTable";
 import InfoPanel from "./InfoPanel";
 import TransmissionLineComponent from "./TransmissionLine";
+import TransmissionResultsTable from "./TransmissionResultsTable";
+import { parseDataFrame, parseDataFrameToDict } from "./utils";
 
 interface GridVisualizationProps {
   gameState: GameState;
@@ -35,6 +38,16 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     null,
   );
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+  const [selectedBusForMarket, setSelectedBusForMarket] = useState<
+    number | null
+  >(null);
+  const [selectedLineForMarket, setSelectedLineForMarket] = useState<
+    number | null
+  >(null);
+  const [marketPanelPosition, setMarketPanelPosition] = useState({
+    x: 0,
+    y: 0,
+  });
   const [confirmationDialog, setConfirmationDialog] = useState<{
     isOpen: boolean;
     type: "asset" | "line";
@@ -42,6 +55,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     title: string;
     price: number;
   }>({ isOpen: false, type: "asset", id: -1, title: "", price: 0 });
+  const [viewMode, setViewMode] = useState<"normal" | "market">("normal");
 
   const handleElementHover = (
     element: HoverableElement,
@@ -65,6 +79,65 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   const handleMouseLeave = () => {
     setHoveredElement(null);
+  };
+
+  const handleBusClickForMarket = (busId: number, event: React.MouseEvent) => {
+    const svgRect = event.currentTarget.closest("svg")?.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    if (svgRect) {
+      // Position relative to the SVG container
+      const elementX = rect.left + rect.width / 2 - svgRect.left;
+      const elementY = rect.top + rect.height / 2 - svgRect.top;
+
+      // Toggle market panel for this bus
+      if (selectedBusForMarket === busId) {
+        setSelectedBusForMarket(null);
+      } else {
+        setSelectedBusForMarket(busId);
+        setSelectedLineForMarket(null); // Clear line selection
+        setMarketPanelPosition({
+          x: elementX,
+          y: elementY,
+        });
+      }
+    }
+  };
+
+  const handleLineClickForMarket = (
+    lineId: number,
+    event: React.MouseEvent,
+  ) => {
+    const svgRect = event.currentTarget.closest("svg")?.getBoundingClientRect();
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    if (svgRect) {
+      // Position relative to the SVG container - use midpoint of line
+      const line = getTransmissionArray().find((l) => l.id === lineId);
+      if (line) {
+        const fromBus = busesWithDisplayCoords.find((b) => b.id === line.bus1);
+        const toBus = busesWithDisplayCoords.find((b) => b.id === line.bus2);
+
+        if (fromBus && toBus) {
+          const elementX =
+            (fromBus.display_position.x + toBus.display_position.x) / 2;
+          const elementY =
+            (fromBus.display_position.y + toBus.display_position.y) / 2;
+
+          // Toggle market panel for this line
+          if (selectedLineForMarket === lineId) {
+            setSelectedLineForMarket(null);
+          } else {
+            setSelectedLineForMarket(lineId);
+            setSelectedBusForMarket(null); // Clear bus selection
+            setMarketPanelPosition({
+              x: elementX,
+              y: elementY,
+            });
+          }
+        }
+      }
+    }
   };
 
   // Helper to get array from either array or repo structure
@@ -156,17 +229,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Check if asset is purchasable
   const isAssetPurchasable = (asset: any) => {
-    console.log("Checking asset purchasability:", {
-      assetId: asset.id,
-      phase: gameState.phase,
-      isConstruction: gameState.phase === GamePhase.CONSTRUCTION,
-      ownerPlayer: asset.owner_player,
-      isNPC: asset.owner_player === NPC_PLAYER_ID,
-      minPrice: asset.minimum_acquisition_price,
-      hasPrice: asset.minimum_acquisition_price > 0,
-      isForSale: asset.is_for_sale,
-    });
-
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
       asset.owner_player === NPC_PLAYER_ID &&
@@ -183,17 +245,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     );
   }; // Check if transmission line is purchasable
   const isLinePurchasable = (line: any) => {
-    console.log("Checking line purchasability:", {
-      lineId: line.id,
-      phase: gameState.phase,
-      isConstruction: gameState.phase === GamePhase.CONSTRUCTION,
-      ownerPlayer: line.owner_player,
-      isNPC: line.owner_player === NPC_PLAYER_ID,
-      minPrice: line.minimum_acquisition_price,
-      hasPrice: line.minimum_acquisition_price > 0,
-      isForSale: line.is_for_sale,
-    });
-
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
       line.owner_player === NPC_PLAYER_ID &&
@@ -270,8 +321,39 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     });
   };
 
+  // Check if market summary data is available
+  const hasMarketData = !!gameState.market_summary;
+
+  {
+    /* Calculate max flow for animation scaling from market summary */
+  }
+  const maxFlow = gameState.market_summary
+    ? Object.entries(gameState.market_summary.line_results || {}).reduce(
+        (max, [lineId, lineResult]) => {
+          try {
+            const parsedDict = parseDataFrameToDict(lineResult);
+            const power = parsedDict?.flow ?? 0; // Get power from parsed dict
+            return Math.max(max, Math.abs(Number(power) || 0));
+          } catch (error) {
+            console.warn(`Error parsing line ${lineId} data:`, error);
+          }
+          return max;
+        },
+        0,
+      )
+    : 0;
+
   return (
     <div className="relative w-full h-[500px] bg-gray-50 rounded-lg border overflow-hidden">
+      {/* View Toggle in top left corner */}
+      <div className="absolute top-2 left-2 z-10">
+        <ViewToggle
+          viewMode={viewMode}
+          onToggle={setViewMode}
+          hasMarketData={hasMarketData}
+        />
+      </div>
+
       <svg
         width="100%"
         height="100%"
@@ -285,6 +367,20 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
           const owner = getPlayerById(line.owner_player);
           if (!owner) return null;
           const isPurchasable = isLinePurchasable(line);
+
+          // Get actual power flow from market summary using parseDataFrame
+          const lineResult = gameState.market_summary?.line_results?.[line.id];
+          let linePower = 0;
+          if (lineResult) {
+            try {
+              const parsedDict = parseDataFrameToDict(lineResult);
+              console.log(`Line ${line.id} parsed dict:`, parsedDict);
+              linePower = parsedDict?.raw_flow ?? 0;
+            } catch (error) {
+              console.warn(`Error parsing line ${line.id} data:`, error);
+            }
+          }
+
           return (
             <TransmissionLineComponent
               key={line.id}
@@ -296,6 +392,13 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               isPurchasable={isPurchasable}
               onPurchase={handleLinePurchaseRequest}
               playerMoney={getCurrentPlayerMoney()}
+              viewMode={viewMode}
+              onClick={
+                viewMode === "market" ? handleLineClickForMarket : undefined
+              }
+              maxFlow={maxFlow}
+              actualFlow={linePower}
+              showFlowAnimation={true}
             />
           );
         })}
@@ -311,6 +414,10 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               owner={owner}
               onHover={handleElementHover}
               onLeave={handleMouseLeave}
+              onClickProp={
+                viewMode === "market" ? handleBusClickForMarket : undefined
+              }
+              viewMode={viewMode}
             />
           );
         })}
@@ -336,16 +443,39 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 isBiddable={isAssetBiddable(asset)}
                 onBid={onBidAsset}
                 currentPlayer={currentPlayer}
+                viewMode={viewMode}
               />
             );
           }),
         )}
       </svg>
 
-      {/* Info Panel */}
-      {hoveredElement && (
+      {/* Info Panel or Market Results Table */}
+      {hoveredElement && viewMode === "normal" && (
         <InfoPanel element={hoveredElement} position={hoverPosition} />
       )}
+
+      {selectedBusForMarket &&
+        viewMode === "market" &&
+        gameState.market_summary && (
+          <BusResultsTable
+            busId={selectedBusForMarket}
+            marketSummary={gameState.market_summary}
+            position={marketPanelPosition}
+            onClose={() => setSelectedBusForMarket(null)}
+          />
+        )}
+
+      {selectedLineForMarket &&
+        viewMode === "market" &&
+        gameState.market_summary && (
+          <TransmissionResultsTable
+            lineId={selectedLineForMarket}
+            marketSummary={gameState.market_summary}
+            position={marketPanelPosition}
+            onClose={() => setSelectedLineForMarket(null)}
+          />
+        )}
 
       {/* Purchase Confirmation Dialog */}
       <ConfirmationDialog
