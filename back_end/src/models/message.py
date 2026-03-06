@@ -1,5 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Literal, TypeVar
 
 from src.models.assets import AssetId
@@ -99,6 +100,17 @@ class UpdateBidRequest(PlayerToGameMessage):
             success=success,
             message=message,
         )
+
+
+# update_batch_bids_request
+@dataclass(frozen=True)
+class UpdateBatchBidResponse(GameToPlayerMessage):
+    success: bool
+
+
+@dataclass(frozen=True)
+class UpdateBatchBidsRequest(PlayerToGameMessage):
+    bids: MappingProxyType[AssetId, float]
 
 
 @dataclass(frozen=True)

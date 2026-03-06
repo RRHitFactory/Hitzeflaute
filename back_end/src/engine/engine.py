@@ -17,6 +17,7 @@ from src.models.message import (
     OperateLineRequest,
     OperateLineResponse,
     ToGameMessage,
+    UpdateBatchBidsRequest,
     UpdateBidRequest,
     UpdateBidResponse,
 )
@@ -35,25 +36,25 @@ class Engine:
         :return: The new game state and a list of messages to be sent
         """
         # Handle the message based on its type
-        if isinstance(msg, ConcludePhase):
-            return cls.handle_new_phase_message(game_state=game_state, msg=msg)
-        elif isinstance(msg, UpdateBidRequest):
-            return cls.handle_update_bid_message(game_state=game_state, msg=msg)
-        elif isinstance(msg, OperateLineRequest):
-            return cls.handle_operate_line_message(game_state, msg)
-        elif isinstance(msg, OperateAssetRequest):
-            return cls.handle_operate_asset_message(game_state, msg)
-        elif isinstance(msg, BuyRequest):
-            if isinstance(msg.purchase_id, AssetId):
+        match msg:
+            case ConcludePhase():
+                return cls.handle_new_phase_message(game_state=game_state, msg=msg)
+            case UpdateBidRequest():
+                return cls.handle_update_bid_message(game_state=game_state, msg=msg)
+            case UpdateBatchBidsRequest():
+                return cls.handle_update_batch_bid_message(game_state=game_state, msg=msg)
+            case OperateLineRequest():
+                return cls.handle_operate_line_message(game_state, msg)
+            case OperateAssetRequest():
+                return cls.handle_operate_asset_message(game_state, msg)
+            case BuyRequest() if isinstance(msg.purchase_id, AssetId):
                 return cls.handle_buy_asset_message(game_state, msg)  # type: ignore
-            elif isinstance(msg.purchase_id, TransmissionId):
+            case BuyRequest() if isinstance(msg.purchase_id, TransmissionId):
                 return cls.handle_buy_transmission_message(game_state, msg)  # type: ignore
-            else:
-                raise NotImplementedError(f"You cannot buy objects of type <{type(msg.purchase_id)}>.")
-        elif isinstance(msg, EndTurn):
-            return cls.handle_end_turn_message(game_state=game_state, msg=msg)
-        else:
-            raise NotImplementedError(f"message type {type(msg)} not implemented.")
+            case EndTurn():
+                return cls.handle_end_turn_message(game_state=game_state, msg=msg)
+            case _:
+                raise NotImplementedError(f"message type {type(msg)} not implemented.")
 
     @classmethod
     def handle_new_phase_message(
@@ -79,6 +80,14 @@ class Engine:
 
         new_game_state = new_game_state.update(msg.new_phase, players, round)
         return new_game_state, msgs
+
+    @classmethod
+    def handle_update_batch_bid_message(
+        cls,
+        game_state: GameState,
+        msg: UpdateBatchBidsRequest,
+    ) -> tuple[GameState, list[Message]]:
+        raise NotImplementedError("Handle update batch bids is not yet supported")
 
     @classmethod
     def handle_update_bid_message(

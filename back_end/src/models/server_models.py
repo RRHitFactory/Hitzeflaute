@@ -7,11 +7,12 @@ with WebSocket connections for real-time message communication.
 import logging
 from collections.abc import Callable
 from functools import cached_property
+from types import MappingProxyType
 
 from pydantic import BaseModel
 
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
-from src.models.message import BuyRequest, EndTurn, GameToPlayerMessage, OperateLineRequest, PlayerToGameMessage, UpdateBidRequest
+from src.models.message import BuyRequest, EndTurn, GameToPlayerMessage, OperateLineRequest, PlayerToGameMessage, UpdateBatchBidsRequest, UpdateBidRequest
 
 # Serialization handled by message objects directly
 
@@ -55,6 +56,7 @@ class WebsocketMessage(BaseModel):
 
     def to_py_message(self) -> PlayerToGameMessage:
         mapping: dict[type[PlayerToGameMessage], Callable[[], PlayerToGameMessage]] = {
+            UpdateBatchBidsRequest: self._to_batch_bid_request,
             UpdateBidRequest: self._to_bid_request,
             BuyRequest: self._to_buy_request,
             OperateLineRequest: self._to_operate_line_request,
@@ -65,6 +67,9 @@ class WebsocketMessage(BaseModel):
         if func is None:
             raise ValueError(f"Unknown message type: {self.message_type}. Valid names are {list(name_func_mapping.keys())}")
         return func()
+
+    def _to_batch_bid_request(self) -> UpdateBatchBidsRequest:
+        return UpdateBatchBidsRequest(game_id=self.game_id_obj, player_id=self.player_id_obj, bids=MappingProxyType({AssetId(round(k)): v for k, v in self.data}))
 
     def _to_bid_request(self) -> UpdateBidRequest:
         return UpdateBidRequest(game_id=self.game_id_obj, player_id=self.player_id_obj, asset_id=AssetId(self.data["asset_id"]), bid_price=self.data["bid_price"])
