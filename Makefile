@@ -40,8 +40,7 @@ format-frontend:
 
 pre-commit:
 	@echo "Running pre-commit tasks..."
-	$(MAKE) fix-imports && \
-	$(MAKE) format
+	bash -c '"$(MAKE)" fix-imports & "$(MAKE)" format'
 
 fix-imports:
 	@echo "Fixing and linting imports in back_end/src..."
