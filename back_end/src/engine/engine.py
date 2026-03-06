@@ -87,6 +87,7 @@ class Engine:
         game_state: GameState,
         msg: UpdateBatchBidsRequest,
     ) -> tuple[GameState, list[Message]]:
+        # TODO implement backend
         raise NotImplementedError("Handle update batch bids is not yet supported")
 
     @classmethod
