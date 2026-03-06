@@ -192,6 +192,13 @@ export class GameWebSocketClient {
     });
   }
 
+  public submitBatchBids(bids: Record<number, number>): void {
+    console.log("Submitting batch bids:", bids);
+    this.send("update_batch_bids_request", {
+      bids: bids,
+    });
+  }
+
   public operateLine(transmissionId: string, action: "open" | "close"): void {
     this.send("operate_line_request", {
       transmission_id: transmissionId,

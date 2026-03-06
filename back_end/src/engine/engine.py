@@ -45,9 +45,9 @@ class Engine:
             return cls.handle_operate_asset_message(game_state, msg)
         elif isinstance(msg, BuyRequest):
             if isinstance(msg.purchase_id, AssetId):
-                return cls.handle_buy_asset_message(game_state, msg)
+                return cls.handle_buy_asset_message(game_state, msg)  # type: ignore
             elif isinstance(msg.purchase_id, TransmissionId):
-                return cls.handle_buy_transmission_message(game_state, msg)
+                return cls.handle_buy_transmission_message(game_state, msg)  # type: ignore
             else:
                 raise NotImplementedError(f"You cannot buy objects of type <{type(msg.purchase_id)}>.")
         elif isinstance(msg, EndTurn):

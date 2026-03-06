@@ -17,7 +17,7 @@ import BusResultsTable from "./BusResultsTable";
 import InfoPanel from "./InfoPanel";
 import TransmissionLineComponent from "./TransmissionLine";
 import TransmissionResultsTable from "./TransmissionResultsTable";
-import { parseDataFrame, parseDataFrameToDict } from "./utils";
+import { parseDataFrameToDict } from "./utils";
 
 interface GridVisualizationProps {
   gameState: GameState;
@@ -31,7 +31,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   gameState,
   onPurchaseAsset,
   onPurchaseTransmissionLine,
-  onBidAsset,
   currentPlayer,
 }) => {
   const [hoveredElement, setHoveredElement] = useState<HoverableElement | null>(
@@ -237,13 +236,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     );
   };
 
-  // Check if asset is biddable (owned by current player in bidding phase)
-  const isAssetBiddable = (asset: any) => {
-    return (
-      gameState.phase === GamePhase.BIDDING &&
-      asset.owner_player === currentPlayer
-    );
-  }; // Check if transmission line is purchasable
+  // Check if transmission line is purchasable
   const isLinePurchasable = (line: any) => {
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
@@ -440,8 +433,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 isPurchasable={isPurchasable}
                 onPurchase={handleAssetPurchaseRequest}
                 playerMoney={getCurrentPlayerMoney()}
-                isBiddable={isAssetBiddable(asset)}
-                onBid={onBidAsset}
                 currentPlayer={currentPlayer}
                 viewMode={viewMode}
               />

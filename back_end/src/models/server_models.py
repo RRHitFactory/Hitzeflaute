@@ -6,9 +6,9 @@ with WebSocket connections for real-time message communication.
 
 import logging
 from collections.abc import Callable
+from functools import cached_property
 
 from pydantic import BaseModel
-from pyparsing import cached_property
 
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
 from src.models.message import BuyRequest, EndTurn, GameToPlayerMessage, OperateLineRequest, PlayerToGameMessage, UpdateBidRequest
