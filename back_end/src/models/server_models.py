@@ -69,7 +69,7 @@ class WebsocketMessage(BaseModel):
         return func()
 
     def _to_batch_bid_request(self) -> UpdateBatchBidsRequest:
-        return UpdateBatchBidsRequest(game_id=self.game_id_obj, player_id=self.player_id_obj, bids=MappingProxyType({AssetId(round(k)): v for k, v in self.data}))
+        return UpdateBatchBidsRequest(game_id=self.game_id_obj, player_id=self.player_id_obj, bids=MappingProxyType({AssetId(int(k)): v for k, v in self.data["bids"].items()}))
 
     def _to_bid_request(self) -> UpdateBidRequest:
         return UpdateBidRequest(game_id=self.game_id_obj, player_id=self.player_id_obj, asset_id=AssetId(self.data["asset_id"]), bid_price=self.data["bid_price"])

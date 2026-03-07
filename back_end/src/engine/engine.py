@@ -17,6 +17,7 @@ from src.models.message import (
     OperateLineRequest,
     OperateLineResponse,
     ToGameMessage,
+    UpdateBatchBidResponse,
     UpdateBatchBidsRequest,
     UpdateBidRequest,
     UpdateBidResponse,
@@ -87,8 +88,30 @@ class Engine:
         game_state: GameState,
         msg: UpdateBatchBidsRequest,
     ) -> tuple[GameState, list[Message]]:
-        # TODO implement backend
-        raise NotImplementedError("Handle update batch bids is not yet supported")
+        if game_state.phase != Phase.BIDDING:
+            response = msg.make_response(
+                success=False,
+                message=f"You can only update bids during the {Phase.BIDDING.nice_name} phase",
+            )
+            return game_state, [response]
+
+        list_failed_response = cls._validate_update_batch_bid(gs=game_state, msg=msg)
+        if list_failed_response:
+            return game_state, cast(list[Message], list_failed_response)
+
+        new_assets = game_state.assets
+        for asset_id, bid_price in msg.bids.items():
+            new_assets = new_assets.update_bid_price(asset_id=asset_id, bid_price=bid_price)
+        new_game_state = game_state.update(new_assets)
+
+        response = UpdateBatchBidResponse(
+            game_id=msg.game_id,
+            player_id=msg.player_id,
+            success=True,
+            message=f"Player {msg.player_id} successfully updated batch bids.",
+        )
+
+        return new_game_state, [response]
 
     @classmethod
     def handle_update_bid_message(
@@ -381,5 +404,44 @@ class Engine:
 
         if not FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
             return make_failed_response(f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}.")
+
+        return []
+
+    @classmethod
+    def _validate_update_batch_bid(cls, gs: GameState, msg: UpdateBatchBidsRequest) -> list[Message]:
+        def make_failed_response(failed_message: str) -> list[Message]:
+            failed_response = UpdateBatchBidResponse(
+                game_id=gs.game_id,
+                player_id=msg.player_id,
+                success=False,
+                message=failed_message,
+            )
+            return [failed_response]
+
+        player = gs.players[msg.player_id]
+        min_bid = gs.game_settings.min_bid_price
+        max_bid = gs.game_settings.max_bid_price
+        responses = []
+
+        for asset_id, bid_price in msg.bids.items():
+            if asset_id not in gs.assets.asset_ids:
+                responses += make_failed_response(f"Asset {asset_id} does not exist.")
+
+            asset = gs.assets[asset_id]
+            if asset.owner_player != player.id:
+                responses += make_failed_response(f"Player {player.id} cannot bid on asset {asset_id} as they do not own it.")
+
+            if not (min_bid <= bid_price <= max_bid):
+                responses += make_failed_response(f"Bid price {bid_price} for asset {asset_id} is not within the allowed range [{min_bid}, {max_bid}].")
+
+        if responses:
+            return responses
+
+        player_assets = gs.assets.get_all_for_player(player.id, only_active=True)
+        for asset_id, bid_price in msg.bids.items():
+            player_assets = player_assets.update_bid_price(asset_id, bid_price)
+
+        if not FinanceCalculator.validate_bid_for_asset(player_assets, None, None, player.money):
+            return make_failed_response(f"Player {player.id} cannot afford the bids {msg.bids.values()} for assets {msg.bids.keys()}.")
 
         return []
