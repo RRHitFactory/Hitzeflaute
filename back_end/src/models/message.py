@@ -112,6 +112,14 @@ class UpdateBatchBidResponse(GameToPlayerMessage):
 class UpdateBatchBidsRequest(PlayerToGameMessage):
     bids: MappingProxyType[AssetId, float]
 
+    def make_response(self, success: bool, message: str) -> UpdateBatchBidResponse:
+        return UpdateBatchBidResponse(
+            game_id=self.game_id,
+            player_id=self.player_id,
+            success=success,
+            message=message
+        )
+
 
 @dataclass(frozen=True)
 class BuyResponse[T_Id](GameToPlayerMessage):
