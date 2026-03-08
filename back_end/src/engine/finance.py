@@ -75,7 +75,10 @@ class FinanceCalculator:
 
         for asset in player_assets:
             expected_volume = asset.power_expected
-            bid_price = asset.bid_price if asset.id != asset_id_to_validate else bid_to_validate
+            if asset.id != asset_id_to_validate:
+                bid_price = asset.bid_price
+            else:
+                bid_price = bid_to_validate if bid_to_validate is not None else asset.bid_price
             sign = asset.cashflow_sign
 
             # Players must at least be capable of covering the market cashflow of their assets.
