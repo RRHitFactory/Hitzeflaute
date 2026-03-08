@@ -67,8 +67,8 @@ class FinanceCalculator:
     @staticmethod
     def validate_bid_for_asset(
         player_assets: AssetRepo,
-        asset_id_to_validate: AssetId,
-        bid_to_validate: float,
+        asset_id_to_validate: AssetId | None,
+        bid_to_validate: float | None,
         player_money: float,
     ) -> bool:
         expected_market_cashflow = 0.0
