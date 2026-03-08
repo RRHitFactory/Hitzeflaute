@@ -389,7 +389,6 @@ class Engine:
 
         player = gs.players[msg.player_id]
         asset = gs.assets[msg.asset_id]
-        player_assets = gs.assets.get_all_for_player(player.id, only_active=True)
         min_bid = gs.game_settings.min_bid_price
         max_bid = gs.game_settings.max_bid_price
 
@@ -398,9 +397,6 @@ class Engine:
 
         if not (min_bid <= msg.bid_price <= max_bid):
             return make_failed_response(f"Bid price {msg.bid_price} is not within the allowed range [{min_bid}, {max_bid}].")
-
-        if not FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
-            return make_failed_response(f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}.")
 
         return []
 
@@ -448,11 +444,5 @@ class Engine:
                     f"Bid price {bid_price} for asset {asset_id} is not within the allowed range [{min_bid}, {max_bid}]."
                     f"It has been adjusted to {accepted_bids[asset_id]}."
                 )
-
-        player_assets = gs.assets.get_all_for_player(player.id, only_active=True)
-        updated_player_assets = player_assets.batch_update_bid_price(list(accepted_bids.keys()), list(accepted_bids.values()))
-
-        if not FinanceCalculator.validate_bid_for_asset(updated_player_assets, None, None, player.money):
-            responses += make_failed_response(f"Player {player.id} cannot afford the bids {msg.bids.values()} for assets {msg.bids.keys()}.")
 
         return responses, accepted_bids
