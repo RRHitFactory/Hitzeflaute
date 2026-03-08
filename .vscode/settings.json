@@ -19,6 +19,8 @@
             "source.organizeImports": "always",
             "source.sortImports": "always",
             "source.unusedImports": "always",
+            "source.fixAll.ruff": "always",
+            "source.organizeImports.ruff": "always"
         },
     },
     "[typescript]": {

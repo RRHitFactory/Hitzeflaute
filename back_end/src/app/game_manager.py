@@ -1,6 +1,7 @@
 from typing import Protocol, runtime_checkable
 
 from src.app.game_repo.base import BaseGameStateRepo
+from src.engine.engine import Engine
 from src.engine.new_game import DefaultGameInitializer
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
@@ -9,7 +10,6 @@ from src.models.message import (
     GameToPlayerMessage,
     GameUpdate,
     InternalMessage,
-    Message,
     PlayerToGameMessage,
     ToGameMessage,
 )
@@ -21,22 +21,14 @@ class FrontEndMessageHandler(Protocol):
     def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None: ...
 
 
-@runtime_checkable
-class BackendMessageHandler(Protocol):
-    # A generic stub for the game engine implementation
-    @classmethod
-    def handle_message(cls, game_state: GameState, msg: ToGameMessage) -> tuple[GameState, list[Message]]: ...
-
-
 class GameManager:
     def __init__(
         self,
         game_repo: BaseGameStateRepo,
-        game_engine: BackendMessageHandler,
+        game_engine: Engine,
         front_end_interface: FrontEndMessageHandler,
     ) -> None:
         assert isinstance(game_repo, BaseGameStateRepo)
-        assert isinstance(game_engine, BackendMessageHandler)
         assert isinstance(front_end_interface, FrontEndMessageHandler)
         self.game_repo = game_repo
         self.game_engine = game_engine

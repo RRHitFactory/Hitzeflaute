@@ -3,7 +3,6 @@ import os
 import uuid
 from contextlib import contextmanager
 
-from src.app.simple_front_end.plotting.grid_plotter import GridPlotter
 from src.directories import test_dir
 from src.engine.market_coupling import MarketCouplingCalculator, OptimizationError
 from src.models.game_state import GameState
@@ -34,7 +33,6 @@ def check_infeasible_states():
         with open(f.path) as file:
             content = file.read()
         game_state = deserialize(x=content, cls=GameState)
-        GridPlotter().make_figure(game_state=game_state).show()
         MarketCouplingCalculator.run(game_state)
 
 
