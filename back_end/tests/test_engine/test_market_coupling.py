@@ -176,4 +176,3 @@ class TestMarketCoupling(BaseTest):
         game_state_no_assets = gs.update(assets_deactivated)
 
         MarketCouplingCalculator.run(game_state_no_assets)
-
