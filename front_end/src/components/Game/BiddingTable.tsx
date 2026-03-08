@@ -53,7 +53,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
     return sum + calculate_cost(asset);
   }, 0);
 
-  const insufficientFunds = totalCost > playerMoney
+  const insufficientFunds = totalCost > playerMoney;
 
   // Notify parent component about insufficient funds status
   React.useEffect(() => {
@@ -90,20 +90,37 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
         <table className="w-full text-sm text-left text-gray-500">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50">
             <tr>
-              <th scope="col" className="px-3 py-2">
+              <th scope="col" className="px-3 pt-1">
                 Asset
               </th>
-              <th scope="col" className="px-3 py-2">
-                Power<br></br>MW
+              <th scope="col" className="px-3 pt-1">
+                Power<br></br>
               </th>
-              <th scope="col" className="px-3 py-2">
-                Marginal Cost<br></br>€/MWh
+              <th scope="col" className="px-3 pt-1">
+                Marginal Cost<br></br>
               </th>
-              <th scope="col" className="px-3 py-2">
-                Bid<br></br>€/MWh
+              <th scope="col" className="px-3 pt-1">
+                Bid<br></br>
               </th>
-              <th scope="col" className="px-3 py-2">
-                Cost<br></br>€
+              <th scope="col" className="px-3 pt-1">
+                Cost<br></br>
+              </th>
+            </tr>
+          </thead>
+          <thead className="text-xs text-gray-700 bg-gray-50">
+            <tr>
+              <th scope="col" className="px-3 pb-1"></th>
+              <th scope="col" className="px-3 pb-1">
+                MW
+              </th>
+              <th scope="col" className="px-3 pb-1">
+                €/MWh
+              </th>
+              <th scope="col" className="px-3 pb-1">
+                €/MWh
+              </th>
+              <th scope="col" className="px-3 pb-1">
+                €
               </th>
             </tr>
           </thead>
