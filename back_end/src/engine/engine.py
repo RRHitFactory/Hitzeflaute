@@ -1,5 +1,7 @@
 from typing import Literal, cast
 
+import polars as pl
+
 from src.engine.finance import FinanceCalculator
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.engine.referee import Referee
@@ -321,9 +323,9 @@ class Engine:
     ) -> tuple[GameState, list[AuctionClearedMessage]]:
         player_repo = game_state.players
         cashflows = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=market_coupling_result)
-
-        for player_id, net_cashflow in cashflows.items():
-            player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
+        for player_id in cashflows["player_id"].unique().to_list():
+            player_cashflow = cashflows.filter(pl.col("player_id") == "player_id")["cashflow"].sum()
+            player_repo = player_repo.add_money(player_id=player_id, amount=player_cashflow)
 
         new_game_state = game_state.update(player_repo, market_coupling_result)
 
