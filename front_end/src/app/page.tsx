@@ -4,9 +4,10 @@ import GridVisualization from "@/components/Game/GridVisualization";
 import GameControls from "@/components/UI/GameControls";
 import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
+import BiddingTable from "@/components/Game/BiddingTable";
 import { useCreateGame } from "@/lib/gameAPI";
 import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function Home() {
   const [gameId, setGameId] = useState<number | null>(null);
@@ -66,20 +67,24 @@ export default function Home() {
     return activePlayer ? activePlayer.id : currentPlayer;
   }, [gameState, currentPlayer]);
 
-  // Calculate current player name from gameState
-  const currentPlayerName = React.useMemo(() => {
-    if (!gameState) return "Unknown Player";
+  // Calculate current player object and name from gameState
+  const currentPlayerObj = React.useMemo(() => {
+    if (!gameState) return null;
 
     // Handle both array format (sample data) and repo format (backend)
     const playersArray = Array.isArray(gameState.players)
       ? gameState.players
       : gameState.players?.data || [];
 
-    const player = playersArray.find(
-      (p: any) => p.id === currentPlayerFromGameState,
-    );
-    return player ? player.name : `Player ${currentPlayerFromGameState}`;
+    return playersArray.find((p: any) => p.id === currentPlayerFromGameState);
   }, [gameState, currentPlayerFromGameState]);
+
+  // Calculate current player name from gameState
+  const currentPlayerName = React.useMemo(() => {
+    return currentPlayerObj
+      ? currentPlayerObj.name
+      : `Player ${currentPlayerFromGameState}`;
+  }, [currentPlayerObj, currentPlayerFromGameState]);
 
   const { createGame, loading: creatingGame } = useCreateGame();
 
@@ -132,14 +137,40 @@ export default function Home() {
     wsClient.buyTransmissionLine(lineId.toString());
   };
 
+  // State for batch bidding
+  const [pendingBids, setPendingBids] = useState<Record<number, number>>({});
+
+  // State to track insufficient funds status from BiddingTable
+  const [hasInsufficientFunds, setHasInsufficientFunds] = useState(false);
+
   const handleBidAsset = (assetId: number, newBidPrice: number) => {
+    // Store bid locally instead of sending immediately
+    setPendingBids((prev) => ({
+      ...prev,
+      [assetId]: newBidPrice,
+    }));
+    console.log("Stored bid for asset:", assetId, "to:", newBidPrice);
+  };
+
+  const handleBidChange = (assetId: number, newBidPrice: number) => {
+    // This is called from the bidding table when input changes
+    handleBidAsset(assetId, newBidPrice);
+  };
+
+  const handleSubmitAllBids = () => {
     if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
       return;
     }
 
-    console.log("Updating bid for asset:", assetId, "to:", newBidPrice);
-    wsClient.updateBid(assetId.toString(), newBidPrice);
+    if (Object.keys(pendingBids).length === 0) {
+      setError("No pending bids to submit");
+      return;
+    }
+
+    console.log("Submitting all bids:", pendingBids);
+    wsClient.submitBatchBids(pendingBids);
+    setPendingBids({}); // Clear pending bids after submission
   };
 
   const handleEndTurn = () => {
@@ -258,7 +289,22 @@ export default function Home() {
               currentPlayerName={currentPlayerName}
               isConnected={isConnected}
               onEndTurn={handleEndTurn}
+              onSubmitBids={handleSubmitAllBids}
+              hasPendingBids={Object.keys(pendingBids).length > 0}
+              hasInsufficientFunds={hasInsufficientFunds}
             />
+
+            {/* Bidding Table (only shown during bidding phase) */}
+            {gameState.phase === 2 && (
+              <BiddingTable
+                assets={gameState.assets.data}
+                currentPlayer={currentPlayerFromGameState}
+                playerMoney={currentPlayerObj?.money || 0}
+                pendingBids={pendingBids}
+                onBidChange={handleBidChange}
+                onInsufficientFundsChange={setHasInsufficientFunds}
+              />
+            )}
 
             {/* Player Information */}
             <div className="bg-white rounded-lg shadow-sm border p-4">
