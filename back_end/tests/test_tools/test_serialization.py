@@ -16,4 +16,4 @@ class TestSerialization(BaseTest):
         self.assertEqual(pd_dict["index"], pl_dict["index"])
         pd_df_2 = dict_to_dataframe(pd_dict)
         pl_df_2 = dict_to_polars_dataframe(pl_dict)
-        self.assertEqual(pd_df_2.to_numpy(), pl_df_2.to_numpy())
+        self.assertTrue((pd_df_2.to_numpy() == pl_df_2.to_numpy()).all())
