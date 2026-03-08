@@ -1,7 +1,6 @@
 "use client";
 
 import { Asset } from "@/types/game";
-import { calculateTotalBidCost, hasInsufficientFunds } from "./biddingUtils";
 import React from "react";
 
 interface BiddingTableProps {
@@ -54,18 +53,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
     return sum + calculate_cost(asset);
   }, 0);
 
-  // Calculate total bid cost and check insufficient funds using shared utilities
-  const totalBidCost = calculateTotalBidCost(
-    assets,
-    currentPlayer,
-    pendingBids,
-  );
-  const insufficientFunds = hasInsufficientFunds(
-    assets,
-    currentPlayer,
-    playerMoney,
-    pendingBids,
-  );
+  const insufficientFunds = totalCost > playerMoney
 
   // Notify parent component about insufficient funds status
   React.useEffect(() => {
@@ -171,7 +159,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
             <p
               className={`text-lg font-bold ${insufficientFunds ? "text-red-600" : "text-green-600"}`}
             >
-              {formatNumber(totalBidCost)} / {formatNumber(playerMoney)}
+              {formatNumber(totalCost)} / {formatNumber(playerMoney)}
             </p>
           </div>
         </div>
