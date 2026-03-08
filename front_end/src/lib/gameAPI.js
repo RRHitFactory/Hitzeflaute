@@ -147,7 +147,7 @@ export function useGamesList() {
       const result = await client.listGames();
       setGames(result.games || []);
     } catch (err) {
-      setError(err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }
@@ -180,7 +180,7 @@ export function useGameState(gameId) {
         throw new Error(result.message || "Failed to fetch game state");
       }
     } catch (err) {
-      setError(err);
+      setError(err instanceof Error ? err : new Error(String(err)));
     } finally {
       setLoading(false);
     }
