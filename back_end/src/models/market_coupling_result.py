@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from typing import Self
 
 import pandas as pd
+from src.models.pnl import PnlFrame
 
 from src.models.ids import BusId, TransmissionId
-from src.tools.serialization import SerializedDf, SimpleDict, dataframe_to_dict, dict_to_dataframe
+from src.tools.serialization import SerializedDf, SimpleDict, dataframe_to_dict, dict_to_dataframe, polars_dataframe_to_dict
 
 
 class MarketCouplingResult:
@@ -111,14 +112,16 @@ class MarketCouplingResult:
 class MarketCouplingSummary:
     bus_results: dict[BusId, tuple[float, pd.DataFrame, pd.DataFrame, float]]  # price, generation df, load df, net_position
     line_results: dict[TransmissionId, pd.DataFrame]
+    pnl: PnlFrame
 
     def to_simple_dict(self) -> SimpleDict:
         simple_dict = {
             "bus_results": {str(bus_id): (price, dataframe_to_dict(getn_df), dataframe_to_dict(load_df), np) for bus_id, (price, getn_df, load_df, np) in self.bus_results.items()},
             "line_results": {str(line_id): dataframe_to_dict(df) for line_id, df in self.line_results.items()},
+            "pnl": polars_dataframe_to_dict(self.pnl),
         }
         return simple_dict  # type: ignore
 
     @classmethod
     def from_simple_dict(cls, simple_dict: SimpleDict) -> Self:
-        raise NotImplementedError("Deserialization of MarketCouplingSummary is not implemented yet")
+        raise NotImplementedError("Deserialization of MarketCouplingSummary is not implemented")

@@ -4,12 +4,13 @@ from enum import Enum
 from typing import Any, Protocol, Self, get_args, get_origin, runtime_checkable
 
 import pandas as pd
+import polars as pl
 
 from src.tools.typing import IntId
 
 type Primitive = int | float | str | bool
 type FlatDict = dict[str, Primitive]
-type SerializedDf = dict[str, list[float] | list[str]]
+type SerializedDf = dict[str, list[list[float]] | list[list[int]] | list[str]]
 type SimpleDict = dict[str, Primitive | FlatDict | SimpleDict | SerializedDf | list[Primitive]]
 primitives = (int, float, str, bool)
 
@@ -184,3 +185,12 @@ def dataframe_to_dict(df: pd.DataFrame) -> SerializedDf:
 
 def dict_to_dataframe(df_dict: SerializedDf) -> pd.DataFrame:
     return pd.DataFrame(data=df_dict["values"], index=df_dict["index"], columns=df_dict["columns"])
+
+
+def polars_dataframe_to_dict(df: pl.DataFrame) -> SerializedDf:
+    return {"columns": df.columns, "index": list(range(len(df))), "values": [list(r) for r in df.rows()]}  # type: ignore
+
+
+def dict_to_polars_dataframe(df_dict: SerializedDf) -> pl.DataFrame:
+    data_dict = {k: [v[i] for v in df_dict["values"]] for i, k in enumerate(df_dict["columns"])}
+    return pl.DataFrame(data_dict)
