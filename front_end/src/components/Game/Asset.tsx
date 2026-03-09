@@ -19,9 +19,8 @@ interface AssetProps {
   isPurchasable?: boolean;
   onPurchase?: (assetId: number) => void;
   playerMoney?: number;
-  isBiddable?: boolean;
-  onBid?: (assetId: number, newBidPrice: number) => void;
   currentPlayer?: number;
+  viewMode?: "normal" | "market";
 }
 
 const AssetComponent: React.FC<AssetProps> = ({
@@ -34,9 +33,8 @@ const AssetComponent: React.FC<AssetProps> = ({
   isPurchasable = false,
   onPurchase,
   playerMoney = 0,
-  isBiddable = false,
-  onBid,
   currentPlayer,
+  viewMode = "normal",
 }) => {
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
@@ -160,40 +158,16 @@ const AssetComponent: React.FC<AssetProps> = ({
     );
   };
 
-  const handleBidClick = () => {
-    if (!onBid) return;
-    const newBidPrice = prompt(
-      `Enter new bid price for ${getAssetTitle()}:`,
-      asset.bid_price.toString(),
-    );
-    if (newBidPrice && !isNaN(Number(newBidPrice))) {
-      onBid(asset.id, Number(newBidPrice));
-    }
-  };
-
   return (
     <g>
-      {/* Glow effect for purchasable assets */}
-      {isPurchasable && (
+      {/* Glow effect for purchasable assets (hidden in market view) */}
+      {isPurchasable && viewMode === "normal" && (
         <circle
           cx={position.x}
           cy={position.y}
           r={radius}
           fill="none"
           stroke="#ffd700"
-          strokeWidth="3"
-          opacity="0.8"
-          className="animate-pulse"
-        />
-      )}
-      {/* Glow effect for biddable assets */}
-      {isBiddable && (
-        <circle
-          cx={position.x}
-          cy={position.y}
-          r={radius}
-          fill="none"
-          stroke="#3b82f6"
           strokeWidth="3"
           opacity="0.8"
           className="animate-pulse"
@@ -207,8 +181,7 @@ const AssetComponent: React.FC<AssetProps> = ({
         fill="transparent"
         onMouseEnter={handleMouseEnter}
         onMouseLeave={onLeave}
-        onClick={isBiddable ? handleBidClick : undefined}
-        style={{ cursor: isBiddable ? "pointer" : "default" }}
+        style={{ cursor: "default" }}
       />
       {/* Main asset circle */}
       <circle
@@ -216,8 +189,14 @@ const AssetComponent: React.FC<AssetProps> = ({
         cy={position.y}
         r={radius}
         fill={fillColor}
-        stroke={isPurchasable ? "#ffd700" : isBiddable ? "#3b82f6" : "#374151"}
-        strokeWidth={isPurchasable || isBiddable ? "2" : "1"}
+        stroke={
+          viewMode === "normal"
+            ? isPurchasable
+              ? "#ffd700"
+              : "#374151"
+            : "#374151"
+        }
+        strokeWidth={viewMode === "normal" ? (isPurchasable ? "2" : "1") : "1"}
         pointerEvents="none"
       />{" "}
       {/* Asset type text */}
@@ -232,8 +211,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       >
         {getAssetText()}
       </text>
-      {/* Purchase button for purchasable assets */}
-      {isPurchasable && (
+      {/* Purchase button for purchasable assets (hidden in market view) */}
+      {isPurchasable && viewMode === "normal" && (
         <g className="purchase-button" opacity="0.9">
           <circle
             cx={buyLocation.x}

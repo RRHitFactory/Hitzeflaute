@@ -9,8 +9,6 @@ dependencies = [
     "pypsa>=0.34.1",
     "pandas>=2.2.3",
     "numpy>=2.2.5",
-    "plotly>=6.1.2",
-    "livereload==2.7.1",
     "randcraft>=0.1.10",
     "uvicorn>=0.38.0",
     "fastapi>=0.120.0",
@@ -24,7 +22,8 @@ dev = [
     "isort>=6.0.1",
     "pytest>=8.4.2",
     "ruff>=0.13.0",
-    "pytest>=8.3.5"
+    "pytest>=8.3.5",
+    "import-linter>=2.10",
 ]
 
 [tool.ruff]
@@ -86,4 +85,19 @@ warn_return_any = false
 show_error_codes = true
 namespace_packages = true
 
+[tool.ty.environment]
+python = "./back_end/.venv"
 
+[tool.importlinter]
+root_package = "src"
+
+[[tool.importlinter.contracts]]
+name = "My layers contract"
+type = "layers"
+layers = [
+    "src.app",
+    "src.engine",
+    "src.models",
+    "src.tools",
+    "src.directories",
+]

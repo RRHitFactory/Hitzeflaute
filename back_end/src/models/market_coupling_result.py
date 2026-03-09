@@ -109,12 +109,12 @@ class MarketCouplingResult:
 
 @dataclass(frozen=True)
 class MarketCouplingSummary:
-    bus_results: dict[BusId, tuple[float, pd.DataFrame, pd.DataFrame]]  # price, generation df, load df
+    bus_results: dict[BusId, tuple[float, pd.DataFrame, pd.DataFrame, float]]  # price, generation df, load df, net_position
     line_results: dict[TransmissionId, pd.DataFrame]
 
     def to_simple_dict(self) -> SimpleDict:
         simple_dict = {
-            "bus_results": {str(bus_id): (price, dataframe_to_dict(getn_df), dataframe_to_dict(load_df)) for bus_id, (price, getn_df, load_df) in self.bus_results.items()},
+            "bus_results": {str(bus_id): (price, dataframe_to_dict(getn_df), dataframe_to_dict(load_df), np) for bus_id, (price, getn_df, load_df, np) in self.bus_results.items()},
             "line_results": {str(line_id): dataframe_to_dict(df) for line_id, df in self.line_results.items()},
         }
         return simple_dict  # type: ignore

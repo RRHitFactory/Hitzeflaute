@@ -180,6 +180,10 @@ class GameStateMaker:
         self.transmission_repo = transmission_repo
         return self
 
+    def add_market_coupling(self, market_coupling_result: MarketCouplingResult) -> Self:
+        self.market_coupling_result = market_coupling_result
+        return self
+
     def make(self) -> GameState:
         if self.game_id is None:
             self.game_id = GameId(1)
