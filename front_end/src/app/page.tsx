@@ -276,9 +276,13 @@ export default function Home() {
                 <p>No saved games found.</p>
               ) : (
                 <select
-                  value={selectedGameId || ""}
-                  onChange={(e) => setSelectedGameId(parseInt(e.target.value))}
-                  className="w-full p-2 border border-gray-300 rounded-md"
+                  value={
+                    selectedGameId !== null ? selectedGameId.toString() : ""
+                  }
+                  onChange={(e) =>
+                    setSelectedGameId(e.target.value ? e.target.value : null)
+                  }
+                  className="w-full p-2 border border-gray-300 rounded-md text-gray-500"
                 >
                   <option value="">Select a game...</option>
                   {(games as Array<{ game_id: string; players: string[] }>).map(
@@ -336,7 +340,7 @@ export default function Home() {
           <button
             onClick={startGame}
             disabled={
-              (action === "load" && !selectedGameId) ||
+              (action === "load" && selectedGameId === null) ||
               (action === "create" && playerNames.some((name) => !name.trim()))
             }
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
