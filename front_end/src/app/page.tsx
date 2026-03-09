@@ -6,7 +6,6 @@ import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
 import { useCreateGame, useGamesList } from "@/lib/gameAPI";
 import BiddingTable from "@/components/Game/BiddingTable";
-import { useCreateGame } from "@/lib/gameAPI";
 import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -15,7 +14,7 @@ export default function Home() {
   const [currentPlayer] = useState(1); // For demo purposes, assume player_1 is active
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedGameId, setSelectedGameId] = useState<number | null>(null);
+  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
   // Setup states
   const [showSetup, setShowSetup] = useState(true);
@@ -317,7 +316,7 @@ export default function Home() {
                   className="w-full p-2 border border-gray-300 rounded-md text-gray-500"
                 >
                   <option value="">Select a game...</option>
-                  {(games as Array<{ game_id: string; players: string[] }>).map(
+                  {(games as Array<{ game_id: number; players: string[] }>).map(
                     (game) => (
                       <option key={game.game_id} value={game.game_id}>
                         Game {game.game_id} - Players: {game.players.join(", ")}
