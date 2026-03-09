@@ -199,7 +199,7 @@ export default function Home() {
               Game Mode
             </label>
             <div className="space-y-2">
-              <label className="flex items-center">
+              <label className="flex items-center text-gray-500">
                 <input
                   type="radio"
                   value="local"
@@ -211,7 +211,7 @@ export default function Home() {
                 />
                 Local Multiplayer
               </label>
-              <label className="flex items-center">
+              <label className="flex items-center text-gray-500">
                 <input
                   type="radio"
                   value="online"
@@ -232,7 +232,7 @@ export default function Home() {
               Action
             </label>
             <div className="space-y-2">
-              <label className="flex items-center">
+              <label className="flex items-center text-gray-500">
                 <input
                   type="radio"
                   value="create"
@@ -244,7 +244,7 @@ export default function Home() {
                 />
                 Create New Game
               </label>
-              <label className="flex items-center">
+              <label className="flex items-center text-gray-500">
                 <input
                   type="radio"
                   value="load"
@@ -326,7 +326,7 @@ export default function Home() {
                     setPlayerNames(newNames);
                   }}
                   placeholder={`Player ${index + 1}`}
-                  className="w-full p-2 mb-2 border border-gray-300 rounded-md"
+                  className="w-full p-2 mb-2 border border-gray-300 rounded-md text-gray-500"
                 />
               ))}
             </div>
