@@ -171,7 +171,22 @@ async def list_games():
     """List all available games"""
     try:
         game_ids = game_repo.list_game_ids()
-        return {"games": [str(game_id) for game_id in game_ids], "count": len(game_ids)}
+        games_info = []
+        for game_id in game_ids:
+            try:
+                game_state = game_repo.get_game_state(GameId(int(game_id)))
+                player_names = [p.name for p in game_state.players.human_players]
+                games_info.append({
+                    "game_id": str(game_id),
+                    "players": player_names
+                })
+            except Exception:
+                # If can't load game state, just include id
+                games_info.append({
+                    "game_id": str(game_id),
+                    "players": []
+                })
+        return {"games": games_info, "count": len(games_info)}
     except Exception as e:
         log_exception_with_traceback(f"Error listing games: {e}", e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to list games: {str(e)}")

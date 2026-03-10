@@ -24,6 +24,7 @@ interface GameWebSocketCallbacks {
 export class GameWebSocketClient {
   private gameId: number;
   private playerId: number;
+  private currentPlayerId: number;
   private ws: WebSocket | null = null;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
@@ -44,6 +45,7 @@ export class GameWebSocketClient {
   ) {
     this.gameId = gameId;
     this.playerId = playerId;
+    this.currentPlayerId = playerId;
 
     // Callbacks
     this.onMessage = onMessage || this.defaultOnMessage;
@@ -144,7 +146,7 @@ export class GameWebSocketClient {
       message_type: type,
       data: data,
       game_id: this.gameId,
-      player_id: this.playerId,
+      player_id: this.currentPlayerId,
     };
 
     console.log("=== Sending WebSocket Message ===");
@@ -221,6 +223,10 @@ export class GameWebSocketClient {
     }
   }
 
+  public setCurrentPlayerId(playerId: number): void {
+    this.currentPlayerId = playerId;
+  }
+
   // Default callback implementations
   private defaultOnMessage(msg: WebSocketMessage): void {
     console.log("Received message:", msg);
@@ -285,7 +291,7 @@ export function useGameWebSocket(
   callbacksRef.current = callbacks;
 
   useEffect(() => {
-    if (!gameId || gameId === 0 || !playerId) {
+    if (gameId === -1 || !playerId) {
       console.log(
         "⏸️  WebSocket hook waiting for valid gameId:",
         gameId,
