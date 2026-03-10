@@ -167,7 +167,7 @@ export function useGameState(gameId) {
   const [error, setError] = React.useState(null);
 
   const fetchGameState = React.useCallback(async () => {
-    if (!gameId) return;
+    if (gameId == -1) return;
 
     setLoading(true);
     setError(null);

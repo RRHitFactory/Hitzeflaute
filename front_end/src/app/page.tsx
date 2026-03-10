@@ -10,11 +10,11 @@ import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 export default function Home() {
-  const [gameId, setGameId] = useState<number | null>(null);
+  const [gameId, setGameId] = useState<number>(-1);
   const [currentPlayer] = useState(1); // For demo purposes, assume player_1 is active
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [selectedGameId, setSelectedGameId] = useState<number>(-1);
 
   // Setup states
   const [showSetup, setShowSetup] = useState(true);
@@ -62,7 +62,7 @@ export default function Home() {
     connectionState,
     gameState,
     isConnected,
-  } = useGameWebSocket(gameId || 0, currentPlayer, callbacks);
+  } = useGameWebSocket(gameId, currentPlayer, callbacks);
 
   // Calculate current player from gameState (who is having their turn)
   const currentPlayerFromGameState = React.useMemo(() => {
@@ -108,7 +108,7 @@ export default function Home() {
       if (action === "create") {
         const result = await createGame(playerNames);
         setGameId(parseInt(result.game_id));
-      } else if (action === "load" && selectedGameId) {
+      } else if (action === "load" && selectedGameId !== -1) {
         setGameId(selectedGameId);
       }
 
@@ -307,11 +307,11 @@ export default function Home() {
                 <p>No saved games found.</p>
               ) : (
                 <select
-                  value={
-                    selectedGameId !== null ? selectedGameId.toString() : ""
-                  }
+                  value={selectedGameId !== -1 ? selectedGameId : -1}
                   onChange={(e) =>
-                    setSelectedGameId(e.target.value ? e.target.value : null)
+                    setSelectedGameId(
+                      e.target.value ? parseInt(e.target.value) : -1,
+                    )
                   }
                   className="w-full p-2 border border-gray-300 rounded-md text-gray-500"
                 >
@@ -371,7 +371,7 @@ export default function Home() {
           <button
             onClick={startGame}
             disabled={
-              (action === "load" && selectedGameId === null) ||
+              (action === "load" && selectedGameId === -1) ||
               (action === "create" && playerNames.some((name) => !name.trim()))
             }
             className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
@@ -485,7 +485,7 @@ export default function Home() {
             {/* Game Controls */}
             <GameControls
               gameState={gameState}
-              gameId={gameId?.toString() || null}
+              gameId={gameId?.toString() || -1}
               currentPlayerName={currentPlayerName}
               isConnected={isConnected}
               onEndTurn={handleEndTurn}

@@ -291,7 +291,7 @@ export function useGameWebSocket(
   callbacksRef.current = callbacks;
 
   useEffect(() => {
-    if (!gameId || gameId === 0 || !playerId) {
+    if (gameId === -1 || !playerId) {
       console.log(
         "⏸️  WebSocket hook waiting for valid gameId:",
         gameId,
