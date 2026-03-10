@@ -485,7 +485,7 @@ export default function Home() {
             {/* Game Controls */}
             <GameControls
               gameState={gameState}
-              gameId={gameId?.toString() || -1}
+              gameId={gameId?.toString() || null}
               currentPlayerName={currentPlayerName}
               isConnected={isConnected}
               onEndTurn={handleEndTurn}
