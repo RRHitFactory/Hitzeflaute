@@ -34,9 +34,23 @@ export interface TransmissionLine {
   color: string;
 }
 
+export const AssetType = {
+  GENERATOR: 0,
+  LOAD: 1,
+} as const;
+
+export type AssetTypeValue = (typeof AssetType)[keyof typeof AssetType];
+
+export const AssetTypeName = {
+  [AssetType.GENERATOR]: "GENERATOR",
+  [AssetType.LOAD]: "LOAD",
+} as const;
+
+export type AssetTypeNameValue = (typeof AssetTypeName)[AssetTypeValue];
+
 export interface Asset {
   id: number;
-  asset_type: "GENERATOR" | "LOAD";
+  asset_type: AssetTypeValue; // Can be 0 or 1 from backend
   bus: number;
   owner_player: number;
   power_expected: number;

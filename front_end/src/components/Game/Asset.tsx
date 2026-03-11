@@ -2,6 +2,7 @@
 
 import {
   Asset,
+  AssetType,
   BusWithDisplayCoords,
   HoverableElement,
   Player,
@@ -40,7 +41,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
 
   const getAssetTitle = () => {
-    const type = asset.asset_type === "GENERATOR" ? "Gen" : "Load";
+    const type = asset.asset_type === AssetType.GENERATOR ? "Gen" : "Load";
     const title = `${type}${asset.id}`;
     return asset.is_freezer ? `${title} (Freezer)` : title;
   };
@@ -92,8 +93,8 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   const getAssetText = () => {
-    if (asset.asset_type === "GENERATOR") return "G";
-    if (asset.asset_type === "LOAD") {
+    if (asset.asset_type === AssetType.GENERATOR) return "G";
+    if (asset.asset_type === AssetType.LOAD) {
       return asset.is_freezer ? "F" : "L";
     }
     return "";
