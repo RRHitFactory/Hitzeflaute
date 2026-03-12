@@ -487,6 +487,7 @@ export default function Home() {
               gameState={gameState}
               gameId={gameId?.toString() || null}
               currentPlayerName={currentPlayerName}
+              currentPlayerColor={currentPlayerObj?.color}
               isConnected={isConnected}
               onEndTurn={handleEndTurn}
               onSubmitBids={handleSubmitAllBids}
