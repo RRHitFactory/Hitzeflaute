@@ -1,0 +1,31 @@
+capacity:
+  base: 722  # Coal
+  change_per_round: 50
+  max: 1908
+  min: 0
+
+normalised_power_std: 0.0
+
+capital_cost_per_mw:
+  base: 230
+  change_per_round: -6
+  max: 230
+  min: 85
+
+fixed_cost:
+  base: 370
+  change_per_round: 0
+  max: 370
+  min: 0
+
+marginal_cost:
+  base: 242  # 5 (opex var) + 11.6 / 0.39 (coal) + 90 / 0.39 * 0.9 (CO2)
+  change_per_round: 31  # (0 (coal) + 285 / 0.39 * 0.9 (CO2)) / 21 years
+  max: 868
+  min: 242
+
+lifespan:
+  base: 30
+  change_per_round: 0
+  max: 50
+  min: 5
