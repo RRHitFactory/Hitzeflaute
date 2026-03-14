@@ -1,9 +1,11 @@
 from typing import Protocol, runtime_checkable
 
+from back_end.src.new_game.new_game import DefaultGameInitializer
+
 from src.app.game_repo.base import BaseGameStateRepo
 from src.engine.engine import Engine
-from src.engine.new_game import DefaultGameInitializer
-from src.models.game_state import GameSettings, GameState
+from src.models.game_settings import GameSettings
+from src.models.game_state import GameState
 from src.models.ids import GameId, PlayerId
 from src.models.message import (
     GameToPlayerMessage,

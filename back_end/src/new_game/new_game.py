@@ -1,5 +1,4 @@
 import math
-from abc import ABC, abstractmethod
 from collections.abc import Generator
 from itertools import combinations, count
 
@@ -14,7 +13,10 @@ from src.models.geometry import Point, Shape
 from src.models.ids import BusId, GameId, PlayerId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
+from src.new_game.generators.generator_maker import GeneratorMaker
 from src.tools.random_choice import random_choice, random_choice_multi
+
+__all__ = ["GameInitializer"]
 
 
 class BusTopologyMaker:
@@ -182,12 +184,7 @@ class TransmissionTopologyMaker:
         return connections
 
 
-class BaseGameInitializer(ABC):
-    """
-    Abstract base class for initializing game components.
-    Subclasses should implement methods to initialize buses, assets, and transmission.
-    """
-
+class GameInitializer:
     def __init__(self, settings: GameSettings) -> None:
         """
         Initialize the game initializer with the provided game settings.
@@ -288,40 +285,6 @@ class BaseGameInitializer(ABC):
         else:
             return transmission_repo + TransmissionRepo(additional_connections)
 
-    @abstractmethod
-    def _create_bus_repo(self, player_repo: PlayerRepo) -> BusRepo:
-        """
-        Create an initial BusRepo.
-        :return: A new BusRepo instance.
-        """
-        # there must be at least one bus per player
-        raise NotImplementedError("Initial bus configuration not implemented.")
-
-    @abstractmethod
-    def _create_asset_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> AssetRepo:
-        """
-        Create an initial AssetRepo.
-        :return: A new AssetRepo instance.
-        """
-        # there must be at least one freezer per player
-        raise NotImplementedError("Initial asset configuration not implemented.")
-
-    @abstractmethod
-    def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> TransmissionRepo:
-        """
-        Create an initial TransmissionRepo.
-        :return: A new TransmissionRepo instance.
-        """
-        # all buses need to be connected
-        raise NotImplementedError("Initial transmission configuration not implemented.")
-
-
-class DefaultGameInitializer(BaseGameInitializer):
-    """
-    Concrete implementation of NewGameInitializer for initializing game components with default settings.
-    This class provides methods to create initial repositories for buses, assets, and transmission.
-    """
-
     def _create_bus_repo(self, player_repo: PlayerRepo) -> BusRepo:
         topology = BusTopologyMaker.make_layered_polygon(
             n_buses=self.settings.n_buses,
@@ -379,36 +342,19 @@ class DefaultGameInitializer(BaseGameInitializer):
             )
 
         # Create the rest of the assets for NPC
-        rng = np.random.default_rng()
+        gen_maker = GeneratorMaker()
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
+            asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=0, player_id=PlayerId.get_npc())
+            assets.append(asset)
 
-            foc = 50 + round(rng.uniform(low=-10, high=10))
-            marginal_cost = 50 + round(rng.uniform(low=-25, high=25))
-            power_expected = 60 + round(rng.uniform(low=-10, high=10))
-            bid_price = round((marginal_cost * power_expected + foc)/power_expected) + 1
-            asset_price = round((250 - marginal_cost * 2) * power_expected / 60)
-            assets.append(
-                AssetInfo(
-                    id=next(asset_ids),
-                    owner_player=PlayerId.get_npc(),
-                    asset_type=AssetType.GENERATOR,
-                    bus=bus_id,
-                    power_expected=power_expected,
-                    power_std=power_expected * 0.2,
-                    is_for_sale=True,
-                    minimum_acquisition_price=asset_price,
-                    fixed_operating_cost=foc,
-                    marginal_cost=marginal_cost,
-                    bid_price=bid_price,
-                    is_freezer=False,
-                    health=5,
-                )
-            )
 
+        rng = np.random.default_rng()
         for _ in range(self.settings.n_init_non_freezer_loads):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
 
+
+            # TODO Use same pattern as GeneratorMaker
             foc = 50 + round(rng.uniform(low=-10, high=10))
             marginal_cost = 50 + round(rng.uniform(low=-25, high=25))
             power_expected = 60 + round(rng.uniform(low=-10, high=10))

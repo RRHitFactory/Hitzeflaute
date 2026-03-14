@@ -1,4 +1,4 @@
-from src.engine.new_game import DefaultGameInitializer
+from back_end.src.new_game.new_game import DefaultGameInitializer
 from src.models.assets import AssetInfo, AssetRepo
 from src.models.buses import Bus, BusRepo
 from src.models.game_settings import GameSettings

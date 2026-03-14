@@ -12,6 +12,7 @@ from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.serialization import simplify_type, un_simplify_type
 
+__all__ = ["Phase", "GameState"]
 
 class Phase(IntEnum):
     CONSTRUCTION = 0
