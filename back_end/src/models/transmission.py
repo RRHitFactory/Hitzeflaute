@@ -89,9 +89,10 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         return self.update_frame(df)
 
     def wear_transmission(self, transmission_id: TransmissionId) -> Self:
-        if self.df.loc[transmission_id, "health"] > 1:
+        health: float = self.df.loc[transmission_id, "health"]  # type: ignore
+        if health > 1:
             df = self.df.copy()
-            df.loc[transmission_id, "health"] -= 1
+            df.loc[transmission_id, "health"] -= 1  # type: ignore
             return self.update_frame(df)
         else:
             df = self.df.copy()

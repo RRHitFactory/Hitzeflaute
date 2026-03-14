@@ -15,12 +15,12 @@ class IntId(int):
     def __hash__(self) -> int:
         return self.as_int()
 
-    def __eq__(self, other: "IntId") -> bool:
-        if not isinstance(other, IntId):
+    def __eq__(self, value: object, /) -> bool:
+        if not isinstance(value, IntId):
             return NotImplemented
-        if type(self) is not type(other):
+        if type(self) is not type(value):
             return False
-        return int(self) == int(other)
+        return int(self) == int(value)
 
     def as_int(self) -> int:
         return int(self)

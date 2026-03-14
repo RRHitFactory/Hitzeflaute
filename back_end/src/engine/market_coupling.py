@@ -22,7 +22,10 @@ class MarketCouplingCalculator:
     @classmethod
     def run(cls, game_state: GameState) -> MarketCouplingResult:
         network = cls.create_pypsa_network(game_state)
-        cls.optimize_network(network=network, game_state=game_state)
+        if len(game_state.assets.only_active) > 0:
+            cls.optimize_network(network=network, game_state=game_state)
+        else:
+            logging.getLogger(__name__).info("No active assets, skipping market coupling.")
 
         return MarketCouplingResult(
             bus_prices=cls.get_bus_prices(network),
@@ -38,7 +41,7 @@ class MarketCouplingCalculator:
         :return: A PyPSA network object
         """
         network = pypsa.Network()
-        network.set_snapshots(pd.Index([0], name="time"))  # Single snapshot for simplicity
+        network.set_snapshots(pd.Index([0], name="time"))  # type: ignore
 
         network.add(class_name="Carrier", name="AC")
         for bus in game_state.buses:
@@ -94,11 +97,15 @@ class MarketCouplingCalculator:
                 solver_name="highs",
                 solver_options={"log_to_console": False, "output_flag": False},
             )
-        if res[1] != "optimal":
+        status = res[1]
+        if status != "optimal":
             raise OptimizationError(
                 game_state=game_state,
-                message=f"PyPSA optimization failed with status: {res[1]}. Please check the network setup.",
+                message=f"PyPSA optimization failed with status: {status}. Please check the network setup.",
             )
+        logging.getLogger(__name__).info(
+            f"Optimization successfully ended with status: {status}."
+        )
         return
 
     @classmethod

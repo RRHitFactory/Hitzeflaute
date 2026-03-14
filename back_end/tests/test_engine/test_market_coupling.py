@@ -167,3 +167,31 @@ class TestMarketCoupling(BaseTest):
             set(transmission_flows),
             "Not all transmission lines appear in the market results.",
         )
+
+    def test_coupling_under_no_assets(self) -> None:
+        gs = self.create_game_state()
+
+        assets = gs.assets
+        assets_deactivated = assets.batch_deactivate(assets.asset_ids)
+        game_state_no_assets = gs.update(assets_deactivated)
+
+        with self.assertLogs("src.engine.market_coupling") as cm:
+            MarketCouplingCalculator.run(game_state_no_assets)
+
+        self.assertIn(
+            "No active assets, skipping market coupling", cm.output[0]
+        )
+
+    def test_coupling_under_market_split(self) -> None:
+        gs = self.create_game_state()
+
+        transmission = gs.transmission
+        game_state_no_transmission = gs.update(transmission.drop_by_ids(transmission.transmission_ids))
+
+        with self.assertLogs("src.engine.market_coupling") as cm:
+            result = MarketCouplingCalculator.run(game_state_no_transmission)
+
+        self.assertIn(
+            "Optimization successfully ended with status: optimal", cm.output[0]
+        )
+        assert result.transmission_flows.empty, "Expected no transmission flows when there are no transmission lines."

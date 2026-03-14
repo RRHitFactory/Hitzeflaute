@@ -9,7 +9,6 @@ from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
     AuctionClearedMessage,
     BuyRequest,
-    BuyResponse,
     ConcludePhase,
     EndTurn,
     Message,
@@ -17,8 +16,11 @@ from src.models.message import (
     OperateAssetResponse,
     OperateLineRequest,
     OperateLineResponse,
-    T_Id,
+    PlayerNotInTurn,
+    PlayerToGameMessage,
     ToGameMessage,
+    UpdateBatchBidResponse,
+    UpdateBatchBidsRequest,
     UpdateBidRequest,
     UpdateBidResponse,
 )
@@ -36,26 +38,49 @@ class Engine:
         :param msg: The triggering message
         :return: The new game state and a list of messages to be sent
         """
+        reject_player_not_in_turn = cls.reject_player_message_if_not_in_turn(game_state=game_state, msg=msg)
+        if reject_player_not_in_turn is not None:
+            return reject_player_not_in_turn
         # Handle the message based on its type
-        if isinstance(msg, ConcludePhase):
-            return cls.handle_new_phase_message(game_state=game_state, msg=msg)
-        elif isinstance(msg, UpdateBidRequest):
-            return cls.handle_update_bid_message(game_state=game_state, msg=msg)
-        elif isinstance(msg, OperateLineRequest):
-            return cls.handle_operate_line_message(game_state, msg)
-        elif isinstance(msg, OperateAssetRequest):
-            return cls.handle_operate_asset_message(game_state, msg)
-        elif isinstance(msg, BuyRequest):
-            if isinstance(msg.purchase_id, AssetId):
-                return cls.handle_buy_asset_message(game_state, msg)
-            elif isinstance(msg.purchase_id, TransmissionId):
-                return cls.handle_buy_transmission_message(game_state, msg)
-            else:
-                raise NotImplementedError(f"You cannot buy objects of type <{type(msg.purchase_id)}>.")
-        elif isinstance(msg, EndTurn):
-            return cls.handle_end_turn_message(game_state=game_state, msg=msg)
+        match msg:
+            case ConcludePhase():
+                return cls.handle_new_phase_message(game_state=game_state, msg=msg)
+            case UpdateBidRequest():
+                return cls.handle_update_bid_message(game_state=game_state, msg=msg)
+            case UpdateBatchBidsRequest():
+                return cls.handle_update_batch_bid_message(game_state=game_state, msg=msg)
+            case OperateLineRequest():
+                return cls.handle_operate_line_message(game_state, msg)
+            case OperateAssetRequest():
+                return cls.handle_operate_asset_message(game_state, msg)
+            case BuyRequest() if isinstance(msg.purchase_id, AssetId):
+                return cls.handle_buy_asset_message(game_state, msg)  # type: ignore
+            case BuyRequest() if isinstance(msg.purchase_id, TransmissionId):
+                return cls.handle_buy_transmission_message(game_state, msg)  # type: ignore
+            case EndTurn():
+                return cls.handle_end_turn_message(game_state=game_state, msg=msg)
+            case _:
+                raise NotImplementedError(f"message type {type(msg)} not implemented.")
+
+    @classmethod
+    def reject_player_message_if_not_in_turn(
+        cls,
+        game_state: GameState,
+        msg: ToGameMessage,
+    ) -> tuple[GameState, list[Message]] | None:
+
+        if not isinstance(msg, PlayerToGameMessage):
+            return None
+
+        requesting_player_id = msg.player_id
+        if game_state.players[requesting_player_id].is_having_turn:
+            return None
         else:
-            raise NotImplementedError(f"message type {type(msg)} not implemented.")
+            return game_state, [PlayerNotInTurn(
+                player_id=requesting_player_id,
+                game_id=game_state.game_id,
+                message=f"Player {requesting_player_id} cannot play when it is not their turn."
+            )]
 
     @classmethod
     def handle_new_phase_message(
@@ -68,12 +93,47 @@ class Engine:
         else:
             new_game_state, msgs = game_state, []
 
-        new_game_state = new_game_state.update(
-            phase=msg.new_phase,
-            players=new_game_state.players.start_all_turns(),
-            round=Round(new_game_state.round + 1) if new_game_state.phase.get_next().value == 0 else new_game_state.round,
-        )
+        players = new_game_state.players
+        if msg.new_phase.is_turn_based:
+            players = players.start_first_player_turn()
+        else:
+            players = players.start_all_turns()
+
+        if msg.new_phase.value == 0:
+            round = Round(new_game_state.game_round + 1)
+        else:
+            round = new_game_state.game_round
+
+        new_game_state = new_game_state.update(msg.new_phase, players, round)
         return new_game_state, msgs
+
+    @classmethod
+    def handle_update_batch_bid_message(
+        cls,
+        game_state: GameState,
+        msg: UpdateBatchBidsRequest,
+    ) -> tuple[GameState, list[Message]]:
+        if game_state.phase != Phase.BIDDING:
+            response = msg.make_response(
+                success=False,
+                message=f"You can only update bids during the {Phase.BIDDING.nice_name} phase",
+            )
+            return game_state, [response]
+
+        list_responses, updated_asset_bids = cls._validate_update_batch_bid(gs=game_state, msg=msg)
+
+        new_assets = game_state.assets.batch_update_bid_price(asset_ids=list(updated_asset_bids.keys()),
+                                                              bid_prices=list(updated_asset_bids.values()))
+        new_game_state = game_state.update(new_assets)
+
+        response = UpdateBatchBidResponse(
+            game_id=msg.game_id,
+            player_id=msg.player_id,
+            success=True,
+            message=f"Player {msg.player_id} successfully updated batch bids.",
+        )
+
+        return new_game_state, [response]
 
     @classmethod
     def handle_update_bid_message(
@@ -93,9 +153,10 @@ class Engine:
             return game_state, cast(list[Message], list_failed_response)
 
         new_assets = game_state.assets.update_bid_price(asset_id=msg.asset_id, bid_price=msg.bid_price)
-        new_game_state = game_state.update(assets=new_assets)
+        new_game_state = game_state.update(new_assets)
 
         response = UpdateBidResponse(
+            game_id=msg.game_id,
             player_id=msg.player_id,
             success=True,
             message=f"Player {msg.player_id} successfully updated bid for asset {msg.asset_id} to {msg.bid_price}.",
@@ -126,7 +187,7 @@ class Engine:
         new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=asset.minimum_acquisition_price)
         new_assets = game_state.assets.change_owner(asset_id=asset.id, new_owner=msg.player_id)
 
-        new_game_state = game_state.update(players=new_players, assets=new_assets)
+        new_game_state = game_state.update(new_players, new_assets)
 
         message = f"Player {msg.player_id} successfully bought asset {asset.id}."
         response = msg.make_response(success=True, message=message)
@@ -154,7 +215,7 @@ class Engine:
         new_players = game_state.players.subtract_money(player_id=msg.player_id, amount=transmission.minimum_acquisition_price)
         new_transmission = game_state.transmission.change_owner(transmission_id=transmission.id, new_owner=msg.player_id)
 
-        new_game_state = game_state.update(players=new_players, transmission=new_transmission)
+        new_game_state = game_state.update(new_players, new_transmission)
 
         message = f"Player {msg.player_id} successfully bought transmission {transmission.id}."
         response = msg.make_response(success=True, message=message)
@@ -174,7 +235,7 @@ class Engine:
         ) -> tuple[GameState, list[Message]]:
             if new_game_state is None:
                 new_game_state = game_state
-            response = OperateLineResponse(player_id=msg.player_id, request=msg, result=result, message=text)
+            response = OperateLineResponse(game_id=game_state.game_id, player_id=msg.player_id, request=msg, result=result, message=text)
             return new_game_state, [response]
 
         if game_state.phase != Phase.SNEAKY_TRICKS:
@@ -194,7 +255,7 @@ class Engine:
             if line.is_open:
                 return make_response(result="no_change", text="Transmission line is already open.")
             else:
-                new_state = game_state.update(transmission=game_state.transmission.open_line(line.id))
+                new_state = game_state.update(game_state.transmission.open_line(line.id))
                 return make_response(
                     result="success",
                     text="Transmission line opened successfully.",
@@ -205,7 +266,7 @@ class Engine:
         if line.is_closed:
             return make_response(result="no_change", text="Transmission line is already closed.")
 
-        new_state = game_state.update(transmission=game_state.transmission.close_line(line.id))
+        new_state = game_state.update(game_state.transmission.close_line(line.id))
         return make_response(
             result="success",
             text="Transmission line closed successfully.",
@@ -225,7 +286,7 @@ class Engine:
         ) -> tuple[GameState, list[Message]]:
             if new_game_state is None:
                 new_game_state = game_state
-            response = OperateAssetResponse(player_id=msg.player_id, request=msg, result=result, message=text)
+            response = OperateAssetResponse(game_id=game_state.game_id, player_id=msg.player_id, request=msg, result=result, message=text)
             return new_game_state, [response]
 
         if game_state.phase != Phase.BIDDING:
@@ -245,7 +306,7 @@ class Engine:
             if not asset.is_active:
                 return make_response(result="no_change", text="Asset is already off.")
             else:
-                new_state = game_state.update(assets=game_state.assets.deactivate(asset.id))
+                new_state = game_state.update(game_state.assets.deactivate(asset.id))
                 return make_response(
                     result="success",
                     text="Asset successfully deactivated.",
@@ -260,7 +321,7 @@ class Engine:
         if asset.is_active:
             return make_response(result="no_change", text="Asset is already running.")
 
-        new_state = game_state.update(assets=game_state.assets.activate(asset.id))
+        new_state = game_state.update(game_state.assets.activate(asset.id))
         return make_response(
             result="success",
             text="Asset successfully activated.",
@@ -273,10 +334,15 @@ class Engine:
         game_state: GameState,
         msg: EndTurn,
     ) -> tuple[GameState, list[Message]]:
-        # TODO If this phase requires players to play one by one (Do we need such a phase?) Then cycle to the next player
-        game_state = game_state.update(players=game_state.players.end_turn(player_id=msg.player_id))
+        players = game_state.players
+        if game_state.phase.is_turn_based:
+            players = players.cycle_turn()
+        else:
+            players = players.end_turn(player_id=msg.player_id)
+
+        game_state = game_state.update(players)
         if game_state.players.are_all_players_finished():
-            return game_state, [ConcludePhase(phase=game_state.phase)]
+            return game_state, [ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)]
         else:
             return game_state, []
 
@@ -314,10 +380,7 @@ class Engine:
         for player_id, net_cashflow in cashflows.items():
             player_repo = player_repo.add_money(player_id=player_id, amount=net_cashflow)
 
-        new_game_state = game_state.update(
-            players=player_repo,
-            market_coupling_result=market_coupling_result,
-        )
+        new_game_state = game_state.update(player_repo, market_coupling_result)
 
         msgs: list[AuctionClearedMessage] = []
         for player_id in new_game_state.players.player_ids:
@@ -326,6 +389,7 @@ class Engine:
             text = f"Day-ahead market cleared. Your balance was adjusted accordingly from ${old_money} to ${new_money}."
             msgs.append(
                 AuctionClearedMessage(
+                    game_id=game_state.game_id,
                     player_id=player_id,
                     message=text,
                 )
@@ -334,48 +398,10 @@ class Engine:
         return new_game_state, msgs
 
     @classmethod
-    def _validate_purchase(cls, gs: GameState, msg: BuyRequest[T_Id]) -> list[BuyResponse[T_Id]]:
-        if isinstance(msg.purchase_id, AssetId):
-            purchase_type = "asset"
-            purchase_repo = gs.assets
-            purchase_repo_ids = purchase_repo.asset_ids
-
-        elif isinstance(msg.purchase_id, TransmissionId):
-            purchase_type = "transmission"
-            purchase_repo = gs.transmission
-            purchase_repo_ids = purchase_repo.transmission_ids
-
-        else:
-            raise NotImplementedError(f"Message type {type(msg)} not implemented for purchase validation.")
-
-        purchase_id = msg.purchase_id
-        player = gs.players[msg.player_id]
-
-        def make_failed_response(failed_message: str) -> list[BuyResponse[T_Id]]:
-            failed_response = BuyResponse(
-                player_id=msg.player_id,
-                success=False,
-                message=failed_message,
-                purchase_id=purchase_id,
-            )
-            return [failed_response]
-
-        if purchase_id not in purchase_repo_ids:
-            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} does not exist.")
-        purchase_obj = purchase_repo[purchase_id]
-
-        if not purchase_obj.is_for_sale:
-            return make_failed_response(f"Sorry, {purchase_type} {purchase_id} is not for sale.")
-
-        elif player.money < purchase_obj.minimum_acquisition_price:
-            return make_failed_response(f"Sorry, player {msg.player_id} cannot afford {purchase_type} {purchase_id}.")
-
-        return []
-
-    @classmethod
     def _validate_update_bid(cls, gs: GameState, msg: UpdateBidRequest) -> list[Message]:
         def make_failed_response(failed_message: str) -> list[Message]:
             failed_response = UpdateBidResponse(
+                game_id=gs.game_id,
                 player_id=msg.player_id,
                 success=False,
                 message=failed_message,
@@ -388,7 +414,6 @@ class Engine:
 
         player = gs.players[msg.player_id]
         asset = gs.assets[msg.asset_id]
-        player_assets = gs.assets.get_all_for_player(player.id, only_active=True)
         min_bid = gs.game_settings.min_bid_price
         max_bid = gs.game_settings.max_bid_price
 
@@ -398,7 +423,51 @@ class Engine:
         if not (min_bid <= msg.bid_price <= max_bid):
             return make_failed_response(f"Bid price {msg.bid_price} is not within the allowed range [{min_bid}, {max_bid}].")
 
-        if not FinanceCalculator.validate_bid_for_asset(player_assets, msg.asset_id, msg.bid_price, player.money):
-            return make_failed_response(f"Player {player.id} cannot afford the bid price of {msg.bid_price} for asset {asset.id}.")
-
         return []
+
+    @classmethod
+    def _validate_update_batch_bid(cls, gs: GameState, msg: UpdateBatchBidsRequest) -> tuple[list[Message], dict[AssetId, float]]:
+        """Validates the batch bid update request and returns a list of messages for any failed validations, as well as a dict of accepted bids with their potentially adjusted bid prices."""
+        def make_failed_response(failed_message: str) -> list[Message]:
+            failed_response = UpdateBatchBidResponse(
+                game_id=gs.game_id,
+                player_id=msg.player_id,
+                success=False,
+                message=failed_message,
+            )
+            return [failed_response]
+
+        def make_success_response_with_warning(warning_message: str) -> list[Message]:
+            success_with_warning = UpdateBatchBidResponse(
+                game_id=gs.game_id,
+                player_id=msg.player_id,
+                success=True,
+                message=warning_message,
+            )
+            return [success_with_warning]
+
+        player = gs.players[msg.player_id]
+        min_bid = gs.game_settings.min_bid_price
+        max_bid = gs.game_settings.max_bid_price
+
+        responses: list[Message] = []
+        accepted_bids = dict(msg.bids)
+
+        for asset_id, bid_price in msg.bids.items():
+            if asset_id not in gs.assets.asset_ids:
+                responses += make_failed_response(f"Asset {asset_id} does not exist.")
+                accepted_bids.pop(asset_id)
+
+            asset = gs.assets[asset_id]
+            if asset.owner_player != player.id:
+                responses += make_failed_response(f"Player {player.id} cannot bid on asset {asset_id} as they do not own it.")
+                accepted_bids.pop(asset_id)
+
+            if not (min_bid <= bid_price <= max_bid):
+                accepted_bids[asset_id] = max(min(bid_price, max_bid), min_bid)
+                responses += make_success_response_with_warning(
+                    f"Bid price {bid_price} for asset {asset_id} is not within the allowed range [{min_bid}, {max_bid}]."
+                    f"It has been adjusted to {accepted_bids[asset_id]}."
+                )
+
+        return responses, accepted_bids

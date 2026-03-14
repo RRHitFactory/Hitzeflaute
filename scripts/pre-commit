@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "Running pre-commit checks..."
+
+# Run make pre-commit
+if make pre-commit; then
+    echo "Pre-commit checks passed!"
+    
+    # Add any modified files to the commit
+    git add -u
+    
+    exit 0
+else
+    echo "Pre-commit checks failed!"
+    echo "Please fix the issues and try committing again."
+    exit 1
+fi

@@ -2,7 +2,7 @@ from src.engine.engine import Engine
 from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, PlayerId, TransmissionId
+from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
 from src.models.message import (
     AssetWornMessage,
     BuyRequest,
@@ -14,6 +14,7 @@ from src.models.message import (
     OperateLineResponse,
     PlayerToGameMessage,
     TransmissionWornMessage,
+    PlayerNotInTurn,
 )
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
@@ -30,16 +31,35 @@ from tests.utils.game_state_maker import (
 from tests.utils.repo_maker import BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
 
 
+def give_turn_to_player(gs: GameState, player_id: PlayerId) -> GameState:
+    return gs.update(gs.players.start_turn(player_id))
+
+
 class DummyMessage(PlayerToGameMessage):
     pass
 
 
-class TestAssets(BaseTest):
+class TestEngine(BaseTest):
     def test_bad_message(self) -> None:
-        game_state = GameStateMaker().make()
-        dumb_message = DummyMessage(player_id=PlayerId(5))
+        player_id = PlayerId(0)
+        game_state = give_turn_to_player(GameStateMaker().make(), player_id)
+        dumb_message = DummyMessage(game_id=GameId(1), player_id=player_id)
         with self.assertRaises(NotImplementedError):
             Engine.handle_message(game_state=game_state, msg=dumb_message)  # noqa
+
+    def test_player_not_in_turn(self) -> None:
+        game_state = GameStateMaker().make()
+        player_not_in_turn = game_state.players.player_ids[0]
+
+        new_player_repo = game_state.players.end_turn(player_not_in_turn).add_money(player_not_in_turn, 1e6)
+        construction_phase = Phase(0)
+        game_state = game_state.update(new_player_repo, construction_phase)
+
+        player_msg = BuyRequest(game_state.game_id, player_not_in_turn, game_state.assets.asset_ids[-1])
+        result_game_state, failed_message = Engine.handle_message(
+            game_state=game_state, msg=player_msg
+        )
+        self.assertIsInstance(failed_message[0], PlayerNotInTurn)
 
     def test_buy_asset_message(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()
@@ -56,13 +76,13 @@ class TestAssets(BaseTest):
         is_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": True}).asset_ids
         not_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": False}).asset_ids
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=AssetId(-5))
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=AssetId(-5))
         self.assert_fails_with(game_state=game_state, request=msg, x="asset")
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
         self.assert_fails_with(game_state=game_state, request=msg, x="for sale")
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
         self.assertEqual(len(messages), 1)
         success_msg = messages[0]
@@ -89,13 +109,13 @@ class TestAssets(BaseTest):
         is_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": True}).transmission_ids
         not_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": False}).transmission_ids
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=TransmissionId(-5))
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=TransmissionId(-5))
         self.assert_fails_with(game_state=game_state, request=msg, x="transmission")
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=not_for_sale_ids[0])
         self.assert_fails_with(game_state=game_state, request=msg, x="for sale")
 
-        msg = BuyRequest(player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
+        msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=is_for_sale_ids[0])
         result_game_state, messages = Engine.handle_message(game_state=game_state, msg=msg)
         self.assertEqual(len(messages), 1)
         success_msg = messages[0]
@@ -131,9 +151,10 @@ class TestAssets(BaseTest):
         transmission_repo += not_my_line
 
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_transmission_repo(transmission_repo).add_phase(Phase.SNEAKY_TRICKS).make()
+        game_state = give_turn_to_player(game_state, player.id)
 
         # Test operating a line that I own
-        open_request = OperateLineRequest(player_id=player.id, transmission_id=my_line.id, action="open")
+        open_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=my_line.id, action="open")
         game_state, responses = Engine.handle_message(game_state=game_state, msg=open_request)
 
         self.assertEqual(len(responses), 1)
@@ -152,7 +173,7 @@ class TestAssets(BaseTest):
         self.assertEqual(game_state.transmission[my_line.id].is_open, True)
 
         # Try closing a line that I own
-        close_request = OperateLineRequest(player_id=player.id, transmission_id=my_line.id, action="close")
+        close_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=my_line.id, action="close")
         game_state, responses = Engine.handle_message(game_state=game_state, msg=close_request)
 
         self.assertEqual(len(responses), 1)
@@ -171,7 +192,7 @@ class TestAssets(BaseTest):
         self.assertEqual(game_state.transmission[my_line.id].is_open, False)
 
         # Try to operate a line that I do not own
-        not_my_open_request = OperateLineRequest(player_id=player.id, transmission_id=not_my_line.id, action="open")
+        not_my_open_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=not_my_line.id, action="open")
         game_state, responses = Engine.handle_message(game_state=game_state, msg=not_my_open_request)
         self.assertEqual(len(responses), 1)
         response = responses[0]
@@ -199,9 +220,10 @@ class TestAssets(BaseTest):
         asset_repo = asset_repo + my_generator + my_load + broke_player_load
 
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.BIDDING).make()
+        game_state = give_turn_to_player(game_state, player.id)
 
         # Test deactivate my generator
-        deactivate_asset = OperateAssetRequest(player_id=player.id, asset_id=my_generator.id, action="shutdown")
+        deactivate_asset = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=my_generator.id, action="shutdown")
 
         game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_asset)
 
@@ -221,7 +243,7 @@ class TestAssets(BaseTest):
         self.assertEqual(game_state.assets[my_generator.id].is_active, False)
 
         # Try activating my generator
-        activate_asset = OperateAssetRequest(player_id=player.id, asset_id=my_generator.id, action="startup")
+        activate_asset = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=my_generator.id, action="startup")
 
         game_state, responses = Engine.handle_message(game_state=game_state, msg=activate_asset)
 
@@ -241,7 +263,7 @@ class TestAssets(BaseTest):
         self.assertEqual(game_state.assets[my_generator.id].is_active, True)
 
         # Try to operate an asset that I do not own
-        broke_player_load_activate = OperateAssetRequest(player_id=player.id, asset_id=broke_player_load.id, action="startup")
+        broke_player_load_activate = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=broke_player_load.id, action="startup")
 
         game_state, responses = Engine.handle_message(game_state=game_state, msg=broke_player_load_activate)
 
@@ -252,7 +274,7 @@ class TestAssets(BaseTest):
         self.assertEqual(game_state.assets[broke_player_load.id].is_active, False)
 
         # Broke player tries to activate their own load
-        broke_player_load_activate = OperateAssetRequest(player_id=broke_player.id, asset_id=broke_player_load.id, action="startup")
+        broke_player_load_activate = OperateAssetRequest(game_id=game_state.game_id, player_id=broke_player.id, asset_id=broke_player_load.id, action="startup")
 
         game_state, responses = Engine.handle_message(game_state=game_state, msg=broke_player_load_activate)
 

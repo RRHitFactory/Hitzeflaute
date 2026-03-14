@@ -9,9 +9,12 @@ dependencies = [
     "pypsa>=0.34.1",
     "pandas>=2.2.3",
     "numpy>=2.2.5",
-    "plotly>=6.1.2",
-    "livereload==2.7.1",
     "randcraft>=0.1.10",
+    "uvicorn>=0.38.0",
+    "fastapi>=0.120.0",
+    "websockets>=12.0",
+    "pydantic>=2.0.0",
+    "mypy>=1.19.1",
 ]
 
 [dependency-groups]
@@ -19,7 +22,8 @@ dev = [
     "isort>=6.0.1",
     "pytest>=8.4.2",
     "ruff>=0.13.0",
-    "pytest>=8.3.5"
+    "pytest>=8.3.5",
+    "import-linter>=2.10",
 ]
 
 [tool.ruff]
@@ -68,4 +72,32 @@ ignore = [
 # Disallow all relative imports.
 ban-relative-imports = "all"
 
+[tool.mypy]
+python_version = "3.12"
+exclude = "src/app/simple_front_end/"
+ignore_missing_imports = true
+follow_imports = "silent"
+check_untyped_defs = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+warn_unused_ignores = false
+warn_return_any = false
+show_error_codes = true
+namespace_packages = true
 
+[tool.ty.environment]
+python = "./back_end/.venv"
+
+[tool.importlinter]
+root_package = "src"
+
+[[tool.importlinter.contracts]]
+name = "My layers contract"
+type = "layers"
+layers = [
+    "src.app",
+    "src.engine",
+    "src.models",
+    "src.tools",
+    "src.directories",
+]
