@@ -367,7 +367,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
           if (lineResult) {
             try {
               const parsedDict = parseDataFrameToDict(lineResult);
-              console.log(`Line ${line.id} parsed dict:`, parsedDict);
               linePower = parsedDict?.raw_flow ?? 0;
             } catch (error) {
               console.warn(`Error parsing line ${line.id} data:`, error);
