@@ -41,8 +41,8 @@ class AssetInfo(LightDc):
             assert self.power_std == 0, "Freezer asset must have zero power standard deviation"
         assert self.power_rv.get_min_value() >= 0, f"Asset power random variable must be non-negative but got {self.power_rv}"
 
-    def sample_power(self) -> float:
-        return self.power_rv.sample_one()
+    def sample_power(self) -> int:
+        return round(self.power_rv.sample_one())
 
     @cached_property
     def power_rv(self) -> RandomVariable:

@@ -370,31 +370,37 @@ class DefaultGameInitializer(BaseGameInitializer):
                     power_std=0.0,
                     is_for_sale=False,
                     minimum_acquisition_price=0.0,
-                    fixed_operating_cost=self.settings.initial_funds / 20,
+                    fixed_operating_cost=0,
                     marginal_cost=0.0,
-                    bid_price=self.settings.initial_funds / 2,
+                    bid_price=round(self.settings.max_bid_price / 2),
                     is_freezer=True,
                     health=self.settings.n_init_ice_cream,
                 )
             )
 
         # Create the rest of the assets for NPC
+        rng = np.random.default_rng()
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
 
+            foc = 50 + round(rng.uniform(low=-10, high=10))
+            marginal_cost = 50 + round(rng.uniform(low=-25, high=25))
+            power_expected = 60 + round(rng.uniform(low=-10, high=10))
+            bid_price = round((marginal_cost * power_expected + foc)/power_expected) + 1
+            asset_price = round((250 - marginal_cost * 2) * power_expected / 60)
             assets.append(
                 AssetInfo(
                     id=next(asset_ids),
                     owner_player=PlayerId.get_npc(),
                     asset_type=AssetType.GENERATOR,
                     bus=bus_id,
-                    power_expected=60.0,
-                    power_std=0.5,
+                    power_expected=power_expected,
+                    power_std=power_expected * 0.2,
                     is_for_sale=True,
-                    minimum_acquisition_price=self.settings.initial_funds / 4,
-                    fixed_operating_cost=self.settings.initial_funds / 20,
-                    marginal_cost=self.settings.initial_funds / 20,
-                    bid_price=self.settings.initial_funds / 20 * (1 + 1 / 60),  # bid price is slightly above marginal cost to cover expected fixed operating costs
+                    minimum_acquisition_price=asset_price,
+                    fixed_operating_cost=foc,
+                    marginal_cost=marginal_cost,
+                    bid_price=bid_price,
                     is_freezer=False,
                     health=5,
                 )
@@ -403,19 +409,24 @@ class DefaultGameInitializer(BaseGameInitializer):
         for _ in range(self.settings.n_init_non_freezer_loads):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
 
+            foc = 50 + round(rng.uniform(low=-10, high=10))
+            marginal_cost = 50 + round(rng.uniform(low=-25, high=25))
+            power_expected = 60 + round(rng.uniform(low=-10, high=10))
+            bid_price = round((marginal_cost * power_expected - foc)/power_expected) - 1
+            asset_price = round((100 + marginal_cost * 2) * power_expected/60)
             assets.append(
                 AssetInfo(
                     id=next(asset_ids),
                     owner_player=PlayerId.get_npc(),
                     asset_type=AssetType.LOAD,
                     bus=bus_id,
-                    power_expected=80.0,
-                    power_std=5,
+                    power_expected=power_expected,
+                    power_std=power_expected * 0.2,
                     is_for_sale=True,
-                    minimum_acquisition_price=self.settings.initial_funds / 2,
-                    fixed_operating_cost=self.settings.initial_funds / 20,
-                    marginal_cost=self.settings.initial_funds / 10,  # marginal_cost of loads refer to marginal utility, thus, they will create revenue
-                    bid_price=self.settings.initial_funds / 10,
+                    minimum_acquisition_price=asset_price,
+                    fixed_operating_cost=foc,
+                    marginal_cost=marginal_cost,  # marginal_cost of loads refer to marginal utility, thus, they will create revenue
+                    bid_price=bid_price,
                     is_freezer=False,
                     health=5,
                 )
@@ -436,6 +447,8 @@ class DefaultGameInitializer(BaseGameInitializer):
         # TODO This should be considered during topology construction rather than just checking it at the end
         socket_manager = BusSocketManager(starting_sockets={bus.id: bus.max_lines for bus in bus_repo})
 
+        rng = np.random.default_rng()
+
         lines: list[TransmissionInfo] = []
         for bus_pair in topology:
             bus1 = bus_pair["bus1"]
@@ -445,19 +458,17 @@ class DefaultGameInitializer(BaseGameInitializer):
             socket_manager.use_socket(bus1)
             socket_manager.use_socket(bus2)
 
-            generator = np.random.default_rng()
-
             line = TransmissionInfo(
                 id=next(t_id_iter),
                 owner_player=PlayerId.get_npc(),  # NPC owns all initial transmissions
                 bus1=bus_pair["bus1"],
                 bus2=bus_pair["bus2"],
-                reactance=generator.uniform(0.1, 1.0),  # Random reactance for each transmission
-                capacity=generator.uniform(10, 100),  # Random capacity for each transmission
+                reactance=rng.uniform(0.1, 1.0),  # Random reactance for each transmission
+                capacity=round(rng.uniform(10, 100)),
                 health=5,
-                fixed_operating_cost=generator.uniform(0.01, 0.1),
+                fixed_operating_cost=round(rng.uniform(0.01, 0.1)),
                 is_for_sale=True,
-                minimum_acquisition_price=generator.uniform(10, 100),  # Random purchase cost for each transmission
+                minimum_acquisition_price=round(rng.uniform(10, 100)),  # Random purchase cost for each transmission
             )
             lines.append(line)
 
