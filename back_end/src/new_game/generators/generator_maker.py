@@ -1,6 +1,7 @@
 import math
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 import yaml
@@ -18,13 +19,12 @@ class TechEvolutionIndicator:
     min: float
 
     def __post_init__(self):
-        assert self.min <= self.base <= self.max, \
-            "Base value must be within min and max bounds."
+        assert self.min <= self.base <= self.max, "Base value must be within min and max bounds."
 
     def value_at_round(self, round_number: int) -> float:
         """Linear function with clipping at min and max"""
         val = self.base + self.change_per_round * round_number
-        return np.clip(val, self.min, self.max)
+        return float(np.clip(val, self.min, self.max))
 
 
 @dataclass(frozen=True)
@@ -39,7 +39,6 @@ class TechnologySpecs:
 
     @classmethod
     def from_yaml(cls, technology_name: str) -> "TechnologySpecs":
-
         with open(f"{os.path.dirname(__file__)}/tech_specs/{technology_name}.yaml") as file:
             data = yaml.safe_load(file)
 
@@ -54,24 +53,13 @@ class TechnologySpecs:
         )
 
 
-
-
-
 class GeneratorMaker:
     @classmethod
-    def make_one(
-            cls,
-            asset_id: AssetId,
-            bus_id: BusId,
-            current_round: int,
-            technology_name: str | None = None,
-            player_id: PlayerId=PlayerId.get_npc()
-    ) -> AssetInfo:
+    def make_one(cls, asset_id: AssetId, bus_id: BusId, current_round: int, technology_name: str | None = None, player_id: PlayerId = PlayerId.get_npc()) -> AssetInfo:
         """Create a generator with properties based on the current round."""
         if technology_name is None:
             technology_name = random_choice(cls.get_available_technologies())
         tech_specs = cls._get_technology_spec(technology_name)
-
 
         capacity = tech_specs.capacity.value_at_round(current_round)
         power_std = tech_specs.normalised_power_std * capacity
@@ -83,8 +71,7 @@ class GeneratorMaker:
 
         helath = math.floor(tech_specs.lifespan.value_at_round(current_round))
 
-        bid_price = ((marginal_cost * capacity) + foc)/capacity
-
+        bid_price = ((marginal_cost * capacity) + foc) / capacity
 
         return AssetInfo(
             id=asset_id,
@@ -105,16 +92,11 @@ class GeneratorMaker:
 
     @classmethod
     def get_available_technologies(cls) -> list[str]:
-        return [
-            technology_name.split(".")[0]
-            for technology_name in os.listdir(f"{os.path.dirname(__file__)}/tech_specs/")
-            if technology_name != 'info'
-        ]
-
+        tech_specs_dir = Path(os.path.dirname(__file__)) / "tech_specs"
+        yaml_files = tech_specs_dir.rglob("*.yaml")
+        return [f.stem for f in yaml_files]
 
     @classmethod
     def _get_technology_spec(cls, technology_name: str) -> TechnologySpecs:
-        assert technology_name in cls.get_available_technologies(), \
-            f"Technology not available, select from: {cls.get_available_technologies()}."
+        assert technology_name in cls.get_available_technologies(), f"Technology not available, select from: {cls.get_available_technologies()}."
         return TechnologySpecs.from_yaml(technology_name)
-

@@ -25,7 +25,7 @@ class TestGameInitializer(BaseTest):
         for i, player_name in enumerate(self.player_names):
             player = game_state.players[PlayerId(i + 1)]
             self.assertEqual(player.name, player_name)
-            self.assertEqual(player.money, 1000)  # Default money
+            self.assertEqual(player.money, 10000)  # Default money
         n_playing = sum([1 for p in game_state.players.human_players if p.is_having_turn])
         self.assertEqual(n_playing, 1)  # Only one player should have the turn
 
