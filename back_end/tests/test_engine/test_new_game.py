@@ -1,4 +1,5 @@
-from back_end.src.new_game.new_game import DefaultGameInitializer
+from back_end.src.new_game.new_game import GameInitializer
+
 from src.models.assets import AssetInfo, AssetRepo
 from src.models.buses import Bus, BusRepo
 from src.models.game_settings import GameSettings
@@ -8,14 +9,14 @@ from src.models.transmission import TransmissionRepo
 from tests.base_test import BaseTest
 
 
-class TestDefaultGameInitializer(BaseTest):
+class TestGameInitializer(BaseTest):
     def setUp(self) -> None:
         self.game_id = GameId(1)
         self.player_names = ["Alice", "Bob", "Charlie"]
         self.settings = GameSettings(n_buses=10)
 
     def test_create_new_game(self) -> None:
-        game_initializer = DefaultGameInitializer(settings=self.settings)
+        game_initializer = GameInitializer(settings=self.settings)
         game_state = game_initializer.create_new_game(game_id=self.game_id, player_names=self.player_names)
 
         self.assertIsInstance(game_state, GameState)
