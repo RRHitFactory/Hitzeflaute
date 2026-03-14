@@ -1,0 +1,31 @@
+capacity:
+  base: 805  # Lignite
+  change_per_round: 50
+  max: 1800
+  min: 0
+
+normalised_power_std: 0.0
+
+capital_cost_per_mw:
+  base: 255
+  change_per_round: -7
+  max: 255
+  min: 93
+
+fixed_cost:
+  base: 420
+  change_per_round: 0
+  max: 420
+  min: 0
+
+marginal_cost:
+  base: 271  # 5 (opex var) + 6 (lignite) + 260 (CO2)
+  change_per_round: 39  # (0 (lignite) + 825 (CO2)) / 21 years
+  max: 1051
+  min: 271
+
+lifespan:
+  base: 40
+  change_per_round: 0
+  max: 50
+  min: 5
