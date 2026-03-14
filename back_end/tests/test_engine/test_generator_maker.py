@@ -1,6 +1,6 @@
-from back_end.src.preset_makers.generators.generator_maker import GeneratorMaker
-from back_end.src.models.assets import AssetInfo
-from back_end.src.models.ids import AssetId, BusId, PlayerId
+from src.preset_makers.generators.generator_maker import GeneratorMaker
+from src.models.assets import AssetInfo
+from src.models.ids import AssetId, BusId, PlayerId
 
 from tests.base_test import BaseTest
 
