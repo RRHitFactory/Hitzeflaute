@@ -1,4 +1,4 @@
-from back_end.src.new_game.new_game import GameInitializer
+from src.new_game.new_game import GameInitializer
 
 from src.models.assets import AssetInfo, AssetRepo
 from src.models.buses import Bus, BusRepo

@@ -43,10 +43,10 @@ pre-commit:
 	bash -c '"$(MAKE)" fix-imports & "$(MAKE)" format'
 
 fix-imports:
-	@echo "Fixing and linting imports in back_end/src..."
+	@echo "Fixing and linting imports in back_end/src and back_end/tests..."
 	@cd back_end && \
 	if [ -d "src" ]; then \
-	  find src -name "*.py" -type f -exec grep -l -E "from (backend|back_end)\.src" {} \; | while read -r file; do \
+	  find src tests -name "*.py" -type f -exec grep -l -E "from (backend|back_end)\.src" {} \; | while read -r file; do \
 	    echo "Fixing imports in $$file"; \
 	    sed -i.bak -E 's/from (backend|back_end)\.src/from src/g' "$$file" && rm -f "$$file.bak"; \
 	  done && echo "Import fix completed" || echo "No files found with backend/back_end.src imports"; \
