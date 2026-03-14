@@ -39,7 +39,7 @@ class TechnologySpecs:
     @classmethod
     def from_yaml(cls, technology_name: str) -> "TechnologySpecs":
 
-        with open(f"{os.path.dirname(__file__)}\\tech_specs\\{technology_name}.yaml") as file:
+        with open(f"{os.path.dirname(__file__)}/tech_specs/{technology_name}.yaml") as file:
             data = yaml.safe_load(file)
 
         return cls(
