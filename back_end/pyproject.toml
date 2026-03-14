@@ -98,6 +98,7 @@ type = "layers"
 layers = [
     "src.app",
     "src.engine",
+    "src.new_game",
     "src.models",
     "src.tools",
     "src.directories",
