@@ -21,5 +21,5 @@ class TestGeneratorMaker(BaseTest):
     def test_available_technologies(self):
         technologies = GeneratorMaker.available_technologies()
 
-        for tech in ['wind', 'nuclear', 'gas']:
+        for tech in ['wind', 'nuclear', 'ccgt']:
             self.assertIn(tech, technologies)

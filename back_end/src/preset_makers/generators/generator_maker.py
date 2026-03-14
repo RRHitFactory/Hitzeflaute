@@ -59,7 +59,8 @@ class GeneratorMaker:
     def available_technologies(cls) -> list[str]:
         return [
             technology_name.split(".")[0]
-            for technology_name in os.listdir(f"{os.path.dirname(__file__)}\\tech_specs\\")
+            for technology_name in os.listdir(f"{os.path.dirname(__file__)}/tech_specs/")
+            if technology_name != 'info'
         ]
 
     @classmethod
