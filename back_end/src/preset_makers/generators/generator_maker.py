@@ -1,12 +1,12 @@
 import math
 import os
-import yaml
-import numpy as np
-
 from dataclasses import dataclass
 
-from back_end.src.models.ids import AssetId, PlayerId, BusId
-from back_end.src.models.assets import AssetInfo, AssetType
+import numpy as np
+import yaml
+
+from src.models.assets import AssetInfo, AssetType
+from src.models.ids import AssetId, BusId, PlayerId
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,7 @@ class TechEvolutionIndicator:
             "Base value must be within min and max bounds."
 
     def value_at_round(self, round_number: int) -> float:
-        """ Linear function with clipping at min and max """
+        """Linear function with clipping at min and max"""
         val = self.base + self.change_per_round * round_number
         return np.clip(val, self.min, self.max)
 
@@ -39,7 +39,7 @@ class TechnologySpecs:
     @classmethod
     def from_yaml(cls, technology_name: str) -> "TechnologySpecs":
 
-        with open(f"{os.path.dirname(__file__)}\\tech_specs\\{technology_name}.yaml", "r") as file:
+        with open(f"{os.path.dirname(__file__)}\\tech_specs\\{technology_name}.yaml") as file:
             data = yaml.safe_load(file)
 
         return cls(
@@ -70,7 +70,7 @@ class GeneratorMaker:
 
     @classmethod
     def clipped_linear_function(cls, tech_var: TechEvolutionIndicator, current_round: int) -> float:
-        """ f(x) = a * x + b"""
+        """f(x) = a * x + b"""
         return np.clip(
             a=tech_var.change_per_round * current_round + tech_var.base,
             a_min=tech_var.min,
