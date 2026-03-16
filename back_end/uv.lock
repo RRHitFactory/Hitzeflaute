@@ -1282,7 +1282,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.2.3" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pypsa", specifier = ">=0.34.1" },
-    { name = "randcraft", specifier = ">=0.1.10" },
+    { name = "randcraft", specifier = ">=0.1.14" },
     { name = "types-pyyaml", specifier = ">=6.0.12.20250915" },
     { name = "uvicorn", specifier = ">=0.38.0" },
     { name = "websockets", specifier = ">=12.0" },
@@ -1636,16 +1636,16 @@ wheels = [
 
 [[package]]
 name = "randcraft"
-version = "0.1.10"
+version = "0.1.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "scipy" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/47/fc/5b2f8e8214ec2add9d1a4f24e5abff118324ade930aa29c750e3e1e59269/randcraft-0.1.10.tar.gz", hash = "sha256:a94a7fda5c55efcf532e60f8e4f2c8fb3526387615152a1a58ebf4f74948c552", size = 243915, upload-time = "2025-09-28T10:54:37.573Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/11/a3ad22a2bfff1a5dacaea5c70216b0d2744a3ca93f305916cc7bd03d183f/randcraft-0.1.14.tar.gz", hash = "sha256:cfc8e53cc3ab43b3fbb30dd4736da15b610d6567afa5eae4c8b44bc5d0ee73eb", size = 242619, upload-time = "2026-02-10T21:07:34.737Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d5/68/5efcf14f4da940eca84c65d21a356744edb6beb5ecb3632ab694ab4203e4/randcraft-0.1.10-py3-none-any.whl", hash = "sha256:44e60d9a57b030e5dfd29b6a095bbd130beb8b65ffc08fdf464a3b35ba9a42ba", size = 25279, upload-time = "2025-09-28T10:54:36.513Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/1c/c43d5f5f4d37a66b7a67325e9a1b692a81f3edb0299111d529032548cede/randcraft-0.1.14-py3-none-any.whl", hash = "sha256:d1be41f1740eb08731376090c5c896e08be984394c8ad53595e410fae3cb148f", size = 28027, upload-time = "2026-02-10T21:07:33.577Z" },
 ]
 
 [[package]]

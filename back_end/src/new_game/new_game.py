@@ -3,6 +3,7 @@ from collections.abc import Generator
 from itertools import combinations, count
 
 import numpy as np
+from src.new_game.price_asset import price_asset
 
 from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
@@ -275,7 +276,7 @@ class GameInitializer:
                         reactance=generator.uniform(0.1, 1.0),  # Random reactance for each transmission
                         capacity=generator.uniform(10, 100),  # Random capacity for each transmission
                         health=5,
-                        fixed_operating_cost=generator.uniform(0.01, 0.1),
+                        fixed_operating_cost=1,
                         is_for_sale=True,
                         minimum_acquisition_price=generator.uniform(10, 100),  # Random purchase cost for each transmission
                     )
@@ -356,10 +357,13 @@ class GameInitializer:
 
             # TODO Use same pattern as GeneratorMaker
             foc = 50 + round(rng.uniform(low=-10, high=10))
-            marginal_cost = 50 + round(rng.uniform(low=-25, high=25))
+            marginal_cost = 500 + round(rng.uniform(low=-200, high=200))
             power_expected = 60 + round(rng.uniform(low=-10, high=10))
             bid_price = round((marginal_cost * power_expected - foc)/power_expected) - 1
-            asset_price = round((100 + marginal_cost * 2) * power_expected/60)
+            health = 5
+
+            asset_price = price_asset(kind="load", marginal_price=marginal_cost, expected_power=power_expected, foc=foc, lifespan=health)
+
             assets.append(
                 AssetInfo(
                     id=next(asset_ids),
@@ -412,7 +416,7 @@ class GameInitializer:
                 reactance=rng.uniform(0.1, 1.0),  # Random reactance for each transmission
                 capacity=round(rng.uniform(10, 100)),
                 health=5,
-                fixed_operating_cost=round(rng.uniform(0.01, 0.1)),
+                fixed_operating_cost=1,
                 is_for_sale=True,
                 minimum_acquisition_price=round(rng.uniform(10, 100)),  # Random purchase cost for each transmission
             )

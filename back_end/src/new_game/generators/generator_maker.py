@@ -69,7 +69,7 @@ class GeneratorMaker:
 
         marginal_cost = tech_specs.marginal_cost.value_at_round(current_round)
 
-        helath = math.floor(tech_specs.lifespan.value_at_round(current_round))
+        health = math.floor(tech_specs.lifespan.value_at_round(current_round))
 
         bid_price = ((marginal_cost * capacity) + foc) / capacity
 
@@ -87,7 +87,7 @@ class GeneratorMaker:
             fixed_operating_cost=foc,
             marginal_cost=marginal_cost,
             bid_price=bid_price,
-            health=helath,
+            health=health,
         )
 
     @classmethod
