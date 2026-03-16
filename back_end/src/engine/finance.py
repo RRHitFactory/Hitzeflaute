@@ -75,15 +75,18 @@ class FinanceCalculator:
     @staticmethod
     def validate_bid_for_asset(
         player_assets: AssetRepo,
-        asset_id_to_validate: AssetId,
-        bid_to_validate: float,
+        asset_id_to_validate: AssetId | None,
+        bid_to_validate: float | None,
         player_money: float,
     ) -> bool:
         expected_market_cashflow = 0.0
 
         for asset in player_assets:
             expected_volume = asset.power_expected
-            bid_price = asset.bid_price if asset.id != asset_id_to_validate else bid_to_validate
+            if asset.id != asset_id_to_validate:
+                bid_price = asset.bid_price
+            else:
+                bid_price = bid_to_validate if bid_to_validate is not None else asset.bid_price
             sign = asset.cashflow_sign
 
             # Players must at least be capable of covering the market cashflow of their assets.

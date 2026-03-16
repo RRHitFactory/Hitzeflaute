@@ -7,6 +7,8 @@ import numpy as np
 from src.models.assets import AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color
+from src.models.data.ldc_repo import LdcRepo
+from src.models.data.light_dc import LightDc
 from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionInfo, TransmissionRepo
@@ -15,7 +17,7 @@ from src.tools.random_choice import random_choice
 T_RepoMaker = TypeVar("T_RepoMaker", bound="RepoMaker")
 
 
-class RepoMaker[T_LdcRepo, T_LightDc]:
+class RepoMaker[T_LdcRepo: LdcRepo, T_LightDc: LightDc]:
     def __init__(self, *args, **kwargs) -> None:
         self.dcs: list[T_LightDc] = []
         self.id_counter = count(start=0)
@@ -299,6 +301,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         buses: BusRepo | None = None,
     ) -> TransmissionRepo:
         if n is None:
+            assert buses is not None, "Either n or buses must be provided"
             n = min(10, round(sum([b.max_lines for b in buses]) * 0.4))
         maker = cls(players=players, buses=buses)
         return maker.add_n_random(n).make()

@@ -1,0 +1,31 @@
+capacity:
+  base: 125  # Gas OCGT CHP
+  change_per_round: 50
+  max: 390
+  min: 0
+
+normalised_power_std: 0.0
+
+capital_cost_per_mw:  # GT
+  base: 70
+  change_per_round: -2.5
+  max: 70
+  min: 22
+
+fixed_cost: # GT
+  base: 230
+  change_per_round: 0
+  max: 230
+  min: 0
+
+marginal_cost:
+  base: 132  # (4 (opex var) + 38 / 0.40 * 0.4 (nat gas) + 90 / 0.40 * 0.4 (CO2))
+  change_per_round: 12  # (-27.5 (nat gas) + 285 (CO2)) / 21 years
+  max: 372
+  min: 132
+
+lifespan:
+  base: 30
+  change_per_round: 0
+  max: 50
+  min: 5
