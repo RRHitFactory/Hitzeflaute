@@ -3,6 +3,7 @@ from typing import Protocol, runtime_checkable
 
 import pandas as pd
 
+from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
 from src.models.ids import AssetId, BusId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
@@ -30,7 +31,8 @@ def reduce_game_state(game_state: GameState) -> GameState:
     bus_results = {bus: reduce_one_bus(game_state=game_state, coupling_result=game_state.market_coupling_result, bus_id=bus) for bus in game_state.buses.bus_ids}
 
     line_results = {line: reduce_one_line(game_state=game_state, coupling_result=game_state.market_coupling_result, line_id=line) for line in game_state.transmission.transmission_ids}
-    market_summary = MarketCouplingSummary(bus_results=bus_results, line_results=line_results)
+    pnl = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=game_state.market_coupling_result)
+    market_summary = MarketCouplingSummary(bus_results=bus_results, line_results=line_results, pnl=pnl)
     return replace(game_state, market_summary=market_summary, market_coupling_result=None)
 
 

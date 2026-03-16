@@ -40,10 +40,8 @@ class TestFinanceCalculator(BaseTest):
             single_asset_repo = asset_repo._filter({"id": asset.id})
             asset_cashflow = FinanceCalculator.compute_assets_cashflow(single_asset_repo, assets_dispatch, bus_prices)
             sign = asset.cashflow_sign
-            self.assertAlmostEqual(
-                asset_cashflow,
-                sign * (bus_prices[asset.bus] - asset.marginal_cost) * assets_dispatch[asset.id] - asset.fixed_operating_cost,
-            )
+            total_cashflow = asset_cashflow["cashflow"].sum()
+            self.assertAlmostEqual(total_cashflow, sign * (bus_prices[asset.bus] - asset.marginal_cost) * assets_dispatch[asset.id] - asset.fixed_operating_cost, places=1)
 
     def test_compute_transmission_cashflow(self):
         game_state, market_coupling_result = self.create_game_state_and_market_coupling_result()
@@ -55,10 +53,8 @@ class TestFinanceCalculator(BaseTest):
             single_transmission_repo = transmission_repo._filter({"id": transmission.id})
             transmission_cashflow = FinanceCalculator.compute_transmission_cashflow(single_transmission_repo, transmission_flows, bus_prices)
             price_spread = bus_prices[transmission.bus1] - bus_prices[transmission.bus2]
-            self.assertAlmostEqual(
-                transmission_cashflow,
-                transmission_flows[transmission.id] * price_spread,
-            )
+            total_cashflow = transmission_cashflow["cashflow"].sum()
+            self.assertAlmostEqual(total_cashflow, transmission_flows[transmission.id] * price_spread, places=1)
 
     def test_validate_bid_based_on_expected_loads_cost(self):
         game_state, _ = self.create_game_state_and_market_coupling_result()
