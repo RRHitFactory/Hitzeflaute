@@ -3,7 +3,6 @@ from collections.abc import Generator
 from itertools import combinations, count
 
 import numpy as np
-from src.new_game.price_asset import price_asset
 
 from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
@@ -15,6 +14,7 @@ from src.models.ids import BusId, GameId, PlayerId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
 from src.new_game.generators.generator_maker import GeneratorMaker
+from src.new_game.price_asset import price_asset
 from src.tools.random_choice import random_choice, random_choice_multi
 
 __all__ = ["GameInitializer"]
