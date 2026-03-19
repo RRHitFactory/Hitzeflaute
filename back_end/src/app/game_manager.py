@@ -2,7 +2,6 @@ from typing import Protocol, runtime_checkable
 
 from src.app.game_repo.base import BaseGameStateRepo
 from src.engine.engine import Engine
-from src.engine.new_game import DefaultGameInitializer
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
 from src.models.ids import GameId, PlayerId
@@ -13,6 +12,7 @@ from src.models.message import (
     PlayerToGameMessage,
     ToGameMessage,
 )
+from src.new_game.new_game import GameInitializer
 
 
 @runtime_checkable
@@ -69,7 +69,7 @@ class GameManager:
     def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str]) -> GameId:
         game_id = game_repo.generate_game_id()
         settings = GameSettings()
-        game_initializer = DefaultGameInitializer(settings=settings)
+        game_initializer = GameInitializer(settings=settings)
         new_game_state = game_initializer.create_new_game(game_id=game_id, player_names=player_names)
         game_repo.add_game_state(game=new_game_state)
         return game_id

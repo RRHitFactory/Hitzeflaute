@@ -15,7 +15,7 @@ class GameSettings:
     n_init_non_freezer_loads: int = 4
     min_bid_price: float = -1000
     max_bid_price: float = 1000
-    initial_funds: int = 1000
+    initial_funds: int = 10000
     max_connections_per_bus: int = 7
     map_area: Shape = field(default_factory=lambda: Shape.make_rectangle(bottom_left=Point(-30, -15), top_right=Point(30, 15)))
 
