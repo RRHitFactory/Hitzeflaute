@@ -74,6 +74,9 @@ class BusTopologyMaker:
         return layered_polygon_layout.points[:n_buses]
 
 
+type Topology = set[tuple[BusId, BusId]]
+
+
 class TransmissionTopologyMaker:
     @staticmethod
     def _get_bus_combinations(bus_repo: BusRepo) -> list[tuple[BusId, BusId]]:
@@ -85,60 +88,44 @@ class TransmissionTopologyMaker:
         return sorted(combinations(bus_repo.bus_ids, 2))
 
     @staticmethod
-    def make_sequential(bus_repo: BusRepo) -> list[dict[str, BusId]]:
+    def make_sequential(bus_repo: BusRepo) -> Topology:
         """
-        Create a linear transmission topology with the specified number of buses.
-        :param bus_repo: BusRepo containing the buses in the game.
-        :return: List of dictionaries containing bus connections.
+        Create a linear transmission topology with the specified number of buses
         """
-        return [{"bus1": bus_repo.bus_ids[i], "bus2": bus_repo.bus_ids[i + 1]} for i in range(len(bus_repo))]
+        return {(bus_repo.bus_ids[i], bus_repo.bus_ids[i + 1]) for i in range(len(bus_repo))}
 
     @staticmethod
-    def make_random(bus_repo: BusRepo, n_connections: int) -> list[dict[str, BusId]]:
+    def make_random(bus_repo: BusRepo, n_connections: int) -> Topology:
         """
-        Create a random transmission topology with the specified number of buses and connections.
-        :param bus_repo: BusRepo containing the buses in the game.
-        :param n_connections: Number of connections to create.
-        :return: List of dictionaries containing bus connections.
+        Create a random transmission topology with the specified number of buses and connections
         """
-        connections = []
         possible_connections = TransmissionTopologyMaker._get_bus_combinations(bus_repo)
-        for _ in range(n_connections):
-            bus1, bus2 = random_choice(possible_connections)
-            connections.append({"bus1": BusId(bus1), "bus2": BusId(bus2)})
-        return connections
+        return {random_choice(possible_connections) for _ in range(n_connections)}
 
     @staticmethod
-    def make_grid(bus_repo: BusRepo, n_buses_per_row: int) -> list[dict[str, BusId]]:
+    def make_grid(bus_repo: BusRepo, n_buses_per_row: int) -> Topology:
         """
         Create a grid transmission topology with the specified number of buses.
         :param bus_repo: BusRepo containing the buses in the game.
         :param n_buses_per_row: Number of buses per row in the grid.
-        :return: List of dictionaries containing bus connections.
         """
-        connections = []
+        connections: list[tuple[BusId, BusId]] = []
         n_buses = len(bus_repo)
         for i in range(n_buses):
             if (i + 1) % n_buses_per_row != 0:  # Connect to the right bus
-                connections.append({"bus1": bus_repo.bus_ids[i], "bus2": bus_repo.bus_ids[i + 1]})
+                connections.append((bus_repo.bus_ids[i], bus_repo.bus_ids[i + 1]))
             if i + n_buses_per_row < n_buses:  # Connect to the bus below
-                connections.append(
-                    {
-                        "bus1": bus_repo.bus_ids[i],
-                        "bus2": bus_repo.bus_ids[i + n_buses_per_row],
-                    }
-                )
-        return connections
+                connections.append((bus_repo.bus_ids[i], bus_repo.bus_ids[i + n_buses_per_row]))
+        return set(connections)
 
     @staticmethod
-    def make_spiderweb(bus_repo: BusRepo, n_buses_per_layer: int) -> list[dict[str, BusId]]:
+    def make_spiderweb(bus_repo: BusRepo, n_buses_per_layer: int) -> Topology:
         """
         Create a spiderweb-like transmission topology.
         :param bus_repo: BusRepo containing the buses in the game.
         :param n_buses_per_layer: Number of buses per layer.
-        :return: List of dictionaries containing bus connections.
         """
-        connections = []
+        connections: list[tuple[BusId, BusId]] = []
         n_buses = len(bus_repo)
         n_layers = math.ceil(n_buses / n_buses_per_layer)
         for layer in range(n_layers):
@@ -152,37 +139,13 @@ class TransmissionTopologyMaker:
                 upper_layer_bus_idx = (layer + 1) * n_buses_per_layer + i
 
                 if i + 1 < n_buses_per_layer and cw_bus_idx < n_buses:
-                    connections.append({"bus1": bus1, "bus2": bus_repo.bus_ids[cw_bus_idx]})
+                    connections.append((bus1, bus_repo.bus_ids[cw_bus_idx]))
                 if i % n_buses_per_layer == 0 and ccw_bus_idx < n_buses:
-                    connections.append({"bus1": bus1, "bus2": bus_repo.bus_ids[ccw_bus_idx]})
+                    connections.append((bus1, bus_repo.bus_ids[ccw_bus_idx]))
                 if layer + 1 < n_layers and upper_layer_bus_idx < n_buses:
-                    connections.append({"bus1": bus1, "bus2": bus_repo.bus_ids[upper_layer_bus_idx]})
+                    connections.append((bus1, bus_repo.bus_ids[upper_layer_bus_idx]))
 
-        return connections
-
-    @staticmethod
-    def make_connect_n_closest(bus_repo: BusRepo, n_connections: int) -> list[dict[str, BusId]]:
-        """
-        Create a transmission topology that connects each bus to its n closest buses.
-        :param bus_repo: BusRepo containing the buses to connect.
-        :param n_connections: Number of connections per bus.
-        :return: List of dictionaries containing bus connections.
-        """
-        # TODO: Autogenerated by Github Copilot, needs review
-        connections = []
-        for bus in bus_repo:
-            distances = [
-                (
-                    other_bus,
-                    np.linalg.norm(np.array([bus.x, bus.y]) - np.array([other_bus.x, other_bus.y])),
-                )
-                for other_bus in bus_repo
-                if other_bus.id != bus.id
-            ]
-            closest_buses = sorted(distances, key=lambda x: x[1])[:n_connections]
-            for other_bus, _ in closest_buses:
-                connections.append({"bus1": bus.id, "bus2": other_bus.id})
-        return connections
+        return set(connections)
 
 
 class GameInitializer:
@@ -213,10 +176,7 @@ class GameInitializer:
         player_repo = self._create_player_repo(names=player_names, colors=player_colors)
         bus_repo = self._create_bus_repo(player_repo=player_repo)
         assets_repo = self._create_asset_repo(player_repo=player_repo, bus_repo=bus_repo)
-        transmission_repo = self._ensure_no_islanded_buses(
-            bus_repo=bus_repo,
-            transmission_repo=self._create_transmission_repo(player_repo=player_repo, bus_repo=bus_repo),
-        )
+        transmission_repo = self._create_transmission_repo(player_repo=player_repo, bus_repo=bus_repo)
 
         new_game = GameState(
             game_id=game_id,
@@ -251,40 +211,6 @@ class GameInitializer:
         players.append(Player.make_npc())
 
         return PlayerRepo(players)
-
-    @staticmethod
-    def _ensure_no_islanded_buses(bus_repo: BusRepo, transmission_repo: TransmissionRepo) -> TransmissionRepo:
-        """
-        Ensure that all buses are connected and no bus is islanded.
-        :param bus_repo: The BusRepo containing all buses.
-        :param transmission_repo: The TransmissionRepo containing all transmission lines.
-        :return: A TransmissionRepo with no islanded buses.
-        """
-        generator = np.random.default_rng()
-
-        additional_connections = []
-        for bus in bus_repo:
-            if len(transmission_repo.get_all_at_bus(bus.id)) == 0:
-                bus_to_connect = bus_repo.get_random()
-                id_bus1, id_bus2 = sorted([bus.id, bus_to_connect.id])
-                additional_connections.append(
-                    TransmissionInfo(
-                        id=TransmissionId(transmission_repo.next_id()),
-                        owner_player=PlayerId.get_npc(),  # NPC owns all initial transmissions
-                        bus1=id_bus1,
-                        bus2=id_bus2,
-                        reactance=generator.uniform(0.1, 1.0),  # Random reactance for each transmission
-                        capacity=generator.uniform(10, 100),  # Random capacity for each transmission
-                        health=5,
-                        fixed_operating_cost=1,
-                        is_for_sale=True,
-                        minimum_acquisition_price=generator.uniform(10, 100),  # Random purchase cost for each transmission
-                    )
-                )
-        if not additional_connections:
-            return transmission_repo
-        else:
-            return transmission_repo + TransmissionRepo(additional_connections)
 
     def _create_bus_repo(self, player_repo: PlayerRepo) -> BusRepo:
         topology = BusTopologyMaker.make_layered_polygon(
@@ -349,17 +275,15 @@ class GameInitializer:
             asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=0, player_id=PlayerId.get_npc())
             assets.append(asset)
 
-
         rng = np.random.default_rng()
         for _ in range(self.settings.n_init_non_freezer_loads):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-
 
             # TODO Use same pattern as GeneratorMaker
             foc = 50 + round(rng.uniform(low=-10, high=10))
             marginal_cost = 500 + round(rng.uniform(low=-200, high=200))
             power_expected = 60 + round(rng.uniform(low=-10, high=10))
-            bid_price = round((marginal_cost * power_expected - foc)/power_expected) - 1
+            bid_price = round((marginal_cost * power_expected - foc) / power_expected) - 1
             health = 5
 
             asset_price = price_asset(kind="load", marginal_price=marginal_cost, expected_power=power_expected, foc=foc, lifespan=health)
@@ -385,6 +309,7 @@ class GameInitializer:
 
     def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> TransmissionRepo:
         topology = TransmissionTopologyMaker.make_spiderweb(bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players)
+        self._assert_topology_has_no_islands(buses=bus_repo.bus_ids, topology=topology)
 
         def transmission_id_iterator(
             start: int = 1,
@@ -400,10 +325,7 @@ class GameInitializer:
         rng = np.random.default_rng()
 
         lines: list[TransmissionInfo] = []
-        for bus_pair in topology:
-            bus1 = bus_pair["bus1"]
-            bus2 = bus_pair["bus2"]
-
+        for bus1, bus2 in topology:
             # Ensure both buses have free sockets
             socket_manager.use_socket(bus1)
             socket_manager.use_socket(bus2)
@@ -411,8 +333,8 @@ class GameInitializer:
             line = TransmissionInfo(
                 id=next(t_id_iter),
                 owner_player=PlayerId.get_npc(),  # NPC owns all initial transmissions
-                bus1=bus_pair["bus1"],
-                bus2=bus_pair["bus2"],
+                bus1=bus1,
+                bus2=bus2,
                 reactance=rng.uniform(0.1, 1.0),  # Random reactance for each transmission
                 capacity=round(rng.uniform(10, 100)),
                 health=5,
@@ -423,3 +345,23 @@ class GameInitializer:
             lines.append(line)
 
         return TransmissionRepo(lines)
+
+    def _assert_topology_has_no_islands(self, buses: list[BusId], topology: Topology) -> None:
+        bus_on_the_chain = {b: False for b in buses}
+        bus_on_the_chain[buses[0]] = True
+
+        lines_on_the_chain: Topology = set()
+
+        # Recursively run through all the lines to determine if each bus is connected to the first bus
+        max_depth = len(buses)
+        for _ in range(max_depth):
+            lines_off_the_chain = topology - lines_on_the_chain
+            for line in lines_off_the_chain:
+                b1, b2 = line
+                if bus_on_the_chain[b1] | bus_on_the_chain[b2]:
+                    lines_on_the_chain.add(line)
+                    bus_on_the_chain[b1] = True
+                    bus_on_the_chain[b2] = True
+
+        island_detected = any(v is False for v in bus_on_the_chain.values())
+        assert not island_detected, "Island detected in topology"

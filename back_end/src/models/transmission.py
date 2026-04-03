@@ -71,6 +71,12 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
 
         return self._filter({"bus1": min_bus, "bus2": max_bus, **oa_filter})
 
+    def get_all_bus_pairs(self) -> list[tuple[BusId, BusId]]:
+        df = self._df
+        from_buses = df["bus1"].to_list()
+        to_buses = df["bus2"].to_list()
+        return [(BusId(f), BusId(t)) for f, t in zip(from_buses, to_buses)]
+
     # UPDATE
     def open_line(self, transmission_id: TransmissionId) -> Self:
         df = self.df
