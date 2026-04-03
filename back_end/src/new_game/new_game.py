@@ -347,13 +347,21 @@ class GameInitializer:
         return TransmissionRepo(lines)
 
     def _assert_topology_has_no_islands(self, buses: list[BusId], topology: Topology) -> None:
-        on_the_chain = {b: False for b in buses}
-        on_the_chain[buses[0]] = True
-        for b1, b2 in topology:
-            if on_the_chain[b1]:
-                on_the_chain[b2] = True
-            elif on_the_chain[b2]:
-                on_the_chain[b1] = True
+        bus_on_the_chain = {b: False for b in buses}
+        bus_on_the_chain[buses[0]] = True
 
-        island_detected = any(v is False for v in on_the_chain.values())
+        lines_on_the_chain: Topology = set()
+
+        # Recursively run through all the lines to determine if each bus is connected to the first bus
+        max_depth = len(buses)
+        for _ in range(max_depth):
+            lines_off_the_chain = topology - lines_on_the_chain
+            for line in lines_off_the_chain:
+                b1, b2 = line
+                if bus_on_the_chain[b1] | bus_on_the_chain[b2]:
+                    lines_on_the_chain.add(line)
+                    bus_on_the_chain[b1] = True
+                    bus_on_the_chain[b2] = True
+
+        island_detected = any(v is False for v in bus_on_the_chain.values())
         assert not island_detected, "Island detected in topology"
