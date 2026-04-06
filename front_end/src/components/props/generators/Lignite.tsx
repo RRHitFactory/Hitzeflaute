@@ -73,10 +73,10 @@ const Lignite: React.FC<LigniteProps> = ({ ownerColor, position, scale }) => {
           }
 
           @keyframes thick-drift {
-            0% { transform: translateY(0) scale(0.6); opacity: 0; }
+            0% { transform: translate(26px, 5px); opacity: 0; }
             17% { opacity: 0; }
             30% { opacity: 1; }
-            100% { transform: translateY(-20px) scale(2.5); opacity: 0; }
+            100% { transform: translate(20px, -50px); opacity: 0; }
           }
           .sluggish-smoke {
             animation: thick-drift 4s infinite linear;
@@ -109,7 +109,7 @@ const Lignite: React.FC<LigniteProps> = ({ ownerColor, position, scale }) => {
         <ellipse cx="36" cy="6" rx="6" ry="1.5" fill="#292524" />
 
         {/* Heavy Lignite Smoke Billows */}
-        <g transform="translate(36, 4)">
+        <g transform="translate(10, 4)">
           <circle
             cx="0"
             cy="0"

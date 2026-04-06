@@ -69,70 +69,16 @@ const Ccgt: React.FC<CcgtProps> = ({ ownerColor, position, scale }) => {
 
           /* Steam Animation */
           @keyframes rise-and-fade {
-            0% { transform: translateY(0) scale(0.6); opacity: 0; }
-            20% { opacity: 0.7; }
-            100% { transform: translateY(0) scale(1.2); opacity: 0; }
+            0% { transform: translateX(43px); opacity: 0; }
+            20% { transform: translateX(43px); opacity: 0.7; }
+            100% { transform: translate(30px, -50px); opacity: 0; }
           }
           .steam-puff {
             animation: rise-and-fade 3.5s infinite ease-out;
             transform-origin: center;
           }
-
-          /* Electricity Animation */
-          @keyframes pulse-glow {
-            0%, 100% { transform: scale(0.8); opacity: 0.4; }
-            50% { transform: scale(1.3); opacity: 1; }
-          }
-          .spark-pulse {
-            animation: pulse-glow 1.5s infinite ease-in-out;
-            transform-origin: center;
-          }
         `}
       </style>
-
-      {/* Cooling Tower Steam Puffs */}
-      <g transform="translate(20, -40)">
-        <circle
-          cx="-10"
-          cy="-10"
-          r="13"
-          fill="url(#smoke)"
-          className="steam-puff"
-          style={{ animationDelay: "0s" }}
-        />
-        <circle
-          cx="-10"
-          cy="-10"
-          r="13"
-          fill="url(#smoke)"
-          className="steam-puff"
-          style={{ animationDelay: "0.4s" }}
-        />
-        <circle
-          cx="-10"
-          cy="-10"
-          r="13"
-          fill="url(#smoke)"
-          className="steam-puff"
-          style={{ animationDelay: "0.9s" }}
-        />
-        <circle
-          cx="-10"
-          cy="-10"
-          r="13"
-          fill="url(#smoke)"
-          className="steam-puff"
-          style={{ animationDelay: "1.1s" }}
-        />
-        <circle
-          cx="-10"
-          cy="-10"
-          r="13"
-          fill="url(#smoke)"
-          className="steam-puff"
-          style={{ animationDelay: "1.4s" }}
-        />
-      </g>
 
       {/* 1. Base Platform (Shows Owner Color) */}
       <path
@@ -161,6 +107,50 @@ const Ccgt: React.FC<CcgtProps> = ({ ownerColor, position, scale }) => {
       />
       <ellipse cx="43" cy="6" rx="7" ry="2" fill="#374151" />
       <ellipse cx="43" cy="6" rx="6" ry="1.2" fill="#111827" />
+
+      {/* Cooling Tower Steam Puffs */}
+      <g>
+        <circle
+          cx="0"
+          cy="0"
+          r="13"
+          fill="url(#smoke)"
+          className="steam-puff"
+          style={{ animationDelay: "0s" }}
+        />
+        <circle
+          cx="0"
+          cy="0"
+          r="13"
+          fill="url(#smoke)"
+          className="steam-puff"
+          style={{ animationDelay: "0.4s" }}
+        />
+        <circle
+          cx="0"
+          cy="0"
+          r="13"
+          fill="url(#smoke)"
+          className="steam-puff"
+          style={{ animationDelay: "0.9s" }}
+        />
+        <circle
+          cx="0"
+          cy="0"
+          r="13"
+          fill="url(#smoke)"
+          className="steam-puff"
+          style={{ animationDelay: "1.1s" }}
+        />
+        <circle
+          cx="0"
+          cy="0"
+          r="13"
+          fill="url(#smoke)"
+          className="steam-puff"
+          style={{ animationDelay: "1.4s" }}
+        />
+      </g>
 
       {/* 4. Main Turbine Hall */}
       <rect
@@ -223,18 +213,6 @@ const Ccgt: React.FC<CcgtProps> = ({ ownerColor, position, scale }) => {
       />
       <rect x="26" y="32" width="2" height="2" fill="#94a3b8" />
       <rect x="30" y="32" width="2" height="2" fill="#94a3b8" />
-
-      {/* Electrical Spark / Output Glow */}
-      <g transform="translate(29, 32)">
-        <circle
-          cx="0"
-          cy="0"
-          r="4.5"
-          fill="url(#electric-glow)"
-          className="spark-pulse"
-        />
-        <circle cx="0" cy="0" r="1.5" fill="#ffffff" className="spark-pulse" />
-      </g>
 
       {/* Origin: for position debugging */}
       <circle

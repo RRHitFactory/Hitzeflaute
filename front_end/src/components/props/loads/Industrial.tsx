@@ -72,10 +72,10 @@ const Industrial: React.FC<IndustrialProps> = ({
           }
 
           @keyframes smoke-rise {
-            0% { transform: translateY(0) scale(0.8); opacity: 0; }
+            0% { transform: translate(5px, -10px); opacity: 0; }
             15% { opacity: 0; }
             25% { opacity: 1; }
-            100% { transform: translateY(-20px) scale(2.5); opacity: 0; }
+            100% { transform: translate(0px, -10px); opacity: 0; }
           }
           .factory-smoke {
             animation: smoke-rise 5s infinite linear;

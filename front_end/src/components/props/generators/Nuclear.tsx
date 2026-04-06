@@ -71,10 +71,10 @@ const Nuclear: React.FC<NuclearProps> = ({ ownerColor, position, scale }) => {
 
           /* Plumes of clean water vapor */
           @keyframes vapor-rise {
-            0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+            0% { transform: translate(38px, 0px); opacity: 0; }
             20% { opacity: 0.3; }
             30% { opacity: 1; }
-            100% { transform: translate(6px, -20px) scale(2.2); opacity: 0; }
+            100% { transform: translate(50px, -50px); opacity: 0; }
           }
           .clean-plume {
             animation: vapor-rise 5s infinite linear;
@@ -103,42 +103,42 @@ const Nuclear: React.FC<NuclearProps> = ({ ownerColor, position, scale }) => {
       <path d="M-4 44 L 56 44 L 56 45 L -4 45 Z" fill="#ffffff" opacity="0.3" />
 
       {/* Clean Water Vapor Steam */}
-      <g transform="translate(38, 2)">
+      <g>
         <circle
-          cx="-10"
-          cy="-10"
+          cx="0"
+          cy="0"
           r="13"
           fill="url(#pure-steam)"
           className="clean-plume"
           style={{ animationDelay: "0s" }}
         />
         <circle
-          cx="-10"
-          cy="-10"
+          cx="0"
+          cy="0"
           r="16"
           fill="url(#pure-steam)"
           className="clean-plume"
           style={{ animationDelay: "0.4s" }}
         />
         <circle
-          cx="-10"
-          cy="-10"
+          cx="0"
+          cy="0"
           r="18"
           fill="url(#pure-steam)"
           className="clean-plume"
           style={{ animationDelay: "1.2s" }}
         />
         <circle
-          cx="-10"
-          cy="-10"
+          cx="0"
+          cy="0"
           r="12"
           fill="url(#pure-steam)"
           className="clean-plume"
           style={{ animationDelay: "1.7s" }}
         />
         <circle
-          cx="-10"
-          cy="-10"
+          cx="0"
+          cy="0"
           r="10"
           fill="url(#pure-steam)"
           className="clean-plume"

@@ -71,10 +71,10 @@ const Coal: React.FC<CoalProps> = ({ ownerColor, position, scale }) => {
 
           /* Thick Smoke Animation */
           @keyframes heavy-billow {
-            0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+            0% { transform: translateX(43px) opacity: 0; }
             25% { opacity: 0; }
             35% { opacity: 1; }
-            100% { transform: translate(0px, -20px) scale(2.2); opacity: 0; }
+            100% { transform: translate(20px, -40px); opacity: 0; }
           }
           .toxic-smoke {
             animation: heavy-billow 3s infinite linear;
@@ -126,7 +126,7 @@ const Coal: React.FC<CoalProps> = ({ ownerColor, position, scale }) => {
       />
 
       {/* Smokestack Billows */}
-      <g transform="translate(41, -2)">
+      <g transform="translate(45, -2)">
         <circle
           cx="-4"
           cy="0"

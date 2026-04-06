@@ -89,10 +89,10 @@ const GasTurbine: React.FC<GasTurbineProps> = ({
           }
 
           @keyframes fast-shimmer {
-            0% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+            0% { transform: translate(35px, 10px); opacity: 0; }
             30% { opacity: 0.0; }
             40% { opacity: 1; }
-            100% { transform: translate(6px, -5px); opacity: 0; }
+            100% { transform: translate(35px, -40px); opacity: 0; }
           }
           .smoke {
             animation: fast-shimmer 1.5s infinite linear;
@@ -125,7 +125,7 @@ const GasTurbine: React.FC<GasTurbineProps> = ({
         <ellipse cx="39" cy="6" rx="5" ry="1.5" fill="#0f172a" />
 
         {/* Smoke */}
-        <g transform="translate(15, -50)">
+        <g transform="translate(15, 10)">
           <circle
             cx="-10"
             cy="-10"
