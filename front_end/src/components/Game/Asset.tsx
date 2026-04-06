@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Asset,
@@ -34,16 +34,16 @@ interface AssetProps {
 }
 
 const technologyMap: { [key: string]: React.ElementType } = {
-  'wind': Wind,
-  'solar': Solar,
-  'nuclear': Nuclear,
-  'lignite': Lignite,
-  'gas_turbine': GasTurbine,
-  'coal': Coal,
-  'ccgt': Ccgt,
-  'freezer': Freezer,
-  'industrial-load': Industrial,
-  'residential-load': Residential,
+  wind: Wind,
+  solar: Solar,
+  nuclear: Nuclear,
+  lignite: Lignite,
+  gas_turbine: GasTurbine,
+  coal: Coal,
+  ccgt: Ccgt,
+  freezer: Freezer,
+  industrial: Industrial,
+  residential: Residential,
 };
 
 const AssetComponent: React.FC<AssetProps> = ({
@@ -73,6 +73,7 @@ const AssetComponent: React.FC<AssetProps> = ({
       Owner: owner.name,
       "Expected Power": `${asset.power_expected.toFixed(0)} MW`,
       "Marginal Cost": formatPrice(asset.marginal_cost),
+      Technology: asset.technology,
     };
 
     // Show current bid price if asset is owned by current player
@@ -150,8 +151,8 @@ const AssetComponent: React.FC<AssetProps> = ({
   const getBuyLocation = (bus: BusWithDisplayCoords, position: Position) => {
     const x_offset = position.x - bus.display_position.x;
     const y_offset = position.y - bus.display_position.y;
-    const buy_x = bus.display_position.x + x_offset * 2.2;
-    const buy_y = bus.display_position.y + y_offset * 2.2;
+    const buy_x = bus.display_position.x + x_offset * 1.5;
+    const buy_y = bus.display_position.y + y_offset * 1.5;
     return { x: buy_x, y: buy_y } as Position;
   };
 
@@ -183,12 +184,9 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   return (
-    <g
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={onLeave}
-    >
+    <g onMouseEnter={handleMouseEnter} onMouseLeave={onLeave}>
       {PropComponent ? (
-        <PropComponent ownerColor={fillColor} position={position} />
+        <PropComponent ownerColor={fillColor} position={position} scale={0.5} />
       ) : (
         <g>
           {/* Glow effect for purchasable assets (hidden in market view) */}
@@ -225,7 +223,9 @@ const AssetComponent: React.FC<AssetProps> = ({
                   : "#374151"
                 : "#374151"
             }
-            strokeWidth={viewMode === "normal" ? (isPurchasable ? "2" : "1") : "1"}
+            strokeWidth={
+              viewMode === "normal" ? (isPurchasable ? "2" : "1") : "1"
+            }
             pointerEvents="none"
           />
           {/* Asset type text */}

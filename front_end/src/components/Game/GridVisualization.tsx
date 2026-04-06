@@ -211,7 +211,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     const assets = getAssetsArray().filter((asset) => asset.bus === busId);
     return assets.map((asset, index) => {
       // Position assets around the bus using display coordinates
-      const offsetRadius = 15;
+      const offsetRadius = 30;
       const angleStep = (2 * Math.PI) / Math.max(assets.length, 4);
       const angle = index * angleStep;
 
