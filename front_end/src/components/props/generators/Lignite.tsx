@@ -68,9 +68,6 @@ const Lignite: React.FC<LigniteProps> = ({ ownerColor, position, scale }) => {
           .lignite-plant-interactive:hover .sluggish-smoke {
             animation-duration: 2s;
           }
-          .lignite-plant-interactive:hover .ember-burn {
-            animation-duration: 0.6s;
-          }
 
           @keyframes thick-drift {
             0% { transform: translate(26px, 5px); opacity: 0; }
@@ -83,14 +80,6 @@ const Lignite: React.FC<LigniteProps> = ({ ownerColor, position, scale }) => {
             transform-origin: center;
           }
 
-          @keyframes deep-pulse {
-            0%, 100% { transform: scale(0.9); opacity: 0.7; }
-            50% { transform: scale(1.15); opacity: 1; }
-          }
-          .ember-burn {
-            animation: deep-pulse 1.2s infinite ease-in-out;
-            transform-origin: center;
-          }
         `}
       </style>
 
@@ -257,13 +246,6 @@ const Lignite: React.FC<LigniteProps> = ({ ownerColor, position, scale }) => {
 
         {/* 6. Ember Glowing Furnace Vent */}
         <rect x="20" y="40" width="8" height="4" rx="1" fill="#1c1917" />
-        <circle
-          cx="24"
-          cy="42"
-          r="3.5"
-          fill="url(#ember-glow-2d)"
-          className="ember-burn"
-        />
         <rect x="22" y="41" width="4" height="2" fill="#fdba74" opacity="0.9" />
 
         {/* Origin: for position debugging */}

@@ -64,10 +64,6 @@ const Nuclear: React.FC<NuclearProps> = ({ ownerColor, position, scale }) => {
           .nuclear-plant-interactive:hover .clean-plume {
             animation-duration: 1.5s;
           }
-          .nuclear-plant-interactive:hover .reactor-pulse {
-            animation-duration: 0.8s;
-            transform: scale(1.1);
-          }
 
           /* Plumes of clean water vapor */
           @keyframes vapor-rise {
@@ -81,16 +77,6 @@ const Nuclear: React.FC<NuclearProps> = ({ ownerColor, position, scale }) => {
             transform-origin: center;
           }
 
-          /* Cherenkov Radiation Glow */
-          @keyframes blue-pulse {
-            0%, 100% { transform: scale(0.9); opacity: 0.6; }
-            50% { transform: scale(1.15); opacity: 1; filter: drop-shadow(0 0 4px #06b6d4); }
-          }
-          .reactor-pulse {
-            animation: blue-pulse 2s infinite ease-in-out;
-            transform-origin: center;
-            transition: transform 0.3s ease;
-          }
         `}
       </style>
 
@@ -210,22 +196,6 @@ const Nuclear: React.FC<NuclearProps> = ({ ownerColor, position, scale }) => {
 
       {/* 4. Glowing Reactor Vent (Cherenkov Radiation) */}
       <rect x="23" y="34" width="8" height="4" rx="1" fill="#0f172a" />
-      <circle
-        cx="27"
-        cy="36"
-        r="4"
-        fill="url(#cherenkov-glow)"
-        className="reactor-pulse"
-      />
-      <rect
-        x="24"
-        y="35"
-        width="6"
-        height="2"
-        fill="#67e8f9"
-        opacity="0.9"
-        className="reactor-pulse"
-      />
 
       {/* 5. Main Containment Dome (Foreground Left) */}
       <path

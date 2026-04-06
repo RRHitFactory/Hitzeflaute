@@ -287,13 +287,6 @@ const Coal: React.FC<CoalProps> = ({ ownerColor, position, scale }) => {
 
       {/* 6. Glowing Furnace Vent */}
       <rect x="23" y="40" width="6" height="4" rx="1" fill="#111827" />
-      <circle
-        cx="26"
-        cy="42"
-        r="3"
-        fill="url(#furnace-glow)"
-        className="furnace-fire"
-      />
       <rect x="24" y="41" width="4" height="2" fill="#fed7aa" opacity="0.8" />
 
       {/* Origin: for position debugging */}
