@@ -187,7 +187,7 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
                     <th className="pb-1 pr-2">Load</th>
                     {(() => {
                       const loadIdColIndex = loadData.columns.findIndex(
-                        (col) => col === "load_id",
+                        (col) => col === "asset_id",
                       );
                       return loadData.data.map((row: any, rowIdx: number) => {
                         const loadId =
