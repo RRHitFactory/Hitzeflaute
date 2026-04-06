@@ -8,13 +8,13 @@ import {
   Position,
 } from "@/types/game";
 import React from "react";
-import WindTurbine from "../props/generators/WindTurbine";
-import Solar from "../props/generators/Solar";
-import Nuclear from "../props/generators/Nuclear";
-import Lignite from "../props/generators/Lignite";
-import GasTurbine from "../props/generators/GasTurbine";
-import Coal from "../props/generators/Coal";
 import Ccgt from "../props/generators/Ccgt";
+import Coal from "../props/generators/Coal";
+import GasTurbine from "../props/generators/GasTurbine";
+import Lignite from "../props/generators/Lignite";
+import Nuclear from "../props/generators/Nuclear";
+import Solar from "../props/generators/Solar";
+import Wind from "../props/generators/Wind";
 import Freezer from "../props/loads/Freezer";
 import Industrial from "../props/loads/Industrial";
 import Residential from "../props/loads/Residential";
@@ -34,7 +34,7 @@ interface AssetProps {
 }
 
 const technologyMap: { [key: string]: React.ElementType } = {
-  'wind': WindTurbine,
+  'wind': Wind,
   'solar': Solar,
   'nuclear': Nuclear,
   'lignite': Lignite,

@@ -1,20 +1,19 @@
 'use client';
 
-import React from 'react';
-import WindTurbine from '@/components/props/generators/WindTurbine';
-import Solar from '@/components/props/generators/Solar';
-import Nuclear from '@/components/props/generators/Nuclear';
-import Lignite from '@/components/props/generators/Lignite';
-import GasTurbine from '@/components/props/generators/GasTurbine';
-import Coal from '@/components/props/generators/Coal';
 import Ccgt from '@/components/props/generators/Ccgt';
+import Coal from '@/components/props/generators/Coal';
+import GasTurbine from '@/components/props/generators/GasTurbine';
+import Lignite from '@/components/props/generators/Lignite';
+import Nuclear from '@/components/props/generators/Nuclear';
+import Solar from '@/components/props/generators/Solar';
+import Wind from '@/components/props/generators/Wind';
 import Freezer from '@/components/props/loads/Freezer';
 import Industrial from '@/components/props/loads/Industrial';
 import Residential from '@/components/props/loads/Residential';
 
 const PropsGalleryPage = () => {
   const components = [
-    { Component: WindTurbine, name: 'Wind Turbine' },
+    { Component: Wind, name: 'Wind Turbine' },
     { Component: Solar, name: 'Solar' },
     { Component: Nuclear, name: 'Nuclear' },
     { Component: Lignite, name: 'Lignite' },
