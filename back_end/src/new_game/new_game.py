@@ -264,6 +264,7 @@ class GameInitializer:
                     marginal_cost=0.0,
                     bid_price=round(self.settings.max_bid_price / 2),
                     is_freezer=True,
+                    technology="freezer",
                     health=self.settings.n_init_ice_cream,
                 )
             )
@@ -297,6 +298,7 @@ class GameInitializer:
                     power_expected=power_expected,
                     power_std=power_expected * 0.2,
                     is_for_sale=True,
+                    technology=random_choice(["residential-load", "industrial-load"])
                     minimum_acquisition_price=asset_price,
                     fixed_operating_cost=foc,
                     marginal_cost=marginal_cost,  # marginal_cost of loads refer to marginal utility, thus, they will create revenue

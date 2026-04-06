@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import {
   Asset,
@@ -9,6 +9,15 @@ import {
 } from "@/types/game";
 import React from "react";
 import WindTurbine from "../props/generators/WindTurbine";
+import Solar from "../props/generators/Solar";
+import Nuclear from "../props/generators/Nuclear";
+import Lignite from "../props/generators/Lignite";
+import GasTurbine from "../props/generators/GasTurbine";
+import Coal from "../props/generators/Coal";
+import Ccgt from "../props/generators/Ccgt";
+import Freezer from "../props/loads/Freezer";
+import Industrial from "../props/loads/Industrial";
+import Residential from "../props/loads/Residential";
 
 interface AssetProps {
   asset: Asset;
@@ -23,6 +32,19 @@ interface AssetProps {
   currentPlayer?: number;
   viewMode?: "normal" | "market";
 }
+
+const technologyMap: { [key: string]: React.ElementType } = {
+  'wind': WindTurbine,
+  'solar': Solar,
+  'nuclear': Nuclear,
+  'lignite': Lignite,
+  'gas_turbine': GasTurbine,
+  'coal': Coal,
+  'ccgt': Ccgt,
+  'freezer': Freezer,
+  'industrial-load': Industrial,
+  'residential-load': Residential,
+};
 
 const AssetComponent: React.FC<AssetProps> = ({
   asset,
@@ -137,6 +159,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   const radius = 5; // Increased from 12
   const fillColor = getAssetColor();
   const textColor = getContrastColor(fillColor);
+  const PropComponent = technologyMap[asset.technology];
 
   // Check if player can afford this asset
   const canAfford =
@@ -164,8 +187,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={onLeave}
     >
-      {asset.technology === "wind" ? (
-        <WindTurbine ownerColor={fillColor} position={position} />
+      {PropComponent ? (
+        <PropComponent ownerColor={fillColor} position={position} />
       ) : (
         <g>
           {/* Glow effect for purchasable assets (hidden in market view) */}
