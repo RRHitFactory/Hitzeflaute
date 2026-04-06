@@ -8,6 +8,7 @@ import {
   Position,
 } from "@/types/game";
 import React from "react";
+import WindTurbine from "../props/generators/WindTurbine";
 
 interface AssetProps {
   asset: Asset;
@@ -159,58 +160,66 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   return (
-    <g>
-      {/* Glow effect for purchasable assets (hidden in market view) */}
-      {isPurchasable && viewMode === "normal" && (
-        <circle
-          cx={position.x}
-          cy={position.y}
-          r={radius}
-          fill="none"
-          stroke="#ffd700"
-          strokeWidth="3"
-          opacity="0.8"
-          className="animate-pulse"
-        />
+    <g
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={onLeave}
+    >
+      {asset.technology === "wind" ? (
+        <WindTurbine ownerColor={fillColor} position={position} />
+      ) : (
+        <g>
+          {/* Glow effect for purchasable assets (hidden in market view) */}
+          {isPurchasable && viewMode === "normal" && (
+            <circle
+              cx={position.x}
+              cy={position.y}
+              r={radius}
+              fill="none"
+              stroke="#ffd700"
+              strokeWidth="3"
+              opacity="0.8"
+              className="animate-pulse"
+            />
+          )}
+          {/* Invisible larger hover area */}
+          <circle
+            cx={position.x}
+            cy={position.y}
+            r={radius}
+            fill="transparent"
+            style={{ cursor: "default" }}
+          />
+          {/* Main asset circle */}
+          <circle
+            cx={position.x}
+            cy={position.y}
+            r={radius}
+            fill={fillColor}
+            stroke={
+              viewMode === "normal"
+                ? isPurchasable
+                  ? "#ffd700"
+                  : "#374151"
+                : "#374151"
+            }
+            strokeWidth={viewMode === "normal" ? (isPurchasable ? "2" : "1") : "1"}
+            pointerEvents="none"
+          />
+          {/* Asset type text */}
+          <text
+            x={position.x}
+            y={position.y + 5}
+            textAnchor="middle"
+            fontSize="14"
+            fill={textColor}
+            pointerEvents="none"
+            fontWeight="bold"
+          >
+            {getAssetText()}
+          </text>
+        </g>
       )}
-      {/* Invisible larger hover area */}
-      <circle
-        cx={position.x}
-        cy={position.y}
-        r={radius}
-        fill="transparent"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={onLeave}
-        style={{ cursor: "default" }}
-      />
-      {/* Main asset circle */}
-      <circle
-        cx={position.x}
-        cy={position.y}
-        r={radius}
-        fill={fillColor}
-        stroke={
-          viewMode === "normal"
-            ? isPurchasable
-              ? "#ffd700"
-              : "#374151"
-            : "#374151"
-        }
-        strokeWidth={viewMode === "normal" ? (isPurchasable ? "2" : "1") : "1"}
-        pointerEvents="none"
-      />{" "}
-      {/* Asset type text */}
-      <text
-        x={position.x}
-        y={position.y + 5}
-        textAnchor="middle"
-        fontSize="14"
-        fill={textColor}
-        pointerEvents="none"
-        fontWeight="bold"
-      >
-        {getAssetText()}
-      </text>
+
       {/* Purchase button for purchasable assets (hidden in market view) */}
       {isPurchasable && viewMode === "normal" && (
         <g className="purchase-button" opacity="0.9">
