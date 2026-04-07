@@ -243,6 +243,10 @@ class GameInitializer:
         socket_manager = BusSocketManager(starting_sockets={b.id: b.max_assets for b in bus_repo})
 
         # Create one freezer load for each player
+        freezer_power = 50
+        freezer_bid = int(np.floor(self.settings.initial_funds/freezer_power))
+        # The initial freezer bid is the highest affordable bid for the player at the start of the game
+
         for player_id in player_repo.player_ids:
             if player_id == PlayerId.get_npc():
                 continue
@@ -256,13 +260,13 @@ class GameInitializer:
                     owner_player=player_id,
                     asset_type=AssetType.LOAD,
                     bus=bus_id,
-                    power_expected=50.0,
+                    power_expected=freezer_power,
                     power_std=0.0,
                     is_for_sale=False,
                     minimum_acquisition_price=0.0,
                     fixed_operating_cost=0,
                     marginal_cost=0.0,
-                    bid_price=round(self.settings.max_bid_price / 2),
+                    bid_price=freezer_bid,
                     is_freezer=True,
                     health=self.settings.n_init_ice_cream,
                 )
