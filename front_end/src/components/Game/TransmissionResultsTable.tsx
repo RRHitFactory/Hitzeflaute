@@ -43,9 +43,6 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
   // Parse the line results using parseDataFrameToDict
   const parsedLineDict = parseDataFrameToDict(lineResults);
 
-  // Debug log to show the dictionary format
-  console.log(`Line ${lineId} results dict:`, parsedLineDict);
-
   // Define the order of fields to display
   const fieldOrder = [
     "health",

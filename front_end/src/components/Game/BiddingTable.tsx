@@ -1,6 +1,6 @@
 "use client";
 
-import { Asset } from "@/types/game";
+import { Asset, AssetType } from "@/types/game";
 import React from "react";
 
 interface BiddingTableProps {
@@ -37,7 +37,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
         ? pendingBids[asset.id]
         : asset.bid_price;
 
-    if (asset.asset_type === "LOAD") {
+    if (asset.asset_type === AssetType.LOAD) {
       // For loads: power_expected * (marginal_cost - bid_price)
       const cashflow = asset.power_expected * (asset.marginal_cost - bidPrice);
       return Math.max(0, cashflow); // Clip negative values to zero
@@ -94,6 +94,9 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
                 Asset
               </th>
               <th scope="col" className="px-3 pt-1">
+                Bus<br></br>
+              </th>
+              <th scope="col" className="px-3 pt-1">
                 Power<br></br>
               </th>
               <th scope="col" className="px-3 pt-1">
@@ -109,6 +112,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
           </thead>
           <thead className="text-xs text-gray-700 bg-gray-50">
             <tr>
+              <th scope="col" className="px-3 pb-1"></th>
               <th scope="col" className="px-3 pb-1"></th>
               <th scope="col" className="px-3 pb-1">
                 MW
@@ -138,9 +142,14 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
                   className="bg-white border-b hover:bg-gray-50"
                 >
                   <td className="px-3 py-2 font-medium text-gray-900">
-                    {asset.asset_type === "GENERATOR" ? "Gen" : "Load"}
+                    {asset.asset_type === AssetType.GENERATOR
+                      ? "Gen "
+                      : asset.is_freezer
+                        ? "Freezer "
+                        : "Load "}
                     {asset.id}
                   </td>
+                  <td className="px-3 py-2">{formatNumber(asset.bus)}</td>
                   <td className="px-3 py-2">
                     {formatNumber(asset.power_expected)}
                   </td>
