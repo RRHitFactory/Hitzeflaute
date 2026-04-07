@@ -64,6 +64,7 @@ export interface Asset {
   health: number;
   is_active: boolean;
   birthday: number;
+  technology: string;
   color: string;
 }
 
