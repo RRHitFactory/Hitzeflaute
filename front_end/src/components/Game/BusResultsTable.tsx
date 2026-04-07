@@ -44,6 +44,7 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
 
   const generationData = parseDataFrame(generationDf);
   const loadData = parseDataFrame(loadDf);
+  const isImporting = net_position < 0;
 
   // Helper function to get unit suffix based on column name
   const getUnitSuffix = (columnName: string): string => {
