@@ -1,12 +1,12 @@
 "use client";
-
-import { MarketCouplingSummary } from "@/types/game";
+import { MarketCouplingSummary, Player } from "@/types/game";
 import React from "react";
 import { formatNumber, parseDataFrame } from "./utils";
 
 interface BusResultsTableProps {
   busId: number;
   marketSummary: MarketCouplingSummary;
+  players: Player[];
   position: { x: number; y: number };
   onClose: () => void;
 }
@@ -14,6 +14,7 @@ interface BusResultsTableProps {
 const BusResultsTable: React.FC<BusResultsTableProps> = ({
   busId,
   marketSummary,
+  players,
   position,
   onClose,
 }) => {
@@ -99,28 +100,44 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
 
   // Helper function to get status color class
   const getStatusColorClass = (status: string) => {
-    switch (status) {
-      case "at-money":
-        return "text-blue-800";
-      case "out-of-money":
-        return "text-gray-300";
-      default:
-        return "text-black";
-    }
+    if (status == "out-of-money") return "text-gray-300";
+    return "text-black";
   };
 
   // Helper function to format cell value
-  const formatCellValue = (colName: string, cellValue: any) => {
+  const formatCellValue = (
+    colName: string,
+    cellValue: any,
+    rowIdx: number,
+    isGenerator: boolean = true,
+  ) => {
     if (colName === "owner_player") {
       const ownerId = parseInt(cellValue);
-      return ownerId === -1 ? "NPC" : ownerId.toString();
+      if (ownerId === -1) {
+        return "NPC";
+      }
+      // Find player by ID and return trigram
+      const player = players?.find((p) => p.id === ownerId);
+      return player ? player.trigram : ownerId.toString();
     } else {
-      return formatNumber(cellValue, 1);
+      const formattedValue = formatNumber(cellValue, 1);
+      // Add asterisk for at-money assets in price columns
+      if (colName.toLowerCase() == "bid_price") {
+        const statuses = isGenerator ? generationStatuses : loadStatuses;
+        const status = statuses[rowIdx] || "unknown";
+        if (status === "at-money") {
+          return `${formattedValue}*`;
+        }
+      }
+      return formattedValue;
     }
   };
 
   // Determine asset statuses for generation and load data
-  const getAssetStatuses = (data: any, isGenerator: boolean = true) => {
+  const getAssetStatuses = (
+    data: any,
+    isGenerator: boolean = true,
+  ): string[] => {
     if (!data || !data.columns || !data.data) {
       return [];
     }
@@ -144,6 +161,11 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
       : [];
   const loadStatuses =
     loadData.columns.length > 0 ? getAssetStatuses(loadData, false) : [];
+
+  // Check if at least one asset is at the money
+  const hasAtMoneyAssets =
+    generationStatuses.some((status: string) => status === "at-money") ||
+    loadStatuses.some((status: string) => status === "at-money");
 
   return (
     <div
@@ -171,7 +193,7 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
       <div className="space-y-2 pr-2">
         <div className="flex justify-between text-xs">
           <span className="text-gray-600 font-medium">Market Price:</span>
-          <span className="text-blue-800 font-bold">
+          <span className="text-gray-900 font-bold">
             {formatNumber(price, 2)} €/MWh
           </span>
         </div>
@@ -239,6 +261,8 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
                               const formattedValue = formatCellValue(
                                 colName,
                                 cellValue,
+                                rowIdx,
+                                true,
                               );
                               const status =
                                 generationStatuses[rowIdx] || "unknown";
@@ -311,6 +335,8 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
                           const formattedValue = formatCellValue(
                             colName,
                             cellValue,
+                            rowIdx,
+                            false,
                           );
                           const status = loadStatuses[rowIdx] || "unknown";
                           const statusClass = getStatusColorClass(status);
@@ -330,6 +356,11 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
                 </tbody>
               </table>
             </div>
+            {hasAtMoneyAssets && (
+              <div className="mt-2 text-xs text-gray-500 italic">
+                * Price-setting bid
+              </div>
+            )}
           </div>
         )}
       </div>

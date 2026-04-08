@@ -109,6 +109,7 @@ class PlayerRepoMaker(RepoMaker[PlayerRepo, Player]):
 
     def _make_dc(self) -> Player:
         player_id = next(self.id_counter)
+
         hue = np.random.randint(0, 255)
         saturation = np.random.randint(200, 255)
         value = 200
@@ -117,6 +118,7 @@ class PlayerRepoMaker(RepoMaker[PlayerRepo, Player]):
         return Player(
             id=PlayerId(player_id),
             name=f"Player {player_id}",
+            trigram=f"PL{int(player_id)}",
             color=color,
             money=float(np.random.rand() * 100),  # Just an example of money
             is_having_turn=random_choice([False, True]),

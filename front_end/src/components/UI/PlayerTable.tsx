@@ -78,7 +78,7 @@ const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState }) => {
                 className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900"
                 style={{ width: "35%" }}
               >
-                {player.name}
+                {player.trigram} - {player.name}
               </td>
               <td
                 className="px-2 py-2 whitespace-nowrap text-sm text-gray-500"

@@ -13,6 +13,7 @@ from src.models.ids import PlayerId
 class Player(LightDc):
     id: PlayerId
     name: str
+    trigram: str
     color: Color
     money: float
     is_having_turn: bool  # Note that multiple players can have turns at the same time
@@ -23,6 +24,7 @@ class Player(LightDc):
         return cls(
             id=PlayerId.get_npc(),
             name="NPC",
+            trigram="NPC",
             color=Color("black"),
             money=0.0,
             is_having_turn=False,

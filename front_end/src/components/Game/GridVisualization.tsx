@@ -6,6 +6,7 @@ import {
   GameState,
   HoverableElement,
   mapBackendToDisplay,
+  Player,
   NPC_PLAYER_ID,
 } from "@/types/game";
 import React, { useCallback, useMemo, useState } from "react";
@@ -451,6 +452,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
           <BusResultsTable
             busId={selectedBusForMarket}
             marketSummary={gameState.market_summary}
+            players={getPlayersArray()}
             position={marketPanelPosition}
             onClose={() => setSelectedBusForMarket(null)}
           />

@@ -1,11 +1,11 @@
-from src.new_game.new_game import GameInitializer
-
 from src.models.assets import AssetInfo, AssetRepo
 from src.models.buses import Bus, BusRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
 from src.models.ids import GameId, PlayerId
 from src.models.transmission import TransmissionRepo
+from src.new_game.new_game import GameInitializer
+from src.new_game.trigram_maker import make_trigrams
 from tests.base_test import BaseTest
 
 
@@ -51,3 +51,8 @@ class TestGameInitializer(BaseTest):
                 0,
                 f"Bus {bus_id} should be connected",
             )
+
+    def test_trigram(self) -> None:
+        names = ["Sergio Zambrano", "Roman Cantu", "Giancarlo Marzano", "Alberte Bouso", "Robbie Muir"]
+        trigrams = make_trigrams(names)
+        self.assertEqual(trigrams, ["SZA", "RCA", "GMA", "ABO", "RMU"])
