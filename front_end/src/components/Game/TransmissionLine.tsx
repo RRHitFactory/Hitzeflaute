@@ -187,11 +187,6 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     maxFlow > 0 ? Math.abs(Number(flowValue) || 0) / maxFlow : 0;
   const flowForward = flowValue >= 0;
 
-  // Debug logs
-  console.log(
-    `Line ${line.id}: actualFlow=${actualFlow}, flowForward=${flowForward}, flowRatio=${flowRatio}`,
-  );
-
   return (
     <g>
       {/* Glow effect for purchasable lines (hidden in market view) */}

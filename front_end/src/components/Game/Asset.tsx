@@ -2,12 +2,23 @@
 
 import {
   Asset,
+  AssetType,
   BusWithDisplayCoords,
   HoverableElement,
   Player,
   Position,
 } from "@/types/game";
 import React from "react";
+import Ccgt from "../props/generators/Ccgt";
+import Coal from "../props/generators/Coal";
+import GasTurbine from "../props/generators/GasTurbine";
+import Lignite from "../props/generators/Lignite";
+import Nuclear from "../props/generators/Nuclear";
+import Solar from "../props/generators/Solar";
+import Wind from "../props/generators/Wind";
+import Freezer from "../props/loads/Freezer";
+import Industrial from "../props/loads/Industrial";
+import Residential from "../props/loads/Residential";
 
 interface AssetProps {
   asset: Asset;
@@ -22,6 +33,19 @@ interface AssetProps {
   currentPlayer?: number;
   viewMode?: "normal" | "market";
 }
+
+const technologyMap: { [key: string]: React.ElementType } = {
+  wind: Wind,
+  solar: Solar,
+  nuclear: Nuclear,
+  lignite: Lignite,
+  gas_turbine: GasTurbine,
+  coal: Coal,
+  ccgt: Ccgt,
+  freezer: Freezer,
+  industrial: Industrial,
+  residential: Residential,
+};
 
 const AssetComponent: React.FC<AssetProps> = ({
   asset,
@@ -40,7 +64,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
 
   const getAssetTitle = () => {
-    const type = asset.asset_type === "GENERATOR" ? "Gen" : "Load";
+    const type = asset.asset_type === AssetType.GENERATOR ? "Gen" : "Load";
     const title = `${type}${asset.id}`;
     return asset.is_freezer ? `${title} (Freezer)` : title;
   };
@@ -50,6 +74,7 @@ const AssetComponent: React.FC<AssetProps> = ({
       Owner: owner.name,
       "Expected Power": `${asset.power_expected.toFixed(0)} MW`,
       "Marginal Cost": formatPrice(asset.marginal_cost),
+      Technology: asset.technology,
     };
 
     // Show current bid price if asset is owned by current player
@@ -92,8 +117,8 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   const getAssetText = () => {
-    if (asset.asset_type === "GENERATOR") return "G";
-    if (asset.asset_type === "LOAD") {
+    if (asset.asset_type === AssetType.GENERATOR) return "G";
+    if (asset.asset_type === AssetType.LOAD) {
       return asset.is_freezer ? "F" : "L";
     }
     return "";
@@ -127,8 +152,8 @@ const AssetComponent: React.FC<AssetProps> = ({
   const getBuyLocation = (bus: BusWithDisplayCoords, position: Position) => {
     const x_offset = position.x - bus.display_position.x;
     const y_offset = position.y - bus.display_position.y;
-    const buy_x = bus.display_position.x + x_offset * 2.2;
-    const buy_y = bus.display_position.y + y_offset * 2.2;
+    const buy_x = bus.display_position.x + x_offset * 1.5;
+    const buy_y = bus.display_position.y + y_offset * 1.5;
     return { x: buy_x, y: buy_y } as Position;
   };
 
@@ -136,6 +161,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   const radius = 5; // Increased from 12
   const fillColor = getAssetColor();
   const textColor = getContrastColor(fillColor);
+  const PropComponent = technologyMap[asset.technology];
 
   // Check if player can afford this asset
   const canAfford =
@@ -159,58 +185,65 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   return (
-    <g>
-      {/* Glow effect for purchasable assets (hidden in market view) */}
-      {isPurchasable && viewMode === "normal" && (
-        <circle
-          cx={position.x}
-          cy={position.y}
-          r={radius}
-          fill="none"
-          stroke="#ffd700"
-          strokeWidth="3"
-          opacity="0.8"
-          className="animate-pulse"
-        />
+    <g onMouseEnter={handleMouseEnter} onMouseLeave={onLeave}>
+      {PropComponent ? (
+        <PropComponent ownerColor={fillColor} position={position} scale={0.5} />
+      ) : (
+        <g>
+          {/* Glow effect for purchasable assets (hidden in market view) */}
+          {isPurchasable && viewMode === "normal" && (
+            <circle
+              cx={position.x}
+              cy={position.y}
+              r={radius}
+              fill="none"
+              stroke="#ffd700"
+              strokeWidth="3"
+              opacity="0.8"
+              className="animate-pulse"
+            />
+          )}
+          {/* Invisible larger hover area */}
+          <circle
+            cx={position.x}
+            cy={position.y}
+            r={radius}
+            fill="transparent"
+            style={{ cursor: "default" }}
+          />
+          {/* Main asset circle */}
+          <circle
+            cx={position.x}
+            cy={position.y}
+            r={radius}
+            fill={fillColor}
+            stroke={
+              viewMode === "normal"
+                ? isPurchasable
+                  ? "#ffd700"
+                  : "#374151"
+                : "#374151"
+            }
+            strokeWidth={
+              viewMode === "normal" ? (isPurchasable ? "2" : "1") : "1"
+            }
+            pointerEvents="none"
+          />
+          {/* Asset type text */}
+          <text
+            x={position.x}
+            y={position.y + 5}
+            textAnchor="middle"
+            fontSize="14"
+            fill={textColor}
+            pointerEvents="none"
+            fontWeight="bold"
+          >
+            {getAssetText()}
+          </text>
+        </g>
       )}
-      {/* Invisible larger hover area */}
-      <circle
-        cx={position.x}
-        cy={position.y}
-        r={radius}
-        fill="transparent"
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={onLeave}
-        style={{ cursor: "default" }}
-      />
-      {/* Main asset circle */}
-      <circle
-        cx={position.x}
-        cy={position.y}
-        r={radius}
-        fill={fillColor}
-        stroke={
-          viewMode === "normal"
-            ? isPurchasable
-              ? "#ffd700"
-              : "#374151"
-            : "#374151"
-        }
-        strokeWidth={viewMode === "normal" ? (isPurchasable ? "2" : "1") : "1"}
-        pointerEvents="none"
-      />{" "}
-      {/* Asset type text */}
-      <text
-        x={position.x}
-        y={position.y + 5}
-        textAnchor="middle"
-        fontSize="14"
-        fill={textColor}
-        pointerEvents="none"
-        fontWeight="bold"
-      >
-        {getAssetText()}
-      </text>
+
       {/* Purchase button for purchasable assets (hidden in market view) */}
       {isPurchasable && viewMode === "normal" && (
         <g className="purchase-button" opacity="0.9">
