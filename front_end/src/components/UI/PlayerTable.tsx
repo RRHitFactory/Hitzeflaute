@@ -37,15 +37,15 @@ const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState }) => {
           <tr>
             <th
               className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              style={{ width: "15%" }}
+              style={{ width: "20%" }}
             >
-              Color
+              Player
             </th>
             <th
               className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              style={{ width: "35%" }}
+              style={{ width: "30%" }}
             >
-              Player
+              Name
             </th>
             <th
               className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -66,28 +66,33 @@ const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState }) => {
             <tr key={player.id} className="hover:bg-gray-50">
               <td
                 className="px-2 py-2 whitespace-nowrap"
-                style={{ width: "15%" }}
+                style={{ width: "20%" }}
               >
-                <div
-                  className="w-4 h-4 rounded-full border border-gray-300"
-                  style={{ backgroundColor: player.color }}
-                  title={`${player.name}'s color: ${player.color}`}
-                />
+                <div className="flex items-center gap-2">
+                  <div
+                    className="w-5 h-5 rounded-full border border-gray-300 flex-shrink-0 mt-[2px]"
+                    style={{ backgroundColor: player.color }}
+                    title={`${player.name}'s color: ${player.color}`}
+                  />
+                  <span className="text-sm font-medium text-gray-900 leading-none">
+                    {player.trigram}
+                  </span>
+                </div>
               </td>
               <td
                 className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900"
-                style={{ width: "35%" }}
+                style={{ width: "30%" }}
               >
                 {player.name}
               </td>
               <td
-                className="px-2 py-2 whitespace-nowrap text-sm text-gray-500"
+                className="px-2 py-2 whitespace-nowrap text-sm text-gray-900"
                 style={{ width: "35%" }}
               >
                 {formatMoney(player.money)}
               </td>
               <td
-                className="px-2 py-2 whitespace-nowrap text-sm text-gray-500 text-center"
+                className="px-2 py-2 whitespace-nowrap text-sm text-gray-900"
                 style={{ width: "15%" }}
               >
                 {getIceCreams(player.id)}

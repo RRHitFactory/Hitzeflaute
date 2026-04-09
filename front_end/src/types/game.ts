@@ -71,6 +71,7 @@ export interface Asset {
 export interface Player {
   id: number;
   name: string;
+  trigram: string;
   money: number;
   color: string;
   assets: number[];

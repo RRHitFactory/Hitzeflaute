@@ -46,7 +46,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
 
   const getLineData = () => {
     const data: { [key: string]: string } = {
-      Owner: owner.name,
+      Owner: owner.trigram,
       Health: line.health.toString(),
     };
 

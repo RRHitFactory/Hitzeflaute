@@ -15,6 +15,7 @@ from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
 from src.new_game.generators.generator_maker import GeneratorMaker
 from src.new_game.price_asset import price_asset
+from src.new_game.trigram_maker import make_trigrams
 from src.tools.random_choice import random_choice, random_choice_multi
 
 __all__ = ["GameInitializer"]
@@ -197,16 +198,21 @@ class GameInitializer:
 
     def _create_player_repo(self, names: list[str], colors: list[Color]) -> PlayerRepo:
         assert len(names) == len(colors), "Number of player names and colors must match"
+        assert len(set(names)) == len(names), "Names must be unique"
+        assert all(len(n) >= 1 for n in names), "Names must have at least one letter"
+        trigrams = make_trigrams(names)
 
+        ids = [PlayerId(i) for i in range(1, len(names) + 1)]
         players = [
             Player(
-                id=PlayerId(i),
+                id=pid,
                 name=name,
+                trigram=tri,
                 color=color,
                 money=self.settings.initial_funds,
                 is_having_turn=False,  # Initial state, no player has a turn yet
             )
-            for i, (name, color) in enumerate(zip(names, colors), start=1)
+            for pid, name, tri, color in zip(ids, names, trigrams, colors)
         ]
         players.append(Player.make_npc())
 
@@ -243,6 +249,10 @@ class GameInitializer:
         socket_manager = BusSocketManager(starting_sockets={b.id: b.max_assets for b in bus_repo})
 
         # Create one freezer load for each player
+        freezer_power = 50
+        freezer_bid = int(np.floor(self.settings.initial_funds / freezer_power))
+        # The initial freezer bid is the highest affordable bid for the player at the start of the game
+
         for player_id in player_repo.player_ids:
             if player_id == PlayerId.get_npc():
                 continue
@@ -256,13 +266,13 @@ class GameInitializer:
                     owner_player=player_id,
                     asset_type=AssetType.LOAD,
                     bus=bus_id,
-                    power_expected=50.0,
+                    power_expected=freezer_power,
                     power_std=0.0,
                     is_for_sale=False,
                     minimum_acquisition_price=0.0,
                     fixed_operating_cost=0,
                     marginal_cost=0.0,
-                    bid_price=round(self.settings.max_bid_price / 2),
+                    bid_price=freezer_bid,
                     is_freezer=True,
                     technology="freezer",
                     health=self.settings.n_init_ice_cream,

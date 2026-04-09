@@ -28,7 +28,7 @@ const BusComponent: React.FC<BusProps> = ({
           id: bus.id,
           title: `Bus${bus.id}`,
           data: {
-            Owner: owner.name,
+            Owner: owner.trigram,
           },
         },
         event,

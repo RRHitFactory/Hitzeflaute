@@ -90,11 +90,17 @@ export default function Home() {
     return playersArray.find((p: any) => p.id === currentPlayerFromGameState);
   }, [gameState, currentPlayerFromGameState]);
 
-  // Calculate current player name from gameState
+  // Calculate current player name and trigram from gameState
   const currentPlayerName = React.useMemo(() => {
     return currentPlayerObj
       ? currentPlayerObj.name
       : `Player ${currentPlayerFromGameState}`;
+  }, [currentPlayerObj, currentPlayerFromGameState]);
+
+  const currentPlayerTrigram = React.useMemo(() => {
+    return currentPlayerObj
+      ? currentPlayerObj.trigram
+      : `P${currentPlayerFromGameState}`;
   }, [currentPlayerObj, currentPlayerFromGameState]);
 
   const { createGame, loading: creatingGame } = useCreateGame();
@@ -487,6 +493,7 @@ export default function Home() {
               gameState={gameState}
               gameId={gameId?.toString() || null}
               currentPlayerName={currentPlayerName}
+              currentPlayerTrigram={currentPlayerTrigram}
               currentPlayerColor={currentPlayerObj?.color}
               isConnected={isConnected}
               onEndTurn={handleEndTurn}

@@ -66,6 +66,7 @@ class TestEngine(BaseTest):
         rich_player = Player(
             id=PlayerId(100),
             name="Rich player",
+            trigram="RPL",
             color=Color("black"),
             money=1000000,
             is_having_turn=True,
@@ -99,6 +100,7 @@ class TestEngine(BaseTest):
         rich_player = Player(
             id=PlayerId(100),
             name="Rich player",
+            trigram="RPL",
             color=Color("black"),
             money=1000000,
             is_having_turn=True,
@@ -205,6 +207,7 @@ class TestEngine(BaseTest):
         broke_player = Player(
             id=PlayerId(100),
             name="Broke player",
+            trigram="BRO",
             color=Color("black"),
             money=-100,
             is_having_turn=True,
