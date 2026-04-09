@@ -71,7 +71,7 @@ const AssetComponent: React.FC<AssetProps> = ({
 
   const getAssetData = () => {
     const data: { [key: string]: string } = {
-      Owner: owner.name,
+      Owner: owner.trigram,
       "Expected Power": `${asset.power_expected.toFixed(0)} MW`,
       "Marginal Cost": formatPrice(asset.marginal_cost),
       Technology: asset.technology,

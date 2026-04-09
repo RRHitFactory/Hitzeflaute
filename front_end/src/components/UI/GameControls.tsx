@@ -7,6 +7,7 @@ interface GameControlsProps {
   gameState: GameState;
   gameId: string | null;
   currentPlayerName: string;
+  currentPlayerTrigram: string;
   currentPlayerColor: string;
   isConnected: boolean;
   onEndTurn: () => void;
@@ -19,6 +20,7 @@ const GameControls: React.FC<GameControlsProps> = ({
   gameState,
   gameId,
   currentPlayerName,
+  currentPlayerTrigram,
   currentPlayerColor,
   isConnected,
   onEndTurn,
@@ -30,7 +32,7 @@ const GameControls: React.FC<GameControlsProps> = ({
     <div className="bg-white rounded-lg shadow-sm border p-6">
       <h3 className="text-lg font-bold text-black">Controls</h3>
       {/* Current Player Info - Centered */}
-      {currentPlayerName && (
+      {currentPlayerTrigram && (
         <div className="flex justify-left items-center gap-3 pt-2 pb-4">
           {currentPlayerColor && (
             <div
@@ -40,7 +42,7 @@ const GameControls: React.FC<GameControlsProps> = ({
             ></div>
           )}
           <span className="text-lg font-bold text-gray-900 whitespace-nowrap">
-            {currentPlayerName}
+            {currentPlayerTrigram}
           </span>
         </div>
       )}

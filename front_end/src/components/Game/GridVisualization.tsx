@@ -338,7 +338,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     : 0;
 
   return (
-    <div className="relative w-full h-[500px] bg-gray-50 rounded-lg border overflow-hidden">
+    <div className="relative w-full h-[700px] bg-gray-50 rounded-lg border overflow-hidden">
       {/* View Toggle in top left corner */}
       <div className="absolute top-2 left-2 z-10">
         <ViewToggle

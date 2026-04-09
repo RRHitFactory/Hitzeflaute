@@ -82,7 +82,7 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
   };
 
   // Helper function to determine asset status based on price
-  const getAssetStatus = (priceValue: any, isGenerator: boolean = true) => {
+  const getAssetStatus = (priceValue: number, isGenerator: boolean = true) => {
     if (typeof priceValue !== "number" || typeof price !== "number") {
       return "unknown";
     }
@@ -143,7 +143,7 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
     }
 
     const priceColIndex = data.columns.findIndex((col: any) =>
-      col.toLowerCase().includes("price"),
+      col.toLowerCase() == "bid_price",
     );
 
     if (priceColIndex === -1) {
@@ -356,11 +356,11 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
                 </tbody>
               </table>
             </div>
-            {hasAtMoneyAssets && (
-              <div className="mt-2 text-xs text-gray-500 italic">
-                * Price-setting bid
-              </div>
-            )}
+          </div>
+        )}
+        {hasAtMoneyAssets && (
+          <div className="mt-2 text-xs text-gray-500 italic">
+            * Price-setting bid
           </div>
         )}
       </div>
