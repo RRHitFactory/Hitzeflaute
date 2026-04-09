@@ -142,8 +142,8 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
       return [];
     }
 
-    const priceColIndex = data.columns.findIndex((col: any) =>
-      col.toLowerCase() == "bid_price",
+    const priceColIndex = data.columns.findIndex(
+      (col: any) => col.toLowerCase() == "bid_price",
     );
 
     if (priceColIndex === -1) {
