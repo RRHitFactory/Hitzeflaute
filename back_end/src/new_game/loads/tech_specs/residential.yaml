@@ -1,0 +1,31 @@
+capacity:
+  base: 20
+  change_per_round: 20
+  max: 200
+  min: 0
+
+normalised_power_std: 0.1
+
+capital_cost_per_mw:
+  base: 2000
+  change_per_round: -100
+  max: 2000
+  min: 800
+
+fixed_cost:
+  base: 200
+  change_per_round: 0
+  max: 200
+  min: 0
+
+marginal_cost:
+  base: 400
+  change_per_round: 20
+  max: 400
+  min: 140
+
+lifespan:
+  base: 30
+  change_per_round: 1
+  max: 50
+  min: 30

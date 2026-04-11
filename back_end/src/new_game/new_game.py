@@ -14,7 +14,7 @@ from src.models.ids import BusId, GameId, PlayerId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
 from src.new_game.generators.generator_maker import GeneratorMaker
-from src.new_game.price_asset import price_asset
+from src.new_game.loads.load_maker import LoadMaker
 from src.new_game.trigram_maker import make_trigrams
 from src.tools.random_choice import random_choice, random_choice_multi
 
@@ -286,37 +286,12 @@ class GameInitializer:
             asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=0, player_id=PlayerId.get_npc())
             assets.append(asset)
 
-        rng = np.random.default_rng()
+        load_maker = LoadMaker()
         for _ in range(self.settings.n_init_non_freezer_loads):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
+            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=0, player_id=PlayerId.get_npc(), except_freezer=True)
+            assets.append(asset)
 
-            # TODO Use same pattern as GeneratorMaker
-            foc = 50 + round(rng.uniform(low=-10, high=10))
-            marginal_cost = 500 + round(rng.uniform(low=-200, high=200))
-            power_expected = 60 + round(rng.uniform(low=-10, high=10))
-            bid_price = round((marginal_cost * power_expected - foc) / power_expected) - 1
-            health = 5
-
-            asset_price = price_asset(kind="load", marginal_price=marginal_cost, expected_power=power_expected, foc=foc, lifespan=health)
-
-            assets.append(
-                AssetInfo(
-                    id=next(asset_ids),
-                    owner_player=PlayerId.get_npc(),
-                    asset_type=AssetType.LOAD,
-                    bus=bus_id,
-                    power_expected=power_expected,
-                    power_std=power_expected * 0.2,
-                    is_for_sale=True,
-                    technology=random_choice(["residential", "industrial"]),
-                    minimum_acquisition_price=asset_price,
-                    fixed_operating_cost=foc,
-                    marginal_cost=marginal_cost,  # marginal_cost of loads refer to marginal utility, thus, they will create revenue
-                    bid_price=bid_price,
-                    is_freezer=False,
-                    health=5,
-                )
-            )
         return AssetRepo(assets)
 
     def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> TransmissionRepo:
