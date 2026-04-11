@@ -39,7 +39,7 @@ class Phase(IntEnum):
         return Phase(next_index)
 
 
-type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round
+type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | GameSettings
 
 
 @dataclass(frozen=True)

@@ -10,7 +10,7 @@ from src.models.colors import Color, get_random_player_colors
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
 from src.models.geometry import Point, Shape
-from src.models.ids import BusId, GameId, PlayerId
+from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
 from src.new_game.generators.generator_maker import GeneratorMaker
@@ -283,13 +283,13 @@ class GameInitializer:
         gen_maker = GeneratorMaker()
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-            asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=0, player_id=PlayerId.get_npc())
+            asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0), player_id=PlayerId.get_npc())
             assets.append(asset)
 
         load_maker = LoadMaker()
         for _ in range(self.settings.n_init_non_freezer_loads):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=0, player_id=PlayerId.get_npc(), except_freezer=True)
+            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0), player_id=PlayerId.get_npc(), except_freezer=True)
             assets.append(asset)
 
         return AssetRepo(assets)
