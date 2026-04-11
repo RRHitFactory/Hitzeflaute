@@ -3,7 +3,6 @@ from src.models.game_state import GameState
 from src.models.ids import AssetId
 from src.models.message import (
     AssetBuiltMessage,
-    GridExpansionMessage,
     TransmissionBuiltMessage,
 )
 from src.new_game.generators.generator_maker import GeneratorMaker
@@ -14,7 +13,7 @@ from src.tools.random_choice import sample_boolean
 class GridExpansion:
 
     @classmethod
-    def build_grid_elements_for_new_round(cls, game_state: GameState) -> tuple[GameState, list[GridExpansionMessage]]:
+    def build_grid_elements_for_new_round(cls, game_state: GameState) -> tuple[GameState, list[AssetBuiltMessage | TransmissionBuiltMessage]]:
         new_game_state, build_transmission_msgs = cls.try_build_transmission(game_state)
         new_game_state, build_asset_msgs = cls.try_build_asset(game_state)
         all_msgs = build_transmission_msgs + build_asset_msgs
