@@ -12,7 +12,7 @@ from types import MappingProxyType
 from pydantic import BaseModel
 
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
-from src.models.message import BuyRequest, EndTurn, GameToPlayerMessage, OperateLineRequest, PlayerToGameMessage, UpdateBatchBidsRequest, UpdateBidRequest
+from src.models.message import ActivationUpdateRequest, BuyRequest, EndTurn, GameToPlayerMessage, PlayerToGameMessage, UpdateBatchBidsRequest, UpdateBidRequest
 
 # Serialization handled by message objects directly
 
@@ -59,7 +59,7 @@ class WebsocketMessage(BaseModel):
             UpdateBatchBidsRequest: self._to_batch_bid_request,
             UpdateBidRequest: self._to_bid_request,
             BuyRequest: self._to_buy_request,
-            OperateLineRequest: self._to_operate_line_request,
+            ActivationUpdateRequest: self._to_activation_update_request,
             EndTurn: self._to_end_turn,
         }
         name_func_mapping = {c.get_camel_case_name(): func for c, func in mapping.items()}
@@ -82,12 +82,12 @@ class WebsocketMessage(BaseModel):
             purchase_id=id_type(self.data["purchase_id"]),
         )
 
-    def _to_operate_line_request(self) -> OperateLineRequest:
-        return OperateLineRequest(
+    def _to_activation_update_request(self) -> ActivationUpdateRequest:
+        return ActivationUpdateRequest(
             game_id=self.game_id_obj,
             player_id=self.player_id_obj,
-            transmission_id=TransmissionId(self.data["transmission_id"]),
-            action=self.data["action"],
+            asset_activation=MappingProxyType({AssetId(int(k)): bool(v) for k, v in self.data["asset_activation"].items()}),
+            line_activation=MappingProxyType({TransmissionId(int(k)): bool(v) for k, v in self.data["line_activation"].items()}),
         )
 
     def _to_end_turn(self) -> EndTurn:

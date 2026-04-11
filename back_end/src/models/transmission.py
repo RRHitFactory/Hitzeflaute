@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from functools import cached_property
+from types import MappingProxyType
 from typing import Self
 
 from src.models.data.ldc_repo import LdcRepo
@@ -86,6 +87,14 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
     def close_line(self, transmission_id: TransmissionId) -> Self:
         df = self.df
         df.loc[transmission_id, "is_active"] = True
+        return self.update_frame(df)
+
+    def update_activations(self, activations: MappingProxyType[TransmissionId, bool]) -> Self:
+        df = self.df
+        actives = [k for k, v in activations.items() if v]
+        inactives = [k for k, v in activations.items() if not v]
+        df.loc[actives, "is_active"] = True
+        df.loc[inactives, "is_active"] = False
         return self.update_frame(df)
 
     def change_owner(self, transmission_id: TransmissionId, new_owner: PlayerId) -> Self:

@@ -1,7 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Literal, TypeVar
+from typing import TypeVar
 
 from src.models.assets import AssetId
 from src.models.game_state import GameState, Phase
@@ -89,6 +89,10 @@ class UpdateBidResponse(GameToPlayerMessage):
     success: bool
     asset_id: AssetId
 
+@dataclass(frozen=True)
+class Ack(GameToPlayerMessage):
+    message: str = "👍"
+
 
 @dataclass(frozen=True)
 class UpdateBidRequest(PlayerToGameMessage):
@@ -143,29 +147,14 @@ class BuyRequest[T_Id](PlayerToGameMessage):
             message=message,
         )
 
-
 @dataclass(frozen=True)
-class OperateLineRequest(PlayerToGameMessage):
-    transmission_id: TransmissionId
-    action: Literal["open", "close"]
+class ActivationUpdateRequest(PlayerToGameMessage):
+    """
+    Describes the activation state of all lines and assets (if they are active or not)
+    """
 
-
-@dataclass(frozen=True)
-class OperateLineResponse(GameToPlayerMessage):
-    request: OperateLineRequest
-    result: Literal["success", "no_change", "failure"]
-
-
-@dataclass(frozen=True)
-class OperateAssetRequest(PlayerToGameMessage):
-    asset_id: AssetId
-    action: Literal["shutdown", "startup"]
-
-
-@dataclass(frozen=True)
-class OperateAssetResponse(GameToPlayerMessage):
-    request: OperateAssetRequest
-    result: Literal["success", "no_change", "failure"]
+    line_activation: MappingProxyType[TransmissionId, bool]
+    asset_activation: MappingProxyType[AssetId, bool]
 
 
 @dataclass(frozen=True)

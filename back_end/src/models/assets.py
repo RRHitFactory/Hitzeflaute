@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 from functools import cached_property
+from types import MappingProxyType
 
 from randcraft import make_dirac, make_uniform
 from randcraft.random_variable import RandomVariable
@@ -142,19 +143,28 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return self._decrease_health(asset_id)
 
     def deactivate(self, asset_id: AssetId) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_id, "is_active"] = False
         return self.update_frame(df)
 
     def activate(self, asset_id: AssetId) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_id, "is_active"] = True
         return self.update_frame(df)
 
     def batch_deactivate(self, asset_ids: list[AssetId]) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_ids, "is_active"] = False
         return self.update_frame(df)
+
+    def update_activations(self, activations: MappingProxyType[AssetId, bool]) -> "AssetRepo":
+        df = self.df
+        actives = [k for k, v in activations.items() if v]
+        inactives = [k for k, v in activations.items() if not v]
+        df.loc[actives, "is_active"] = True
+        df.loc[inactives, "is_active"] = False
+        return self.update_frame(df)
+
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> "AssetRepo":

@@ -201,11 +201,11 @@ export class GameWebSocketClient {
     });
   }
 
-  public operateLine(transmissionId: string, action: "open" | "close"): void {
-    this.send("operate_line_request", {
-      transmission_id: transmissionId,
-      action: action,
-    });
+  public activationUpdate(activationUpdates: {
+    line_activation?: Record<number, boolean>;
+    asset_activation?: Record<number, boolean>;
+  }): void {
+    this.send("activation_update_request", activationUpdates);
   }
 
   public endTurn(): void {

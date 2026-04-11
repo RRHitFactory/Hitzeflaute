@@ -1,4 +1,4 @@
-from typing import Literal, cast
+from typing import cast
 
 import polars as pl
 
@@ -9,15 +9,13 @@ from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, Round, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
+    Ack,
+    ActivationUpdateRequest,
     AuctionClearedMessage,
     BuyRequest,
     ConcludePhase,
     EndTurn,
     Message,
-    OperateAssetRequest,
-    OperateAssetResponse,
-    OperateLineRequest,
-    OperateLineResponse,
     PlayerNotInTurn,
     PlayerToGameMessage,
     ToGameMessage,
@@ -26,6 +24,7 @@ from src.models.message import (
     UpdateBidRequest,
     UpdateBidResponse,
 )
+from src.models.pending_state import PendingState
 
 
 class Engine:
@@ -51,10 +50,8 @@ class Engine:
                 return cls.handle_update_bid_message(game_state=game_state, msg=msg)
             case UpdateBatchBidsRequest():
                 return cls.handle_update_batch_bid_message(game_state=game_state, msg=msg)
-            case OperateLineRequest():
-                return cls.handle_operate_line_message(game_state, msg)
-            case OperateAssetRequest():
-                return cls.handle_operate_asset_message(game_state, msg)
+            case ActivationUpdateRequest():
+                return cls.handle_activation_update_message(game_state, msg)
             case BuyRequest() if isinstance(msg.purchase_id, AssetId):
                 return cls.handle_buy_asset_message(game_state, msg)  # type: ignore
             case BuyRequest() if isinstance(msg.purchase_id, TransmissionId):
@@ -225,110 +222,15 @@ class Engine:
         return new_game_state, [response]
 
     @classmethod
-    def handle_operate_line_message(
+    def handle_activation_update_message(
         cls,
         game_state: GameState,
-        msg: OperateLineRequest,
+        msg: ActivationUpdateRequest,
     ) -> tuple[GameState, list[Message]]:
-        def make_response(
-            result: Literal["success", "no_change", "failure"],
-            text: str,
-            new_game_state: GameState | None = None,
-        ) -> tuple[GameState, list[Message]]:
-            if new_game_state is None:
-                new_game_state = game_state
-            response = OperateLineResponse(game_id=game_state.game_id, player_id=msg.player_id, request=msg, result=result, message=text)
-            return new_game_state, [response]
-
-        if game_state.phase != Phase.SNEAKY_TRICKS:
-            return make_response(
-                result="failure",
-                text=f"You can only operate lines during the {Phase.SNEAKY_TRICKS.nice_name} phase.",
-            )
-
-        if msg.transmission_id not in game_state.transmission.transmission_ids:
-            return make_response(result="failure", text="Transmission does not exist.")
-
-        line = game_state.transmission[msg.transmission_id]
-        if line.owner_player != msg.player_id:
-            return make_response(result="failure", text="Transmission does not belong to this player.")
-
-        if msg.action == "open":
-            if line.is_open:
-                return make_response(result="no_change", text="Transmission line is already open.")
-            else:
-                new_state = game_state.update(game_state.transmission.open_line(line.id))
-                return make_response(
-                    result="success",
-                    text="Transmission line opened successfully.",
-                    new_game_state=new_state,
-                )
-
-        assert msg.action == "close"
-        if line.is_closed:
-            return make_response(result="no_change", text="Transmission line is already closed.")
-
-        new_state = game_state.update(game_state.transmission.close_line(line.id))
-        return make_response(
-            result="success",
-            text="Transmission line closed successfully.",
-            new_game_state=new_state,
-        )
-
-    @classmethod
-    def handle_operate_asset_message(
-        cls,
-        game_state: GameState,
-        msg: OperateAssetRequest,
-    ) -> tuple[GameState, list[Message]]:
-        def make_response(
-            result: Literal["success", "no_change", "failure"],
-            text: str,
-            new_game_state: GameState | None = None,
-        ) -> tuple[GameState, list[Message]]:
-            if new_game_state is None:
-                new_game_state = game_state
-            response = OperateAssetResponse(game_id=game_state.game_id, player_id=msg.player_id, request=msg, result=result, message=text)
-            return new_game_state, [response]
-
-        if game_state.phase != Phase.BIDDING:
-            return make_response(
-                result="failure",
-                text=f"You can only operate assets during the {Phase.BIDDING.nice_name} phase.",
-            )
-
-        if msg.asset_id not in game_state.assets.asset_ids:
-            return make_response(result="failure", text="Asset does not exist.")
-
-        asset = game_state.assets[msg.asset_id]
-        if asset.owner_player != msg.player_id:
-            return make_response(result="failure", text="Asset does not belong to this player.")
-
-        if msg.action == "shutdown":
-            if not asset.is_active:
-                return make_response(result="no_change", text="Asset is already off.")
-            else:
-                new_state = game_state.update(game_state.assets.deactivate(asset.id))
-                return make_response(
-                    result="success",
-                    text="Asset successfully deactivated.",
-                    new_game_state=new_state,
-                )
-
-        assert msg.action == "startup"
-        player = game_state.players[msg.player_id]
-        if player.money < 0 and asset.asset_type.name == "LOAD":
-            return make_response(result="failure", text="Player cannot activate loads when their balance is negative.")
-
-        if asset.is_active:
-            return make_response(result="no_change", text="Asset is already running.")
-
-        new_state = game_state.update(game_state.assets.activate(asset.id))
-        return make_response(
-            result="success",
-            text="Asset successfully activated.",
-            new_game_state=new_state,
-        )
+        pending_state = game_state.pending_state.update(PendingState(line_activation=msg.line_activation, asset_activation=msg.asset_activation))
+        new_game_state = game_state.update(pending_state)
+        response = Ack(game_id=game_state.game_id, player_id=msg.player_id)
+        return new_game_state, [response]
 
     @classmethod
     def handle_end_turn_message(
@@ -344,6 +246,7 @@ class Engine:
 
         game_state = game_state.update(players)
         if game_state.players.are_all_players_finished():
+            game_state = game_state.commit_pending_state()
             return game_state, [ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)]
         else:
             return game_state, []

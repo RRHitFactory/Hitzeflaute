@@ -32,6 +32,11 @@ interface AssetProps {
   playerMoney?: number;
   currentPlayer?: number;
   viewMode?: "normal" | "market";
+  isOwnedByCurrentPlayer?: boolean;
+  isSneakyTricks?: boolean;
+  isActive?: boolean;
+  onActivate?: (assetId: number) => void;
+  onDeactivate?: (assetId: number) => void;
 }
 
 const technologyMap: { [key: string]: React.ElementType } = {
@@ -59,6 +64,11 @@ const AssetComponent: React.FC<AssetProps> = ({
   playerMoney = 0,
   currentPlayer,
   viewMode = "normal",
+  isOwnedByCurrentPlayer = false,
+  isSneakyTricks = false,
+  isActive,
+  onActivate,
+  onDeactivate,
 }) => {
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
@@ -68,6 +78,9 @@ const AssetComponent: React.FC<AssetProps> = ({
     const title = `${type}${asset.id}`;
     return asset.is_freezer ? `${title} (Freezer)` : title;
   };
+
+  // Use provided isActive prop if available, otherwise fall back to asset.is_active
+  const displayActive = isActive !== undefined ? isActive : asset.is_active;
 
   const getAssetData = () => {
     const data: { [key: string]: string } = {
@@ -94,6 +107,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       data["Health"] = asset.health.toString();
     }
 
+    data["Status"] = displayActive ? "ACTIVE" : "INACTIVE";
+
     return data;
   };
 
@@ -116,6 +131,38 @@ const AssetComponent: React.FC<AssetProps> = ({
     }
   };
 
+  const handleActivateClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onActivate) {
+      onActivate(asset.id);
+    }
+  };
+
+  const handleDeactivateClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onDeactivate) {
+      onDeactivate(asset.id);
+    }
+  };
+
+  const handleActivationHover = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    onHover(
+      {
+        type: "asset",
+        id: asset.id,
+        title: getAssetTitle(),
+        data: {
+          ...getAssetData(),
+          Action: displayActive
+            ? "Click to deactivate this asset"
+            : "Click to activate this asset",
+        },
+      },
+      event,
+    );
+  };
+
   const getAssetText = () => {
     if (asset.asset_type === AssetType.GENERATOR) return "G";
     if (asset.asset_type === AssetType.LOAD) {
@@ -125,7 +172,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   const getAssetColor = () => {
-    return asset.is_active ? owner.color : adjustColor(owner.color, 0.5);
+    return displayActive ? owner.color : adjustColor(owner.color, 0.5);
   };
 
   const adjustColor = (color: string, factor: number) => {
@@ -270,6 +317,36 @@ const AssetComponent: React.FC<AssetProps> = ({
           >
             $
           </text>
+        </g>
+      )}
+
+      {/* Activation control for owned assets in sneaky tricks phase */}
+      {isOwnedByCurrentPlayer && isSneakyTricks && viewMode === "normal" && (
+        <g className="activation-button" opacity="0.9">
+          <circle
+            cx={buyLocation.x}
+            cy={buyLocation.y}
+            r="12"
+            fill={owner.color}
+            stroke="white"
+            strokeWidth="2"
+            style={{ cursor: "pointer" }}
+            onClick={
+              displayActive ? handleDeactivateClick : handleActivateClick
+            }
+            onMouseEnter={handleActivationHover}
+            onMouseLeave={onLeave}
+          />
+          {/* Open circuit indicator - diagonal line when INACTIVE */}
+          {!displayActive && (
+            <path
+              d={`M ${buyLocation.x - 8} ${buyLocation.y - 8} L ${buyLocation.x + 8} ${buyLocation.y + 8}`}
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              pointerEvents="none"
+            />
+          )}
         </g>
       )}
     </g>

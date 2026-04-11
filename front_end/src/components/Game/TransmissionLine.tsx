@@ -22,6 +22,12 @@ interface TransmissionLineProps {
   maxFlow?: number;
   actualFlow?: number;
   showFlowAnimation?: boolean;
+  currentPlayer?: number;
+  isOwnedByCurrentPlayer?: boolean;
+  isSneakyTricks?: boolean;
+  isActive?: boolean;
+  onActivate?: (lineId: number) => void;
+  onDeactivate?: (lineId: number) => void;
 }
 
 const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
@@ -38,11 +44,20 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   maxFlow = 1,
   actualFlow = 0,
   showFlowAnimation = false,
+  currentPlayer,
+  isOwnedByCurrentPlayer = false,
+  isSneakyTricks = false,
+  isActive,
+  onActivate,
+  onDeactivate,
 }) => {
   const fromBus = buses.find((b) => b.id === line.bus1);
   const toBus = buses.find((b) => b.id === line.bus2);
 
   if (!fromBus || !toBus) return null;
+
+  // Use provided isActive prop if available, otherwise fall back to line.is_open
+  const displayActive = isActive !== undefined ? isActive : line.is_open;
 
   const getLineData = () => {
     const data: { [key: string]: string } = {
@@ -55,9 +70,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         `$${line.minimum_acquisition_price.toLocaleString()}`;
     }
 
-    if (line.is_open) {
-      data["Status"] = "OPEN";
-    }
+    data["Status"] = displayActive ? "OPEN" : "CLOSED";
 
     return data;
   };
@@ -81,8 +94,40 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     }
   };
 
+  const handleActivateClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onActivate) {
+      onActivate(line.id);
+    }
+  };
+
+  const handleDeactivateClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onDeactivate) {
+      onDeactivate(line.id);
+    }
+  };
+
+  const handleActivationHover = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    onHover(
+      {
+        type: "line",
+        id: line.id,
+        title: `Line${line.id}`,
+        data: {
+          ...getLineData(),
+          Action: displayActive
+            ? "Click to close (deactivate) this line"
+            : "Click to open (activate) this line",
+        },
+      },
+      event,
+    );
+  };
+
   const getLineColor = () => {
-    if (line.is_open) {
+    if (displayActive) {
       // Deactivate color similar to the Python implementation
       return adjustColor(owner.color, 0.5);
     }
@@ -274,6 +319,36 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
           >
             $
           </text>
+        </g>
+      )}
+
+      {/* Activation control for owned lines in sneaky tricks phase */}
+      {isOwnedByCurrentPlayer && isSneakyTricks && viewMode === "normal" && (
+        <g className="activation-button" opacity="0.9">
+          <circle
+            cx={midX}
+            cy={midY}
+            r="12"
+            fill={owner.color}
+            stroke="white"
+            strokeWidth="2"
+            style={{ cursor: "pointer" }}
+            onClick={
+              displayActive ? handleDeactivateClick : handleActivateClick
+            }
+            onMouseEnter={handleActivationHover}
+            onMouseLeave={onLeave}
+          />
+          {/* Open circuit indicator - diagonal line when INACTIVE (closed) */}
+          {!displayActive && (
+            <path
+              d={`M ${midX - 8} ${midY - 8} L ${midX + 8} ${midY + 8}`}
+              stroke="white"
+              strokeWidth="2"
+              strokeLinecap="round"
+              pointerEvents="none"
+            />
+          )}
         </g>
       )}
     </g>
