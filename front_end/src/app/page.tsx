@@ -176,10 +176,16 @@ export default function Home() {
   };
 
   // State for activation changes during sneaky tricks phase
+  // Reset when current player or phase changes
   const [pendingActivations, setPendingActivations] = useState<{
     lines: Record<number, boolean>;
     assets: Record<number, boolean>;
   }>({ lines: {}, assets: {} });
+
+  // Reset pending activations when current player or phase changes
+  useEffect(() => {
+    setPendingActivations({ lines: {}, assets: {} });
+  }, [gameState?.phase, currentPlayerFromGameState]);
 
   const handleActivateLine = (lineId: number) => {
     // Store activation in pending state
@@ -251,9 +257,9 @@ export default function Home() {
           asset_activation: pendingActivations.assets,
         });
       }
-      // Always clear pending activations at end of turn
-      setPendingActivations({ lines: {}, assets: {} });
     }
+    // Clear pending activations at end of turn
+    setPendingActivations({ lines: {}, assets: {} });
 
     console.log("Ending turn");
     wsClient.endTurn();

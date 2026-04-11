@@ -4,6 +4,7 @@ import {
   BusWithDisplayCoords,
   HoverableElement,
   Player,
+  Point,
   TransmissionLine,
 } from "@/types/game";
 import React from "react";
@@ -57,7 +58,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   if (!fromBus || !toBus) return null;
 
   // Use provided isActive prop if available, otherwise fall back to line.is_open
-  const displayActive = isActive !== undefined ? isActive : line.is_open;
+  const displayActive = isActive !== undefined ? isActive : line.is_active;
 
   const getLineData = () => {
     const data: { [key: string]: string } = {
@@ -70,7 +71,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         `$${line.minimum_acquisition_price.toLocaleString()}`;
     }
 
-    data["Status"] = displayActive ? "OPEN" : "CLOSED";
+    data["Status"] = displayActive ? "CLOSED" : "OPEN";
 
     return data;
   };
@@ -82,6 +83,40 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         id: line.id,
         title: `Line${line.id}`,
         data: getLineData(),
+      },
+      event,
+    );
+  };
+
+  const handlePurchaseButtonHover = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    onHover(
+      {
+        type: "line",
+        id: line.id,
+        title: `Purchase Line${line.id}`,
+        data: {
+          Cost: `$${line.minimum_acquisition_price.toLocaleString()}`,
+          Action: "Click to purchase this transmission line",
+        },
+      },
+      event,
+    );
+  };
+
+  const handleActivationHover = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    onHover(
+      {
+        type: "line",
+        id: line.id,
+        title: `Line${line.id}`,
+        data: {
+          ...getLineData(),
+          Action: displayActive
+            ? "Click to open (deactivate) this line"
+            : "Click to close (activate) this line",
+        },
       },
       event,
     );
@@ -108,26 +143,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     }
   };
 
-  const handleActivationHover = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    onHover(
-      {
-        type: "line",
-        id: line.id,
-        title: `Line${line.id}`,
-        data: {
-          ...getLineData(),
-          Action: displayActive
-            ? "Click to close (deactivate) this line"
-            : "Click to open (activate) this line",
-        },
-      },
-      event,
-    );
-  };
-
   const getLineColor = () => {
-    if (displayActive) {
+    if (!displayActive) {
       // Deactivate color similar to the Python implementation
       return adjustColor(owner.color, 0.5);
     }
@@ -136,23 +153,13 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
 
   // Helper function to create arrow path for flow direction along the curved line
   const getArrowPath = (
-    midX: number,
-    midY: number,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
+    vector: Point,
+    curveMid: Point,
     flowForward: boolean,
   ) => {
-    // Calculate the control point for the quadratic Bézier curve (same as the line's curve)
-    const vector = { x: toX - fromX, y: toY - fromY };
-    const trueMidX = (fromX + toX) / 2;
-    const trueMidY = (fromY + toY) / 2;
-
-    const arrowX = (trueMidX + midX) / 2;
-    const arrowY = (trueMidY + midY) / 2;
-
     const angle = Math.atan2(vector.y, vector.x) + (flowForward ? 0 : Math.PI); // +180 degrees to face flow direction
+    const arrowX = curveMid.x;
+    const arrowY = curveMid.y;
 
     const arrowSize = 22;
 
@@ -190,14 +197,14 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const toX = toBus.display_position.x || toBus.x;
   const toY = toBus.display_position.y || toBus.y;
 
-  const vector = { x: toX - fromX, y: toY - fromY };
+  const baseVector = { x: toX - fromX, y: toY - fromY };
   const midX = (fromX + toX) / 2;
   const midY = (fromY + toY) / 2;
 
   // Add slight curve by offsetting the middle point
   const curveOffset = 0.1;
-  const offsetX = vector.y * curveOffset;
-  const offsetY = -vector.x * curveOffset;
+  const offsetX = baseVector.y * curveOffset;
+  const offsetY = -baseVector.x * curveOffset;
 
   const mid_point = { x: midX + offsetX, y: midY + offsetY };
 
@@ -205,26 +212,23 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     mid_point.y
   } ${toX} ${toY}`;
 
+  // Find the true middle of the curved line
+  const curveMidX = (mid_point.x + midX) / 2;
+  const curveMidY = (mid_point.y + midY) / 2;
+  const curveMid = { x: curveMidX, y: curveMidY };
+
+  // Calculate line for open circuit indicator
+  const lineAngle = Math.atan2(baseVector.y, baseVector.x);
+  const perpAngle = lineAngle + Math.PI / 2; // Perpendicular angle
+  const perpX1 = curveMidX + Math.cos(perpAngle) * 8;
+  const perpY1 = curveMidY + Math.sin(perpAngle) * 8;
+  const perpX2 = curveMidX - Math.cos(perpAngle) * 8;
+  const perpY2 = curveMidY - Math.sin(perpAngle) * 8;
+
   // Check if player can afford this line
   const canAfford =
     !isPurchasable ||
     (onPurchase && line.minimum_acquisition_price <= playerMoney);
-
-  const handlePurchaseButtonHover = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    onHover(
-      {
-        type: "line",
-        id: line.id,
-        title: `Purchase Line${line.id}`,
-        data: {
-          Cost: `$${line.minimum_acquisition_price.toLocaleString()}`,
-          Action: "Click to purchase this transmission line",
-        },
-      },
-      event,
-    );
-  };
 
   // Calculate flow animation properties using actual power from market summary
   const flowValue = actualFlow ?? 0;
@@ -274,18 +278,21 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         pointerEvents="none"
       />
 
+      {/* Open circuit indicator - thick gray perpendicular line when line is OPEN */}
+      {!displayActive && viewMode === "normal" && (
+        <path
+          d={`M ${perpX2} ${perpY2} L ${perpX1} ${perpY1}`}
+          stroke="#6b7280"
+          strokeWidth={4}
+          strokeLinecap="round"
+          pointerEvents="none"
+        />
+      )}
+
       {/* Flow direction indicator (arrow) - only show in market view with significant flow */}
       {viewMode === "market" && showFlowAnimation && flowRatio > 0.1 && (
         <path
-          d={getArrowPath(
-            mid_point.x,
-            mid_point.y,
-            fromX,
-            fromY,
-            toX,
-            toY,
-            flowForward,
-          )}
+          d={getArrowPath(baseVector, curveMid, flowForward)}
           stroke="#000000" // Dark gray color
           strokeWidth={1}
           fill="#7a7a7a" // Dark gray color
@@ -305,7 +312,21 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
             strokeWidth="2"
             style={{ cursor: canAfford ? "pointer" : "not-allowed" }}
             onClick={canAfford ? handlePurchaseClick : undefined}
-            onMouseEnter={handlePurchaseButtonHover}
+            onMouseEnter={(e) => {
+              e.stopPropagation();
+              onHover(
+                {
+                  type: "line",
+                  id: line.id,
+                  title: `Purchase Line${line.id}`,
+                  data: {
+                    Cost: `$${line.minimum_acquisition_price.toLocaleString()}`,
+                    Action: "Click to purchase this transmission line",
+                  },
+                },
+                e,
+              );
+            }}
             onMouseLeave={onLeave}
           />
           <text
@@ -339,16 +360,6 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
             onMouseEnter={handleActivationHover}
             onMouseLeave={onLeave}
           />
-          {/* Open circuit indicator - diagonal line when INACTIVE (closed) */}
-          {!displayActive && (
-            <path
-              d={`M ${midX - 8} ${midY - 8} L ${midX + 8} ${midY + 8}`}
-              stroke="white"
-              strokeWidth="2"
-              strokeLinecap="round"
-              pointerEvents="none"
-            />
-          )}
         </g>
       )}
     </g>

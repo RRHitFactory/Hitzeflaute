@@ -18,15 +18,15 @@ class PendingState:
 
     def to_simple_dict(self) -> dict[str, dict]:
         return {
-            "line_activation": {k: v for k, v in self.line_activation.items()},
-            "asset_activation": {k: v for k, v in self.asset_activation.items()}
+            "line_activation": {k.as_int(): v for k, v in self.line_activation.items()},
+            "asset_activation": {k.as_int(): v for k, v in self.asset_activation.items()}
         }
 
     @classmethod
     def from_simple_dict(self, x: dict) -> "PendingState":
         return PendingState(
-            line_activation=MappingProxyType(x["line_activation"]),
-            asset_activation=MappingProxyType(x["asset_activation"])
+            line_activation=MappingProxyType({TransmissionId(k): v for k, v in x["line_activation"].items()}),
+            asset_activation=MappingProxyType({AssetId(k): v for k, v in x["asset_activation"].items()})
         )
 
     @staticmethod

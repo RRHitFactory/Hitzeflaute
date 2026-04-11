@@ -37,6 +37,7 @@ interface AssetProps {
   isActive?: boolean;
   onActivate?: (assetId: number) => void;
   onDeactivate?: (assetId: number) => void;
+  playerHasNegativeMoney?: boolean;
 }
 
 const technologyMap: { [key: string]: React.ElementType } = {
@@ -69,6 +70,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   isActive,
   onActivate,
   onDeactivate,
+  playerHasNegativeMoney = false,
 }) => {
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
@@ -81,6 +83,15 @@ const AssetComponent: React.FC<AssetProps> = ({
 
   // Use provided isActive prop if available, otherwise fall back to asset.is_active
   const displayActive = isActive !== undefined ? isActive : asset.is_active;
+
+  // Loads (asset_type === 1) should be forced inactive if player has negative money
+  const isLoad = asset.asset_type === AssetType.LOAD;
+  // Freezers cannot be disabled
+  const isFreezer = asset.is_freezer;
+  const isForcedInactive = isLoad && !isFreezer && playerHasNegativeMoney;
+
+  // Determine if the asset can be toggled (not forced inactive, and not a freezer)
+  const canToggle = !isForcedInactive && !isFreezer;
 
   const getAssetData = () => {
     const data: { [key: string]: string } = {
@@ -107,7 +118,11 @@ const AssetComponent: React.FC<AssetProps> = ({
       data["Health"] = asset.health.toString();
     }
 
-    data["Status"] = displayActive ? "ACTIVE" : "INACTIVE";
+    if (isForcedInactive) {
+      data["Status"] = "INACTIVE (Negative Money)";
+    } else {
+      data["Status"] = displayActive ? "ACTIVE" : "INACTIVE";
+    }
 
     return data;
   };
@@ -147,17 +162,22 @@ const AssetComponent: React.FC<AssetProps> = ({
 
   const handleActivationHover = (event: React.MouseEvent) => {
     event.stopPropagation();
+    const actionData: { [key: string]: string } = { ...getAssetData() };
+    if (isFreezer) {
+      actionData["Action"] = "Freezers cannot be disabled";
+    } else if (!canToggle) {
+      actionData["Action"] = "Cannot activate - player has negative money";
+    } else if (displayActive) {
+      actionData["Action"] = "Click to deactivate this asset";
+    } else {
+      actionData["Action"] = "Click to activate this asset";
+    }
     onHover(
       {
         type: "asset",
         id: asset.id,
         title: getAssetTitle(),
-        data: {
-          ...getAssetData(),
-          Action: displayActive
-            ? "Click to deactivate this asset"
-            : "Click to activate this asset",
-        },
+        data: actionData,
       },
       event,
     );
@@ -172,7 +192,9 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   const getAssetColor = () => {
-    return displayActive ? owner.color : adjustColor(owner.color, 0.5);
+    // Always show as inactive if forced
+    const shouldBeInactive = isForcedInactive || !displayActive;
+    return shouldBeInactive ? adjustColor(owner.color, 0.5) : owner.color;
   };
 
   const adjustColor = (color: string, factor: number) => {
@@ -321,34 +343,41 @@ const AssetComponent: React.FC<AssetProps> = ({
       )}
 
       {/* Activation control for owned assets in sneaky tricks phase */}
-      {isOwnedByCurrentPlayer && isSneakyTricks && viewMode === "normal" && (
-        <g className="activation-button" opacity="0.9">
-          <circle
-            cx={buyLocation.x}
-            cy={buyLocation.y}
-            r="12"
-            fill={owner.color}
-            stroke="white"
-            strokeWidth="2"
-            style={{ cursor: "pointer" }}
-            onClick={
-              displayActive ? handleDeactivateClick : handleActivateClick
-            }
-            onMouseEnter={handleActivationHover}
-            onMouseLeave={onLeave}
-          />
-          {/* Open circuit indicator - diagonal line when INACTIVE */}
-          {!displayActive && (
-            <path
-              d={`M ${buyLocation.x - 8} ${buyLocation.y - 8} L ${buyLocation.x + 8} ${buyLocation.y + 8}`}
+      {isOwnedByCurrentPlayer &&
+        isSneakyTricks &&
+        viewMode === "normal" &&
+        canToggle && (
+          <g className="activation-button" opacity="0.9">
+            <circle
+              cx={buyLocation.x}
+              cy={buyLocation.y}
+              r="12"
+              fill={owner.color}
               stroke="white"
               strokeWidth="2"
-              strokeLinecap="round"
-              pointerEvents="none"
+              style={{ cursor: "pointer" }}
+              onClick={
+                isForcedInactive
+                  ? undefined
+                  : displayActive
+                    ? handleDeactivateClick
+                    : handleActivateClick
+              }
+              onMouseEnter={handleActivationHover}
+              onMouseLeave={onLeave}
             />
-          )}
-        </g>
-      )}
+            {/* Open circuit indicator - diagonal line when INACTIVE or forced inactive */}
+            {(isForcedInactive || !displayActive) && (
+              <path
+                d={`M ${buyLocation.x - 8} ${buyLocation.y - 8} L ${buyLocation.x + 8} ${buyLocation.y + 8}`}
+                stroke="white"
+                strokeWidth="2"
+                strokeLinecap="round"
+                pointerEvents="none"
+              />
+            )}
+          </g>
+        )}
     </g>
   );
 };

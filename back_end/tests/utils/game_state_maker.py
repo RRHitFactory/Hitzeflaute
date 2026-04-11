@@ -1,3 +1,4 @@
+from types import MappingProxyType
 from typing import Self
 
 import numpy as np
@@ -9,6 +10,7 @@ from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
 from src.models.ids import GameId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
+from src.models.pending_state import PendingState
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionRepo
 from src.tools.random_choice import random_choice, random_choice_multi
@@ -151,6 +153,7 @@ class GameStateMaker:
         self.asset_repo: AssetRepo | None = None
         self.transmission_repo: TransmissionRepo | None = None
         self.market_coupling_result: MarketCouplingResult | None = None
+        self.pending_state: PendingState | None = None
 
     def add_game_id(self, game_id: GameId) -> Self:
         self.game_id = game_id
@@ -206,6 +209,17 @@ class GameStateMaker:
                 asset_repo=self.asset_repo,
                 transmission_repo=self.transmission_repo,
             )
+        if self.pending_state is None:
+            if not (len(self.transmission_repo) and len(self.asset_repo)):
+                self.pending_state = PendingState()
+            else:
+                line_id = self.transmission_repo.transmission_ids[0]
+                asset_id = self.asset_repo.asset_ids[0]
+                self.pending_state = PendingState(
+                    line_activation=MappingProxyType({line_id: True}),
+                    asset_activation=MappingProxyType({asset_id: False})
+                )
+
 
         return GameState(
             game_id=self.game_id,
@@ -216,4 +230,5 @@ class GameStateMaker:
             assets=self.asset_repo,
             transmission=self.transmission_repo,
             market_coupling_result=self.market_coupling_result,
+            pending_state=self.pending_state
         )

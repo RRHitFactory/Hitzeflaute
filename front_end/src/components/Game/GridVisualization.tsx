@@ -464,6 +464,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 ? pendingAssetActive
                 : asset.is_active;
 
+            // Check if player has negative money
+            const playerHasNegativeMoney = getCurrentPlayerMoney() < 0;
+
             return (
               <AssetComponent
                 key={asset.id}
@@ -483,6 +486,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 isActive={isAssetActive}
                 onActivate={onActivateAsset}
                 onDeactivate={onDeactivateAsset}
+                playerHasNegativeMoney={playerHasNegativeMoney}
               />
             );
           }),
