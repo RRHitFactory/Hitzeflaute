@@ -172,15 +172,6 @@ class TestEngine(BaseTest):
 
     def test_operate_asset_messages(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()
-        broke_player = Player(
-            id=PlayerId(100),
-            name="Broke player",
-            trigram="BRO",
-            color=Color("black"),
-            money=-100,
-            is_having_turn=True,
-        )
-        player_repo += broke_player
         bus_repo = BusRepoMaker.make_quick(n_npc_buses=5, players=player_repo)
         asset_repo = AssetRepoMaker.make_quick(players=player_repo, bus_repo=bus_repo)
 
@@ -189,6 +180,7 @@ class TestEngine(BaseTest):
         asset_repo = asset_repo.add(my_generator)
 
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.SNEAKY_TRICKS).make()
+        game_state = game_state.start_all_turns()
 
         deactivate_request = ActivationUpdateRequest(
             game_id=GameId(0),

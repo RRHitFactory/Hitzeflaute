@@ -98,7 +98,7 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         return self.update_frame(df)
 
     def change_owner(self, transmission_id: TransmissionId, new_owner: PlayerId) -> Self:
-        df = self.df.copy()
+        df = self.df
         df.loc[transmission_id, "owner_player"] = simplify_type(new_owner)
         df.loc[transmission_id, "is_for_sale"] = False
         return self.update_frame(df)
@@ -106,11 +106,11 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
     def wear_transmission(self, transmission_id: TransmissionId) -> Self:
         health: float = self.df.loc[transmission_id, "health"]  # type: ignore
         if health > 1:
-            df = self.df.copy()
+            df = self.df
             df.loc[transmission_id, "health"] -= 1  # type: ignore
             return self.update_frame(df)
         else:
-            df = self.df.copy()
+            df = self.df
             df.loc[transmission_id, "health"] = 0
             df.loc[transmission_id, "is_active"] = False
             return self.update_frame(df)

@@ -108,28 +108,28 @@ class AssetRepo(LdcRepo[AssetInfo]):
 
     # UPDATE
     def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_id, "owner_player"] = simplify_type(new_owner)
         df.loc[asset_id, "is_for_sale"] = False
         return self.update_frame(df)
 
     def update_bid_price(self, asset_id: AssetId, bid_price: float) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_id, "bid_price"] = bid_price
         return self.update_frame(df)
 
     def batch_update_bid_price(self, asset_ids: list[AssetId], bid_prices: list[float]) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_ids, "bid_price"] = bid_prices
         return self.update_frame(df)
 
     def _decrease_health(self, asset_id: AssetId) -> "AssetRepo":
         if self.df.loc[asset_id, "health"] > 1:  # type: ignore
-            df = self.df.copy()
+            df = self.df
             df.loc[asset_id, "health"] -= 1  # type: ignore
             return self.update_frame(df)
         else:
-            df = self.df.copy()
+            df = self.df
             df.loc[asset_id, "health"] = 0
             df.loc[asset_id, "is_active"] = False
             return self.update_frame(df)
