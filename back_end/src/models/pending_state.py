@@ -3,7 +3,6 @@ from types import MappingProxyType
 
 from src.models.ids import AssetId, TransmissionId
 
-_empty_mapping = field(default_factory=lambda: MappingProxyType({}))
 
 @dataclass(frozen=True)
 class PendingState:
@@ -31,7 +30,7 @@ class PendingState:
 
     @staticmethod
     def join_dicts[T, U](old: MappingProxyType[T, U], new: MappingProxyType[T, U]) -> MappingProxyType[T, U]:
-        new_dict = {}
+        new_dict: dict[T, U] = {}
         for d in [old, new]:
             new_dict.update(d)
         return MappingProxyType(new_dict)

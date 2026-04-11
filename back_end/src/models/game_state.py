@@ -140,7 +140,7 @@ class GameState:
     @classmethod
     @lru_cache(1)
     def get_type_to_attr_map(cls) -> dict[type[GameStateAttributes], str]:
-        attr_to_type: dict[str, type[GameStateAttributes]] = {f.name: f.type for f in fields(cls)}
+        attr_to_type: dict[str, type[GameStateAttributes]] = {f.name: f.type for f in fields(cls)}  # type: ignore
         attr_to_type["market_coupling_result"] = MarketCouplingResult
         type_to_attr: dict[type[GameStateAttributes], str] = {v: k for k, v in attr_to_type.items()}
         return type_to_attr
