@@ -289,7 +289,7 @@ class GameInitializer:
         load_maker = LoadMaker()
         for _ in range(self.settings.n_init_non_freezer_loads):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=0, player_id=PlayerId.get_npc(), non_freezer=True)
+            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=0, player_id=PlayerId.get_npc(), except_freezer=True)
             assets.append(asset)
 
         return AssetRepo(assets)

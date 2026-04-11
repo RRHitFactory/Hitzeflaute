@@ -19,12 +19,12 @@ class LoadMaker:
             current_round: int,
             technology_name: str | None = None,
             player_id: PlayerId = PlayerId.get_npc(),
-            non_freezer: bool = True
+            except_freezer: bool = True
     ) -> AssetInfo:
         """Create a load with properties based on the current round."""
         if technology_name is None:
             available_techs = cls.get_available_technologies()
-            if non_freezer:
+            if except_freezer:
                 available_techs.remove("freezer")
             technology_name = random_choice(available_techs)
 
@@ -40,7 +40,7 @@ class LoadMaker:
 
         health = math.floor(tech_specs.lifespan.value_at_round(current_round))
 
-        bid_price = ((marginal_cost * capacity) + foc) / capacity
+        bid_price = round(((marginal_cost * capacity) + foc) / capacity)
 
         return AssetInfo(
             id=asset_id,
