@@ -88,22 +88,6 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     );
   };
 
-  const handlePurchaseButtonHover = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    onHover(
-      {
-        type: "line",
-        id: line.id,
-        title: `Purchase Line${line.id}`,
-        data: {
-          Cost: `$${line.minimum_acquisition_price.toLocaleString()}`,
-          Action: "Click to purchase this transmission line",
-        },
-      },
-      event,
-    );
-  };
-
   const handleActivationHover = (event: React.MouseEvent) => {
     event.stopPropagation();
     onHover(
