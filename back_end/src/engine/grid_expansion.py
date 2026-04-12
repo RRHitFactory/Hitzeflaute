@@ -26,32 +26,32 @@ class GridExpansion:
 
     @classmethod
     def try_build_asset(cls, game_state: GameState, **kwargs) -> tuple[GameState, list[AssetBuiltMessage]]:
+        socket_manager = cls._create_asset_socket_manager(game_state)
+        want_to_build_asset = sample_boolean(p_true=game_state.game_settings.probability_of_new_asset)
 
-        if sample_boolean(p_true=game_state.game_settings.probability_of_new_asset):
-            asset_maker = LoadMaker() if cls._check_system_adequacy(game_state) else GeneratorMaker()
-            socket_manager = cls._create_asset_socket_manager(game_state)
-
-            new_asset = asset_maker.make_one(
-                asset_id=AssetId(game_state.assets.next_id()),
-                bus_id=socket_manager.get_bus_with_free_socket(use=True),
-                current_round=game_state.game_round,
-                **kwargs
-            )
-            new_game_state = game_state.update(game_state.assets + new_asset)
-
-            msgs = [
-                AssetBuiltMessage(
-                    game_id=game_state.game_id,
-                    player_id=player.id,
-                    message=f"New {new_asset.technology} {new_asset.asset_type} built at bus {new_asset.bus}.",
-                    # asset_id=new_asset.id,  # not sure why I cannot define the field asset_id
-                )
-                for player in game_state.players.human_players
-            ]
-            return new_game_state, msgs
-
-        else:
+        if not (want_to_build_asset and socket_manager.free_buses):
             return game_state, []
+
+        asset_maker = LoadMaker() if cls._check_system_adequacy(game_state) else GeneratorMaker()
+
+        new_asset = asset_maker.make_one(
+            asset_id=AssetId(game_state.assets.next_id()),
+            bus_id=socket_manager.get_bus_with_free_socket(use=True),
+            current_round=game_state.game_round,
+            **kwargs
+        )
+        new_game_state = game_state.update(game_state.assets + new_asset)
+
+        msgs = [
+            AssetBuiltMessage(
+                game_id=game_state.game_id,
+                player_id=player.id,
+                message=f"New {new_asset.technology} {new_asset.asset_type} built at bus {new_asset.bus}.",
+                asset_id=new_asset.id,
+            )
+            for player in game_state.players.human_players
+        ]
+        return new_game_state, msgs
 
     @classmethod
     def _check_system_adequacy(cls, game_state: GameState) -> bool:

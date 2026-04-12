@@ -183,6 +183,7 @@ class IceCreamMeltedMessage(GameToPlayerMessage):
     asset_id: AssetId
 
 
+@dataclass(frozen=True)
 class GridExpansionMessage(GameToPlayerMessage):
     asset_id: AssetId
 
