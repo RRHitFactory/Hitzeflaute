@@ -150,6 +150,8 @@ const AssetComponent: React.FC<AssetProps> = ({
     event.stopPropagation();
     if (onActivate) {
       onActivate(asset.id);
+      // If we're currently hovering over this asset, update the hover data
+      // This will be handled by the parent component's state update
     }
   };
 
@@ -157,6 +159,8 @@ const AssetComponent: React.FC<AssetProps> = ({
     event.stopPropagation();
     if (onDeactivate) {
       onDeactivate(asset.id);
+      // If we're currently hovering over this asset, update the hover data
+      // This will be handled by the parent component's state update
     }
   };
 
@@ -218,15 +222,15 @@ const AssetComponent: React.FC<AssetProps> = ({
     return brightness > 128 ? "#000000" : "#FFFFFF";
   };
 
-  const getBuyLocation = (bus: BusWithDisplayCoords, position: Position) => {
+  const getButtonLocation = (bus: BusWithDisplayCoords, position: Position) => {
     const x_offset = position.x - bus.display_position.x;
     const y_offset = position.y - bus.display_position.y;
-    const buy_x = bus.display_position.x + x_offset * 1.5;
-    const buy_y = bus.display_position.y + y_offset * 1.5;
+    const buy_x = bus.display_position.x + x_offset * 1.6;
+    const buy_y = bus.display_position.y + y_offset * 1.6;
     return { x: buy_x, y: buy_y } as Position;
   };
 
-  const buyLocation = getBuyLocation(bus, position);
+  const buttonLocation = getButtonLocation(bus, position);
   const radius = 5; // Increased from 12
   const fillColor = getAssetColor();
   const textColor = getContrastColor(fillColor);
@@ -317,8 +321,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       {isPurchasable && viewMode === "normal" && (
         <g className="purchase-button" opacity="0.9">
           <circle
-            cx={buyLocation.x}
-            cy={buyLocation.y}
+            cx={buttonLocation.x}
+            cy={buttonLocation.y}
             r="10"
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
@@ -329,8 +333,8 @@ const AssetComponent: React.FC<AssetProps> = ({
             onMouseLeave={onLeave}
           />
           <text
-            x={buyLocation.x}
-            y={buyLocation.y + 4}
+            x={buttonLocation.x}
+            y={buttonLocation.y + 4}
             textAnchor="middle"
             fontSize="10"
             fill="white"
@@ -349,10 +353,10 @@ const AssetComponent: React.FC<AssetProps> = ({
         canToggle && (
           <g className="activation-button" opacity="0.9">
             <circle
-              cx={buyLocation.x}
-              cy={buyLocation.y}
-              r="12"
-              fill={owner.color}
+              cx={buttonLocation.x}
+              cy={buttonLocation.y}
+              r="10"
+              fill={displayActive ? "#22c55e" : "#9ca3af"}
               stroke="white"
               strokeWidth="2"
               style={{ cursor: "pointer" }}
@@ -366,15 +370,31 @@ const AssetComponent: React.FC<AssetProps> = ({
               onMouseEnter={handleActivationHover}
               onMouseLeave={onLeave}
             />
-            {/* Open circuit indicator - diagonal line when INACTIVE or forced inactive */}
-            {(isForcedInactive || !displayActive) && (
-              <path
-                d={`M ${buyLocation.x - 8} ${buyLocation.y - 8} L ${buyLocation.x + 8} ${buyLocation.y + 8}`}
-                stroke="white"
-                strokeWidth="2"
-                strokeLinecap="round"
+            {/* Tick for ACTIVE, cross for INACTIVE */}
+            {displayActive ? (
+              <text
+                x={buttonLocation.x}
+                y={buttonLocation.y + 4}
+                textAnchor="middle"
+                fontSize="10"
+                fill="white"
                 pointerEvents="none"
-              />
+                fontWeight="bold"
+              >
+                ✓
+              </text>
+            ) : (
+              <text
+                x={buttonLocation.x}
+                y={buttonLocation.y + 4}
+                textAnchor="middle"
+                fontSize="10"
+                fill="white"
+                pointerEvents="none"
+                fontWeight="bold"
+              >
+                ✗
+              </text>
             )}
           </g>
         )}

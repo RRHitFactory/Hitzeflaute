@@ -9,7 +9,7 @@ import {
   Player,
   NPC_PLAYER_ID,
 } from "@/types/game";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
 import ViewToggle from "../UI/ViewToggle";
 import AssetComponent from "./Asset";
@@ -51,6 +51,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     null,
   );
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+
   const [selectedBusForMarket, setSelectedBusForMarket] = useState<
     number | null
   >(null);
@@ -69,6 +70,83 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     price: number;
   }>({ isOpen: false, type: "asset", id: -1, title: "", price: 0 });
   const [viewMode, setViewMode] = useState<"normal" | "market">("normal");
+
+  // Wrapper functions for activation that update hover state
+  const handleActivateAssetWrapper = useCallback(
+    (assetId: number) => {
+      if (onActivateAsset) {
+        onActivateAsset(assetId);
+        // Activation state will be handled by pendingActivations prop
+        // If this asset is currently hovered, update the hover data
+        if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
+          setHoveredElement((prev) => 
+            prev ? {
+              ...prev,
+              data: { ...prev.data, Status: "ACTIVE" },
+            } : null
+          );
+        }
+      }
+    },
+    [onActivateAsset, hoveredElement],
+  );
+
+  const handleDeactivateAssetWrapper = useCallback(
+    (assetId: number) => {
+      if (onDeactivateAsset) {
+        onDeactivateAsset(assetId);
+        // Activation state will be handled by pendingActivations prop
+        // If this asset is currently hovered, update the hover data
+        if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
+          setHoveredElement((prev) => 
+            prev ? {
+              ...prev,
+              data: { ...prev.data, Status: "INACTIVE" },
+            } : null
+          );
+        }
+      }
+    },
+    [onDeactivateAsset, hoveredElement],
+  );
+
+  const handleActivateLineWrapper = useCallback(
+    (lineId: number) => {
+      if (onActivateLine) {
+        onActivateLine(lineId);
+        // Activation state will be handled by pendingActivations prop
+        // If this line is currently hovered, update the hover data
+        if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
+          setHoveredElement((prev) => 
+            prev ? {
+              ...prev,
+              data: { ...prev.data, Status: "CLOSED" },
+            } : null
+          );
+        }
+      }
+    },
+    [onActivateLine, hoveredElement],
+  );
+
+  const handleDeactivateLineWrapper = useCallback(
+    (lineId: number) => {
+      if (onDeactivateLine) {
+        onDeactivateLine(lineId);
+        // Activation state will be handled by pendingActivations prop
+        // If this line is currently hovered, update the hover data
+        if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
+          setHoveredElement((prev) => 
+            prev ? {
+              ...prev,
+              data: { ...prev.data, Status: "OPEN" },
+            } : null
+          );
+        }
+      }
+    },
+    [onDeactivateLine, hoveredElement],
+  );
 
   const handleElementHover = (
     element: HoverableElement,
@@ -419,8 +497,8 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
               isSneakyTricks={isSneakyTricks}
               isActive={isLineActive}
-              onActivate={onActivateLine}
-              onDeactivate={onDeactivateLine}
+              onActivate={handleActivateLineWrapper}
+              onDeactivate={handleDeactivateLineWrapper}
             />
           );
         })}
@@ -484,8 +562,8 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
                 isSneakyTricks={isSneakyTricks}
                 isActive={isAssetActive}
-                onActivate={onActivateAsset}
-                onDeactivate={onDeactivateAsset}
+                onActivate={handleActivateAssetWrapper}
+                onDeactivate={handleDeactivateAssetWrapper}
                 playerHasNegativeMoney={playerHasNegativeMoney}
               />
             );

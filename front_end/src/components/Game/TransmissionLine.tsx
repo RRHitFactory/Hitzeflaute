@@ -117,6 +117,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     event.stopPropagation();
     if (onActivate) {
       onActivate(line.id);
+      // If we're currently hovering over this line, update the hover data
+      // This will be handled by the parent component's state update
     }
   };
 
@@ -124,6 +126,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     event.stopPropagation();
     if (onDeactivate) {
       onDeactivate(line.id);
+      // If we're currently hovering over this line, update the hover data
+      // This will be handled by the parent component's state update
     }
   };
 
@@ -185,29 +189,34 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const midX = (fromX + toX) / 2;
   const midY = (fromY + toY) / 2;
 
+  const lineAngle = Math.atan2(baseVector.y, baseVector.x);
+  const perpAngle = lineAngle + Math.PI / 2; // Perpendicular angle
+  const perpVector: Point = {x: Math.cos(perpAngle), y: Math.sin(perpAngle)}
+
   // Add slight curve by offsetting the middle point
   const curveOffset = 0.1;
   const offsetX = baseVector.y * curveOffset;
   const offsetY = -baseVector.x * curveOffset;
 
-  const mid_point = { x: midX + offsetX, y: midY + offsetY };
+  const midPoint: Point = { x: midX + offsetX, y: midY + offsetY };
 
-  const pathData = `M ${fromX} ${fromY} Q ${mid_point.x} ${
-    mid_point.y
+  const pathData = `M ${fromX} ${fromY} Q ${midPoint.x} ${
+    midPoint.y
   } ${toX} ${toY}`;
 
   // Find the true middle of the curved line
-  const curveMidX = (mid_point.x + midX) / 2;
-  const curveMidY = (mid_point.y + midY) / 2;
-  const curveMid = { x: curveMidX, y: curveMidY };
+  const curveMidX = (midPoint.x + midX) / 2;
+  const curveMidY = (midPoint.y + midY) / 2;
+  const curveMid: Point = { x: curveMidX, y: curveMidY };
+
+  const buttonPoint: Point = { x: curveMid.x + perpVector.x * -15, y: curveMid.y + perpVector.y * -15};
 
   // Calculate line for open circuit indicator
-  const lineAngle = Math.atan2(baseVector.y, baseVector.x);
-  const perpAngle = lineAngle + Math.PI / 2; // Perpendicular angle
-  const perpX1 = curveMidX + Math.cos(perpAngle) * 8;
-  const perpY1 = curveMidY + Math.sin(perpAngle) * 8;
-  const perpX2 = curveMidX - Math.cos(perpAngle) * 8;
-  const perpY2 = curveMidY - Math.sin(perpAngle) * 8;
+
+  const perpX1 = curveMidX + perpVector.x * 8;
+  const perpY1 = curveMidY + perpVector.y * 8;
+  const perpX2 = curveMidX - perpVector.x * 8;
+  const perpY2 = curveMidY - perpVector.y * 8;
 
   // Check if player can afford this line
   const canAfford =
@@ -288,8 +297,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
       {isPurchasable && viewMode === "normal" && (
         <g className="purchase-button" opacity="0.9">
           <circle
-            cx={midX}
-            cy={midY}
+            cx={buttonPoint.x}
+            cy={buttonPoint.y}
             r="10"
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
@@ -314,8 +323,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
             onMouseLeave={onLeave}
           />
           <text
-            x={midX}
-            y={midY + 4}
+            x={buttonPoint.x}
+            y={buttonPoint.y + 4}
             textAnchor="middle"
             fontSize="10"
             fill="white"
@@ -331,10 +340,10 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
       {isOwnedByCurrentPlayer && isSneakyTricks && viewMode === "normal" && (
         <g className="activation-button" opacity="0.9">
           <circle
-            cx={midX}
-            cy={midY}
-            r="12"
-            fill={owner.color}
+            cx={buttonPoint.x}
+            cy={buttonPoint.y}
+            r="10"
+            fill={displayActive ? "#22c55e" : "#9ca3af"}
             stroke="white"
             strokeWidth="2"
             style={{ cursor: "pointer" }}
@@ -344,6 +353,32 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
             onMouseEnter={handleActivationHover}
             onMouseLeave={onLeave}
           />
+          {/* Tick for ACTIVE, cross for INACTIVE */}
+          {displayActive ? (
+            <text
+              x={buttonPoint.x}
+              y={buttonPoint.y + 4}
+              textAnchor="middle"
+              fontSize="10"
+              fill="white"
+              pointerEvents="none"
+              fontWeight="bold"
+            >
+              ✓
+            </text>
+          ) : (
+            <text
+              x={buttonPoint.x}
+              y={buttonPoint.y + 4}
+              textAnchor="middle"
+              fontSize="10"
+              fill="white"
+              pointerEvents="none"
+              fontWeight="bold"
+            >
+              ✗
+            </text>
+          )}
         </g>
       )}
     </g>
