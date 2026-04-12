@@ -229,11 +229,11 @@ class GameInitializer:
         topos = iter(topology)
 
         buses: list[Bus] = []
-        for pid, top in zip(player_repo.player_ids, topos):
-            buses.append(Bus(id=next(bus_ids), player_id=pid, x=top.x, y=top.y))
+        for top in topos:
+            buses.append(Bus(id=next(bus_ids), x=top.x, y=top.y))
 
         for bus_id, top in zip(bus_ids, topos):
-            buses.append(Bus(id=bus_id, player_id=PlayerId.get_npc(), x=top.x, y=top.y))
+            buses.append(Bus(id=bus_id, x=top.x, y=top.y))
 
         return BusRepo(buses)
 
@@ -253,11 +253,13 @@ class GameInitializer:
         freezer_bid = int(np.floor(self.settings.initial_funds / freezer_power))
         # The initial freezer bid is the highest affordable bid for the player at the start of the game
 
+        bus_iter = iter(bus_repo.bus_ids)
+
         for player_id in player_repo.player_ids:
             if player_id == PlayerId.get_npc():
                 continue
 
-            bus_id = bus_repo.get_bus_for_player(player_id=player_id).id
+            bus_id = next(bus_iter)
             socket_manager.use_socket(bus_id=bus_id)
 
             assets.append(

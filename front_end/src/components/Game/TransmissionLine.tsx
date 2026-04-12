@@ -191,7 +191,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
 
   const lineAngle = Math.atan2(baseVector.y, baseVector.x);
   const perpAngle = lineAngle + Math.PI / 2; // Perpendicular angle
-  const perpVector: Point = {x: Math.cos(perpAngle), y: Math.sin(perpAngle)}
+  const perpVector: Point = { x: Math.cos(perpAngle), y: Math.sin(perpAngle) };
 
   // Add slight curve by offsetting the middle point
   const curveOffset = 0.1;
@@ -209,7 +209,10 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const curveMidY = (midPoint.y + midY) / 2;
   const curveMid: Point = { x: curveMidX, y: curveMidY };
 
-  const buttonPoint: Point = { x: curveMid.x + perpVector.x * -15, y: curveMid.y + perpVector.y * -15};
+  const buttonPoint: Point = {
+    x: curveMid.x + perpVector.x * -15,
+    y: curveMid.y + perpVector.y * -15,
+  };
 
   // Calculate line for open circuit indicator
 

@@ -83,6 +83,10 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return self._filter({"is_freezer": True})
 
     @cached_property
+    def not_freezers(self) -> "AssetRepo":
+        return self._filter({"is_freezer": False})
+
+    @cached_property
     def only_loads(self) -> "AssetRepo":
         return self._filter({"asset_type": AssetType.LOAD})
 

@@ -62,10 +62,10 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
             players = players.player_ids
         self.player_ids = players
 
-    def add_bus(self, player_id: PlayerId = PlayerId.get_npc()) -> Self:
-        return self + self._make_dc(player_id=player_id)
+    def add_bus(self) -> Self:
+        return self + self._make_dc()
 
-    def _make_dc(self, player_id: PlayerId = PlayerId.get_npc()) -> Bus:
+    def _make_dc(self) -> Bus:
         map_width: float = 20.0
         half_width = map_width / 2
 
@@ -79,7 +79,7 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         y = -centre_y + abs(half_width - centre_y) * centre_rand()
 
         bus_id = next(self.id_counter)
-        return Bus(id=BusId(bus_id), x=x, y=y, player_id=player_id, max_assets=20, max_lines=10)
+        return Bus(id=BusId(bus_id), x=x, y=y, max_assets=20, max_lines=10)
 
     def _get_current_centre(self) -> tuple[float, float]:
         """Get the current centre of the buses."""
@@ -93,12 +93,12 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         return BusRepo
 
     def _pre_make_hook(self) -> None:
-        # Ensure that there is exactly one bus per non-npc player
-        player_ids_with_buses = {bus.player_id for bus in self.dcs if bus.player_id != PlayerId.get_npc()}
-        players_without_buses = set(self.player_ids) - player_ids_with_buses
-
-        for player_id in players_without_buses:
-            self.dcs.append(self._make_dc(player_id=player_id))
+        # Ensure that there is at least one bus per non-npc player
+        n_buses = len(self.dcs)
+        n_players = len(self.player_ids) - 1
+        if n_buses < n_players:
+            for _ in range(n_players - n_buses):
+                self.dcs.append(self._make_dc())
 
 
 class PlayerRepoMaker(RepoMaker[PlayerRepo, Player]):
@@ -161,8 +161,12 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         self.buses = bus_repo
         self._socket_manager = BusSocketManager({b.id: b.max_assets for b in bus_repo})
 
-        for bus in self.buses.freezer_buses:
-            freezer = self._make_dc(cat="Freezer", bus=bus.id, owner=bus.player_id, is_active=True)
+        bus_id_iter = iter(self.buses.bus_ids)
+        for player in players:
+            if player == PlayerId.get_npc():
+                continue
+            bus_id = next(bus_id_iter)
+            freezer = self._make_dc(cat="Freezer", bus=bus_id, owner=player, is_active=True)
             self._safe_append(freezer)
 
     def __add__(self, dc: AssetInfo | list[AssetInfo]) -> Self:

@@ -79,11 +79,13 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         // Activation state will be handled by pendingActivations prop
         // If this asset is currently hovered, update the hover data
         if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
-          setHoveredElement((prev) => 
-            prev ? {
-              ...prev,
-              data: { ...prev.data, Status: "ACTIVE" },
-            } : null
+          setHoveredElement((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  data: { ...prev.data, Status: "ACTIVE" },
+                }
+              : null,
           );
         }
       }
@@ -98,11 +100,13 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         // Activation state will be handled by pendingActivations prop
         // If this asset is currently hovered, update the hover data
         if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
-          setHoveredElement((prev) => 
-            prev ? {
-              ...prev,
-              data: { ...prev.data, Status: "INACTIVE" },
-            } : null
+          setHoveredElement((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  data: { ...prev.data, Status: "INACTIVE" },
+                }
+              : null,
           );
         }
       }
@@ -117,11 +121,13 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         // Activation state will be handled by pendingActivations prop
         // If this line is currently hovered, update the hover data
         if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
-          setHoveredElement((prev) => 
-            prev ? {
-              ...prev,
-              data: { ...prev.data, Status: "CLOSED" },
-            } : null
+          setHoveredElement((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  data: { ...prev.data, Status: "CLOSED" },
+                }
+              : null,
           );
         }
       }
@@ -136,11 +142,13 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         // Activation state will be handled by pendingActivations prop
         // If this line is currently hovered, update the hover data
         if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
-          setHoveredElement((prev) => 
-            prev ? {
-              ...prev,
-              data: { ...prev.data, Status: "OPEN" },
-            } : null
+          setHoveredElement((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  data: { ...prev.data, Status: "OPEN" },
+                }
+              : null,
           );
         }
       }
@@ -505,13 +513,10 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
         {/* Buses */}
         {busesWithDisplayCoords.map((bus) => {
-          const owner = getPlayerById(bus.player_id);
-          if (!owner) return null;
           return (
             <BusComponent
               key={bus.id}
               bus={bus}
-              owner={owner}
               onHover={handleElementHover}
               onLeave={handleMouseLeave}
               onClickProp={
@@ -541,6 +546,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               pendingAssetActive !== undefined
                 ? pendingAssetActive
                 : asset.is_active;
+            {
+              owner.color;
+            }
 
             // Check if player has negative money
             const playerHasNegativeMoney = getCurrentPlayerMoney() < 0;

@@ -2,7 +2,6 @@ export interface Bus {
   id: number;
   x: number;
   y: number;
-  player_id: number;
   max_lines: number;
   max_assets: number;
   color: string;

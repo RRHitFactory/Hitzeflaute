@@ -5,7 +5,6 @@ import React from "react";
 
 interface BusProps {
   bus: BusWithDisplayCoords;
-  owner: Player;
   onHover: (element: HoverableElement, event: React.MouseEvent) => void;
   onLeave: () => void;
   onClickProp?: (busId: number, event: React.MouseEvent) => void;
@@ -14,7 +13,6 @@ interface BusProps {
 
 const BusComponent: React.FC<BusProps> = ({
   bus,
-  owner,
   onHover,
   onLeave,
   onClickProp,
@@ -27,9 +25,7 @@ const BusComponent: React.FC<BusProps> = ({
           type: "bus",
           id: bus.id,
           title: `Bus${bus.id}`,
-          data: {
-            Owner: owner.trigram,
-          },
+          data: {},
         },
         event,
       );
@@ -67,7 +63,7 @@ const BusComponent: React.FC<BusProps> = ({
         y={bus.display_position.y ? bus.display_position.y - 6 : bus.y - 6}
         width={36}
         height={12}
-        fill={owner.color}
+        fill="#000000"
         stroke="#374151"
         strokeWidth="1"
         rx="2"
