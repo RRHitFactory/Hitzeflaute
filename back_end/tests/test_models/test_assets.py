@@ -28,8 +28,8 @@ class TestAssets(BaseTest):
         repo = AssetRepoMaker(players=player_ids, bus_repo=bus_repo).add_assets_to_buses(buses=buses).make()
 
         for b, expected_count in {BusId(1): 1, BusId(2): 2, BusId(3): 0}.items():
-            b_assets = repo.get_all_assets_at_bus(b)
-            self.assertEqual(len(b_assets), expected_count)
+            assets = repo.get_all_assets_at_bus(b).not_freezers
+            self.assertEqual(len(assets), expected_count)
 
     def test_delete_assets(self) -> None:
         player_ids = [PlayerId(1), PlayerId(2)]

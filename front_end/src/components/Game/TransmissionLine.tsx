@@ -4,6 +4,7 @@ import {
   BusWithDisplayCoords,
   HoverableElement,
   Player,
+  Point,
   TransmissionLine,
 } from "@/types/game";
 import React from "react";
@@ -22,6 +23,12 @@ interface TransmissionLineProps {
   maxFlow?: number;
   actualFlow?: number;
   showFlowAnimation?: boolean;
+  currentPlayer?: number;
+  isOwnedByCurrentPlayer?: boolean;
+  isSneakyTricks?: boolean;
+  isActive?: boolean;
+  onActivate?: (lineId: number) => void;
+  onDeactivate?: (lineId: number) => void;
 }
 
 const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
@@ -38,11 +45,20 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   maxFlow = 1,
   actualFlow = 0,
   showFlowAnimation = false,
+  currentPlayer,
+  isOwnedByCurrentPlayer = false,
+  isSneakyTricks = false,
+  isActive,
+  onActivate,
+  onDeactivate,
 }) => {
   const fromBus = buses.find((b) => b.id === line.bus1);
   const toBus = buses.find((b) => b.id === line.bus2);
 
   if (!fromBus || !toBus) return null;
+
+  // Use provided isActive prop if available, otherwise fall back to line.is_open
+  const displayActive = isActive !== undefined ? isActive : line.is_active;
 
   const getLineData = () => {
     const data: { [key: string]: string } = {
@@ -55,9 +71,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         `$${line.minimum_acquisition_price.toLocaleString()}`;
     }
 
-    if (line.is_open) {
-      data["Status"] = "OPEN";
-    }
+    data["Status"] = displayActive ? "CLOSED" : "OPEN";
 
     return data;
   };
@@ -74,6 +88,24 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     );
   };
 
+  const handleActivationHover = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    onHover(
+      {
+        type: "line",
+        id: line.id,
+        title: `Line${line.id}`,
+        data: {
+          ...getLineData(),
+          Action: displayActive
+            ? "Click to open (deactivate) this line"
+            : "Click to close (activate) this line",
+        },
+      },
+      event,
+    );
+  };
+
   const handlePurchaseClick = (event: React.MouseEvent) => {
     event.stopPropagation();
     if (onPurchase) {
@@ -81,8 +113,26 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     }
   };
 
+  const handleActivateClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onActivate) {
+      onActivate(line.id);
+      // If we're currently hovering over this line, update the hover data
+      // This will be handled by the parent component's state update
+    }
+  };
+
+  const handleDeactivateClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onDeactivate) {
+      onDeactivate(line.id);
+      // If we're currently hovering over this line, update the hover data
+      // This will be handled by the parent component's state update
+    }
+  };
+
   const getLineColor = () => {
-    if (line.is_open) {
+    if (!displayActive) {
       // Deactivate color similar to the Python implementation
       return adjustColor(owner.color, 0.5);
     }
@@ -91,23 +141,13 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
 
   // Helper function to create arrow path for flow direction along the curved line
   const getArrowPath = (
-    midX: number,
-    midY: number,
-    fromX: number,
-    fromY: number,
-    toX: number,
-    toY: number,
+    vector: Point,
+    curveMid: Point,
     flowForward: boolean,
   ) => {
-    // Calculate the control point for the quadratic Bézier curve (same as the line's curve)
-    const vector = { x: toX - fromX, y: toY - fromY };
-    const trueMidX = (fromX + toX) / 2;
-    const trueMidY = (fromY + toY) / 2;
-
-    const arrowX = (trueMidX + midX) / 2;
-    const arrowY = (trueMidY + midY) / 2;
-
     const angle = Math.atan2(vector.y, vector.x) + (flowForward ? 0 : Math.PI); // +180 degrees to face flow direction
+    const arrowX = curveMid.x;
+    const arrowY = curveMid.y;
 
     const arrowSize = 22;
 
@@ -145,41 +185,46 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const toX = toBus.display_position.x || toBus.x;
   const toY = toBus.display_position.y || toBus.y;
 
-  const vector = { x: toX - fromX, y: toY - fromY };
+  const baseVector = { x: toX - fromX, y: toY - fromY };
   const midX = (fromX + toX) / 2;
   const midY = (fromY + toY) / 2;
 
+  const lineAngle = Math.atan2(baseVector.y, baseVector.x);
+  const perpAngle = lineAngle + Math.PI / 2; // Perpendicular angle
+  const perpVector: Point = { x: Math.cos(perpAngle), y: Math.sin(perpAngle) };
+
   // Add slight curve by offsetting the middle point
   const curveOffset = 0.1;
-  const offsetX = vector.y * curveOffset;
-  const offsetY = -vector.x * curveOffset;
+  const offsetX = baseVector.y * curveOffset;
+  const offsetY = -baseVector.x * curveOffset;
 
-  const mid_point = { x: midX + offsetX, y: midY + offsetY };
+  const midPoint: Point = { x: midX + offsetX, y: midY + offsetY };
 
-  const pathData = `M ${fromX} ${fromY} Q ${mid_point.x} ${
-    mid_point.y
+  const pathData = `M ${fromX} ${fromY} Q ${midPoint.x} ${
+    midPoint.y
   } ${toX} ${toY}`;
+
+  // Find the true middle of the curved line
+  const curveMidX = (midPoint.x + midX) / 2;
+  const curveMidY = (midPoint.y + midY) / 2;
+  const curveMid: Point = { x: curveMidX, y: curveMidY };
+
+  const buttonPoint: Point = {
+    x: curveMid.x + perpVector.x * -15,
+    y: curveMid.y + perpVector.y * -15,
+  };
+
+  // Calculate line for open circuit indicator
+
+  const perpX1 = curveMidX + perpVector.x * 8;
+  const perpY1 = curveMidY + perpVector.y * 8;
+  const perpX2 = curveMidX - perpVector.x * 8;
+  const perpY2 = curveMidY - perpVector.y * 8;
 
   // Check if player can afford this line
   const canAfford =
     !isPurchasable ||
     (onPurchase && line.minimum_acquisition_price <= playerMoney);
-
-  const handlePurchaseButtonHover = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    onHover(
-      {
-        type: "line",
-        id: line.id,
-        title: `Purchase Line${line.id}`,
-        data: {
-          Cost: `$${line.minimum_acquisition_price.toLocaleString()}`,
-          Action: "Click to purchase this transmission line",
-        },
-      },
-      event,
-    );
-  };
 
   // Calculate flow animation properties using actual power from market summary
   const flowValue = actualFlow ?? 0;
@@ -229,18 +274,21 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         pointerEvents="none"
       />
 
+      {/* Open circuit indicator - thick gray perpendicular line when line is OPEN */}
+      {!displayActive && viewMode === "normal" && (
+        <path
+          d={`M ${perpX2} ${perpY2} L ${perpX1} ${perpY1}`}
+          stroke="#6b7280"
+          strokeWidth={4}
+          strokeLinecap="round"
+          pointerEvents="none"
+        />
+      )}
+
       {/* Flow direction indicator (arrow) - only show in market view with significant flow */}
       {viewMode === "market" && showFlowAnimation && flowRatio > 0.1 && (
         <path
-          d={getArrowPath(
-            mid_point.x,
-            mid_point.y,
-            fromX,
-            fromY,
-            toX,
-            toY,
-            flowForward,
-          )}
+          d={getArrowPath(baseVector, curveMid, flowForward)}
           stroke="#000000" // Dark gray color
           strokeWidth={1}
           fill="#7a7a7a" // Dark gray color
@@ -252,20 +300,34 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
       {isPurchasable && viewMode === "normal" && (
         <g className="purchase-button" opacity="0.9">
           <circle
-            cx={midX}
-            cy={midY}
+            cx={buttonPoint.x}
+            cy={buttonPoint.y}
             r="10"
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
             strokeWidth="2"
             style={{ cursor: canAfford ? "pointer" : "not-allowed" }}
             onClick={canAfford ? handlePurchaseClick : undefined}
-            onMouseEnter={handlePurchaseButtonHover}
+            onMouseEnter={(e) => {
+              e.stopPropagation();
+              onHover(
+                {
+                  type: "line",
+                  id: line.id,
+                  title: `Purchase Line${line.id}`,
+                  data: {
+                    Cost: `$${line.minimum_acquisition_price.toLocaleString()}`,
+                    Action: "Click to purchase this transmission line",
+                  },
+                },
+                e,
+              );
+            }}
             onMouseLeave={onLeave}
           />
           <text
-            x={midX}
-            y={midY + 4}
+            x={buttonPoint.x}
+            y={buttonPoint.y + 4}
             textAnchor="middle"
             fontSize="10"
             fill="white"
@@ -274,6 +336,52 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
           >
             $
           </text>
+        </g>
+      )}
+
+      {/* Activation control for owned lines in sneaky tricks phase */}
+      {isOwnedByCurrentPlayer && isSneakyTricks && viewMode === "normal" && (
+        <g className="activation-button" opacity="0.9">
+          <circle
+            cx={buttonPoint.x}
+            cy={buttonPoint.y}
+            r="10"
+            fill={displayActive ? "#22c55e" : "#9ca3af"}
+            stroke="white"
+            strokeWidth="2"
+            style={{ cursor: "pointer" }}
+            onClick={
+              displayActive ? handleDeactivateClick : handleActivateClick
+            }
+            onMouseEnter={handleActivationHover}
+            onMouseLeave={onLeave}
+          />
+          {/* Tick for ACTIVE, cross for INACTIVE */}
+          {displayActive ? (
+            <text
+              x={buttonPoint.x}
+              y={buttonPoint.y + 4}
+              textAnchor="middle"
+              fontSize="10"
+              fill="white"
+              pointerEvents="none"
+              fontWeight="bold"
+            >
+              ✓
+            </text>
+          ) : (
+            <text
+              x={buttonPoint.x}
+              y={buttonPoint.y + 4}
+              textAnchor="middle"
+              fontSize="10"
+              fill="white"
+              pointerEvents="none"
+              fontWeight="bold"
+            >
+              ✗
+            </text>
+          )}
         </g>
       )}
     </g>

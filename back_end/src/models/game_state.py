@@ -1,6 +1,6 @@
 from dataclasses import dataclass, fields, replace
 from enum import IntEnum
-from functools import cached_property
+from functools import cached_property, lru_cache
 from typing import Self
 
 from src.models.assets import AssetInfo, AssetRepo
@@ -8,6 +8,7 @@ from src.models.buses import BusFullException, BusRepo
 from src.models.game_settings import GameSettings
 from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
+from src.models.pending_state import PendingState
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.serialization import simplify_type, un_simplify_type
@@ -39,7 +40,7 @@ class Phase(IntEnum):
         return Phase(next_index)
 
 
-type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | GameSettings
+type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
 
 
 @dataclass(frozen=True)
@@ -54,6 +55,7 @@ class GameState:
     market_coupling_result: MarketCouplingResult | None
     market_summary: MarketCouplingSummary | None = None
     game_round: Round = Round(1)
+    pending_state: PendingState = PendingState()
 
     def __post_init__(self) -> None:
         assert isinstance(self.game_round, Round), f"game_round must be of type Round. Got {type(self.game_round)}"
@@ -62,6 +64,11 @@ class GameState:
     @cached_property
     def current_players(self) -> list[PlayerId]:
         return self.players.get_currently_playing().player_ids
+
+    def commit_pending_state(self) -> Self:
+        assets = self.assets.update_activations(self.pending_state.asset_activation)
+        transmission = self.transmission.update_activations(self.pending_state.line_activation)
+        return self.update(assets, transmission, PendingState())
 
     def add_asset(self, asset: AssetInfo) -> Self:
         bus_id = asset.bus
@@ -107,17 +114,13 @@ class GameState:
                 raise ValueError(f"Cannot update {key} multiple times in one update call.")
             map_new_attributes[key] = attribute
 
-        # Create a mapping from type to field name using dataclass fields
-        attr_to_type: dict[str, type[GameStateAttributes]] = {f.name: f.type for f in fields(self)}  # type: ignore
-        attr_to_type["market_coupling_result"] = MarketCouplingResult  # type: ignore
-        type_to_attr: dict[type[GameStateAttributes], str] = {v: k for k, v in attr_to_type.items()}
-
         for k, attr in enumerate(new_attributes):
-            attr_name = type_to_attr.get(type(attr), None)
+            attr_name = self.get_type_to_attr_map().get(type(attr), None)
             assert attr_name is not None, f"Attribute in position {k} of with value {attr} of {type(attr)} is not a valid GameState attribute."
             append_to_map(attr_name, attr)
 
         return replace(self, **map_new_attributes)  # type: ignore[arg-type]
+
 
     def to_simple_dict(self) -> dict:
         return {
@@ -131,7 +134,17 @@ class GameState:
             "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
             "market_summary": (self.market_summary.to_simple_dict() if self.market_summary else None),
             "game_round": self.game_round,
+            "pending_state": self.pending_state.to_simple_dict()
         }
+
+    @classmethod
+    @lru_cache(1)
+    def get_type_to_attr_map(cls) -> dict[type[GameStateAttributes], str]:
+        attr_to_type: dict[str, type[GameStateAttributes]] = {f.name: f.type for f in fields(cls)}  # type: ignore
+        attr_to_type["market_coupling_result"] = MarketCouplingResult
+        type_to_attr: dict[type[GameStateAttributes], str] = {v: k for k, v in attr_to_type.items()}
+        return type_to_attr
+
 
     @classmethod
     def from_simple_dict(cls, simple_dict: dict) -> Self:
@@ -146,4 +159,5 @@ class GameState:
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
             market_summary=(MarketCouplingSummary.from_simple_dict(simple_dict["market_summary"]) if simple_dict.get("market_summary") else None),
             game_round=Round(simple_dict["game_round"]),
+            pending_state=PendingState.from_simple_dict(simple_dict["pending_state"])
         )

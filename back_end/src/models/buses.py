@@ -1,9 +1,9 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.geometry import Point
-from src.models.ids import BusId, PlayerId
+from src.models.ids import BusId
 from src.tools.random_choice import random_choice, random_choice_multi
 
 
@@ -12,7 +12,6 @@ class Bus(LightDc):
     id: BusId
     x: float
     y: float
-    player_id: PlayerId = field(default_factory=PlayerId.get_npc)
     max_lines: int = 5
     max_assets: int = 5
 
@@ -43,24 +42,6 @@ class BusRepo(LdcRepo[Bus]):
     @property
     def bus_ids(self) -> list[BusId]:
         return [BusId(x) for x in self.df.index.tolist()]
-
-    @property
-    def npc_bus_ids(self) -> list[BusId]:
-        return self._filter({"player_id": PlayerId.get_npc()}).bus_ids
-
-    @property
-    def player_bus_ids(self) -> list[BusId]:
-        return self._filter(operator="not", condition={"player_id": PlayerId.get_npc()}).bus_ids
-
-    @property
-    def freezer_buses(self) -> list[Bus]:
-        return [self[b] for b in self.player_bus_ids]
-
-    def get_bus_for_player(self, player_id: PlayerId) -> Bus:
-        player_buses = self._filter({"player_id": player_id})
-        assert len(player_buses) == 1
-        return player_buses.as_objs()[0]
-
 
 class BusFullException(Exception):
     # You have to sit on the bus driver's lap

@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from functools import cached_property
+from types import MappingProxyType
 from typing import Self
 
 from src.models.data.ldc_repo import LdcRepo
@@ -88,8 +89,16 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         df.loc[transmission_id, "is_active"] = True
         return self.update_frame(df)
 
+    def update_activations(self, activations: MappingProxyType[TransmissionId, bool]) -> Self:
+        df = self.df
+        actives = [k.as_int() for k, v in activations.items() if v]
+        inactives = [k.as_int() for k, v in activations.items() if not v]
+        df.loc[actives, "is_active"] = True
+        df.loc[inactives, "is_active"] = False
+        return self.update_frame(df)
+
     def change_owner(self, transmission_id: TransmissionId, new_owner: PlayerId) -> Self:
-        df = self.df.copy()
+        df = self.df
         df.loc[transmission_id, "owner_player"] = simplify_type(new_owner)
         df.loc[transmission_id, "is_for_sale"] = False
         return self.update_frame(df)
@@ -97,11 +106,11 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
     def wear_transmission(self, transmission_id: TransmissionId) -> Self:
         health: float = self.df.loc[transmission_id, "health"]  # type: ignore
         if health > 1:
-            df = self.df.copy()
+            df = self.df
             df.loc[transmission_id, "health"] -= 1  # type: ignore
             return self.update_frame(df)
         else:
-            df = self.df.copy()
+            df = self.df
             df.loc[transmission_id, "health"] = 0
             df.loc[transmission_id, "is_active"] = False
             return self.update_frame(df)

@@ -37,12 +37,12 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
         ? pendingBids[asset.id]
         : asset.bid_price;
 
-    if (asset.asset_type === AssetType.LOAD) {
-      // For loads: power_expected * (marginal_cost - bid_price)
+    if (asset.asset_type === AssetType.GENERATOR) {
+      // For generators: power_expected * (marginal_cost - bid_price)
       const cashflow = asset.power_expected * (asset.marginal_cost - bidPrice);
       return Math.max(0, cashflow); // Clip negative values to zero
     } else {
-      // For generators: power_expected * (bid_price - marginal_cost)
+      // For loads: power_expected * (bid_price - marginal_cost)
       const cashflow = asset.power_expected * (bidPrice - asset.marginal_cost);
       return Math.max(0, cashflow); // Clip negative values to zero
     }
@@ -53,7 +53,10 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
     return sum + calculate_cost(asset);
   }, 0);
 
-  const insufficientFunds = totalCost > playerMoney;
+  // Clip player money to minimum of 0 for insufficient funds calculation
+  // This allows players with negative money to still place bids
+  const availableFunds = Math.max(0, playerMoney);
+  const insufficientFunds = totalCost > availableFunds;
 
   // Notify parent component about insufficient funds status
   React.useEffect(() => {
@@ -185,7 +188,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
             <p
               className={`text-lg font-bold ${insufficientFunds ? "text-red-600" : "text-green-600"}`}
             >
-              {formatNumber(totalCost)} / {formatNumber(playerMoney)}
+              {formatNumber(totalCost)} / {formatNumber(availableFunds)}
             </p>
           </div>
         </div>

@@ -1,21 +1,11 @@
+from types import MappingProxyType
+
 from src.engine.engine import Engine
 from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
-from src.models.message import (
-    AssetWornMessage,
-    BuyRequest,
-    BuyResponse,
-    IceCreamMeltedMessage,
-    OperateAssetRequest,
-    OperateAssetResponse,
-    OperateLineRequest,
-    OperateLineResponse,
-    PlayerToGameMessage,
-    TransmissionWornMessage,
-    PlayerNotInTurn,
-)
+from src.models.message import Ack, ActivationUpdateRequest, AssetWornMessage, BuyRequest, BuyResponse, IceCreamMeltedMessage, PlayerNotInTurn, PlayerToGameMessage, TransmissionWornMessage
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
 from tests.base_test import BaseTest
@@ -142,150 +132,88 @@ class TestEngine(BaseTest):
             bus2=bus_repo.bus_ids[1],
             reactance=10.0,
         )
-        not_my_line = TransmissionInfo(
-            id=TransmissionId(101),
-            owner_player=PlayerId.get_npc(),
-            bus1=bus_repo.bus_ids[2],
-            bus2=bus_repo.bus_ids[3],
-            reactance=10.0,
-        )
         transmission_repo += my_line
-        transmission_repo += not_my_line
 
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_transmission_repo(transmission_repo).add_phase(Phase.SNEAKY_TRICKS).make()
         game_state = give_turn_to_player(game_state, player.id)
 
-        # Test operating a line that I own
-        open_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=my_line.id, action="open")
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=open_request)
+
+        deactivate_request = ActivationUpdateRequest(
+            game_id=game_state.game_id,
+            player_id=player.id,
+            line_activation=MappingProxyType({my_line.id: False}),
+            asset_activation=MappingProxyType({})
+        )
+        activate_request = ActivationUpdateRequest(
+            game_id=game_state.game_id,
+            player_id=player.id,
+            line_activation=MappingProxyType({my_line.id: True}),
+            asset_activation=MappingProxyType({})
+        )
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_request)
 
         self.assertEqual(len(responses), 1)
         response = responses[0]
-        response = self.assertIsInstance(response, OperateLineResponse)
-        self.assertEqual(response.result, "success")
-        self.assertEqual(game_state.transmission[my_line.id].is_open, True)
+        self.assertIsInstance(response, Ack)
+        self.assertEqual(game_state.transmission[my_line.id].is_active, True)
+        game_state = game_state.commit_pending_state()
+        self.assertEqual(game_state.transmission[my_line.id].is_active, False)
 
-        # Try to open it again
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=open_request)
-
-        self.assertEqual(len(responses), 1)
-        response = responses[0]
-        response = self.assertIsInstance(response, OperateLineResponse)
-        self.assertEqual(response.result, "no_change")
-        self.assertEqual(game_state.transmission[my_line.id].is_open, True)
-
-        # Try closing a line that I own
-        close_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=my_line.id, action="close")
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=close_request)
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_request)
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=activate_request)
 
         self.assertEqual(len(responses), 1)
         response = responses[0]
-        response = self.assertIsInstance(response, OperateLineResponse)
-        self.assertEqual(response.result, "success")
-        self.assertEqual(game_state.transmission[my_line.id].is_open, False)
+        self.assertIsInstance(response, Ack)
+        self.assertEqual(game_state.transmission[my_line.id].is_active, False)
+        game_state = game_state.commit_pending_state()
+        self.assertEqual(game_state.transmission[my_line.id].is_active, True)
 
-        # Try to close it again
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=close_request)
-
-        self.assertEqual(len(responses), 1)
-        response = responses[0]
-        response = self.assertIsInstance(response, OperateLineResponse)
-        self.assertEqual(response.result, "no_change")
-        self.assertEqual(game_state.transmission[my_line.id].is_open, False)
-
-        # Try to operate a line that I do not own
-        not_my_open_request = OperateLineRequest(game_id=game_state.game_id, player_id=player.id, transmission_id=not_my_line.id, action="open")
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=not_my_open_request)
-        self.assertEqual(len(responses), 1)
-        response = responses[0]
-        response = self.assertIsInstance(response, OperateLineResponse)
-        self.assertEqual(response.result, "failure")
-        self.assertEqual(game_state.transmission[not_my_line.id].is_open, False)
 
     def test_operate_asset_messages(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()
-        broke_player = Player(
-            id=PlayerId(100),
-            name="Broke player",
-            trigram="BRO",
-            color=Color("black"),
-            money=-100,
-            is_having_turn=True,
-        )
-        player_repo += broke_player
         bus_repo = BusRepoMaker.make_quick(n_npc_buses=5, players=player_repo)
         asset_repo = AssetRepoMaker.make_quick(players=player_repo, bus_repo=bus_repo)
 
         player = player_repo.human_players[0]
         my_generator = AssetInfo(id=AssetId(100), owner_player=player.id, asset_type=AssetType.GENERATOR, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=True)
-        my_load = AssetInfo(id=AssetId(101), owner_player=player.id, asset_type=AssetType.LOAD, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=True)
-        broke_player_load = AssetInfo(id=AssetId(102), owner_player=broke_player.id, asset_type=AssetType.LOAD, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=False)
-        asset_repo = asset_repo + my_generator + my_load + broke_player_load
+        asset_repo = asset_repo.add(my_generator)
 
-        game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.BIDDING).make()
-        game_state = give_turn_to_player(game_state, player.id)
+        game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.SNEAKY_TRICKS).make()
+        game_state = game_state.start_all_turns()
 
-        # Test deactivate my generator
-        deactivate_asset = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=my_generator.id, action="shutdown")
-
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_asset)
+        deactivate_request = ActivationUpdateRequest(
+            game_id=GameId(0),
+            player_id=player.id,
+            line_activation=MappingProxyType({}),
+            asset_activation=MappingProxyType({my_generator.id: False})
+        )
+        activate_request = ActivationUpdateRequest(
+            game_id=GameId(0),
+            player_id=player.id,
+            line_activation=MappingProxyType({}),
+            asset_activation=MappingProxyType({my_generator.id: True})
+        )
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_request)
 
         self.assertEqual(len(responses), 1)
         response = responses[0]
-        response = self.assertIsInstance(response, OperateAssetResponse)
-        self.assertEqual(response.result, "success")
+        self.assertIsInstance(response, Ack)
+        self.assertEqual(game_state.assets[my_generator.id].is_active, True)
+        game_state = game_state.commit_pending_state()
         self.assertEqual(game_state.assets[my_generator.id].is_active, False)
 
-        # Try to deactivate it again
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_asset)
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_request)
+        game_state, responses = Engine.handle_message(game_state=game_state, msg=activate_request)
 
         self.assertEqual(len(responses), 1)
         response = responses[0]
-        response = self.assertIsInstance(response, OperateAssetResponse)
-        self.assertEqual(response.result, "no_change")
+        self.assertIsInstance(response, Ack)
         self.assertEqual(game_state.assets[my_generator.id].is_active, False)
-
-        # Try activating my generator
-        activate_asset = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=my_generator.id, action="startup")
-
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=activate_asset)
-
-        self.assertEqual(len(responses), 1)
-        response = responses[0]
-        response = self.assertIsInstance(response, OperateAssetResponse)
-        self.assertEqual(response.result, "success")
+        game_state = game_state.commit_pending_state()
         self.assertEqual(game_state.assets[my_generator.id].is_active, True)
 
-        # Try to activate it again
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=activate_asset)
 
-        self.assertEqual(len(responses), 1)
-        response = responses[0]
-        response = self.assertIsInstance(response, OperateAssetResponse)
-        self.assertEqual(response.result, "no_change")
-        self.assertEqual(game_state.assets[my_generator.id].is_active, True)
-
-        # Try to operate an asset that I do not own
-        broke_player_load_activate = OperateAssetRequest(game_id=game_state.game_id, player_id=player.id, asset_id=broke_player_load.id, action="startup")
-
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=broke_player_load_activate)
-
-        self.assertEqual(len(responses), 1)
-        response = responses[0]
-        response = self.assertIsInstance(response, OperateAssetResponse)
-        self.assertEqual(response.result, "failure")
-        self.assertEqual(game_state.assets[broke_player_load.id].is_active, False)
-
-        # Broke player tries to activate their own load
-        broke_player_load_activate = OperateAssetRequest(game_id=game_state.game_id, player_id=broke_player.id, asset_id=broke_player_load.id, action="startup")
-
-        game_state, responses = Engine.handle_message(game_state=game_state, msg=broke_player_load_activate)
-
-        self.assertEqual(len(responses), 1)
-        response = responses[0]
-        response = self.assertIsInstance(response, OperateAssetResponse)
-        self.assertEqual(response.result, "failure")
-        self.assertEqual(game_state.assets[broke_player_load.id].is_active, False)
 
     def test_post_clearing_book_keeping(self):
         game_maker = GameStateMaker()

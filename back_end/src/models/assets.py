@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import IntEnum
 from functools import cached_property
+from types import MappingProxyType
 
 from randcraft import make_dirac, make_uniform
 from randcraft.random_variable import RandomVariable
@@ -82,6 +83,10 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return self._filter({"is_freezer": True})
 
     @cached_property
+    def not_freezers(self) -> "AssetRepo":
+        return self._filter({"is_freezer": False})
+
+    @cached_property
     def only_loads(self) -> "AssetRepo":
         return self._filter({"asset_type": AssetType.LOAD})
 
@@ -115,28 +120,28 @@ class AssetRepo(LdcRepo[AssetInfo]):
 
     # UPDATE
     def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_id, "owner_player"] = simplify_type(new_owner)
         df.loc[asset_id, "is_for_sale"] = False
         return self.update_frame(df)
 
     def update_bid_price(self, asset_id: AssetId, bid_price: float) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_id, "bid_price"] = bid_price
         return self.update_frame(df)
 
     def batch_update_bid_price(self, asset_ids: list[AssetId], bid_prices: list[float]) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_ids, "bid_price"] = bid_prices
         return self.update_frame(df)
 
     def _decrease_health(self, asset_id: AssetId) -> "AssetRepo":
         if self.df.loc[asset_id, "health"] > 1:  # type: ignore
-            df = self.df.copy()
+            df = self.df
             df.loc[asset_id, "health"] -= 1  # type: ignore
             return self.update_frame(df)
         else:
-            df = self.df.copy()
+            df = self.df
             df.loc[asset_id, "health"] = 0
             df.loc[asset_id, "is_active"] = False
             return self.update_frame(df)
@@ -150,19 +155,28 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return self._decrease_health(asset_id)
 
     def deactivate(self, asset_id: AssetId) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_id, "is_active"] = False
         return self.update_frame(df)
 
     def activate(self, asset_id: AssetId) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_id, "is_active"] = True
         return self.update_frame(df)
 
     def batch_deactivate(self, asset_ids: list[AssetId]) -> "AssetRepo":
-        df = self.df.copy()
+        df = self.df
         df.loc[asset_ids, "is_active"] = False
         return self.update_frame(df)
+
+    def update_activations(self, activations: MappingProxyType[AssetId, bool]) -> "AssetRepo":
+        df = self.df
+        actives = [k for k, v in activations.items() if v]
+        inactives = [k for k, v in activations.items() if not v]
+        df.loc[actives, "is_active"] = True
+        df.loc[inactives, "is_active"] = False
+        return self.update_frame(df)
+
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> "AssetRepo":

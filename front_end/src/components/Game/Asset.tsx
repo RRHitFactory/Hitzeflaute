@@ -32,6 +32,12 @@ interface AssetProps {
   playerMoney?: number;
   currentPlayer?: number;
   viewMode?: "normal" | "market";
+  isOwnedByCurrentPlayer?: boolean;
+  isSneakyTricks?: boolean;
+  isActive?: boolean;
+  onActivate?: (assetId: number) => void;
+  onDeactivate?: (assetId: number) => void;
+  playerHasNegativeMoney?: boolean;
 }
 
 const technologyMap: { [key: string]: React.ElementType } = {
@@ -59,6 +65,12 @@ const AssetComponent: React.FC<AssetProps> = ({
   playerMoney = 0,
   currentPlayer,
   viewMode = "normal",
+  isOwnedByCurrentPlayer = false,
+  isSneakyTricks = false,
+  isActive,
+  onActivate,
+  onDeactivate,
+  playerHasNegativeMoney = false,
 }) => {
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
@@ -68,6 +80,18 @@ const AssetComponent: React.FC<AssetProps> = ({
     const title = `${type}${asset.id}`;
     return asset.is_freezer ? `${title} (Freezer)` : title;
   };
+
+  // Use provided isActive prop if available, otherwise fall back to asset.is_active
+  const displayActive = isActive !== undefined ? isActive : asset.is_active;
+
+  // Loads (asset_type === 1) should be forced inactive if player has negative money
+  const isLoad = asset.asset_type === AssetType.LOAD;
+  // Freezers cannot be disabled
+  const isFreezer = asset.is_freezer;
+  const isForcedInactive = isLoad && !isFreezer && playerHasNegativeMoney;
+
+  // Determine if the asset can be toggled (not forced inactive, and not a freezer)
+  const canToggle = !isForcedInactive && !isFreezer;
 
   const getAssetData = () => {
     const data: { [key: string]: string } = {
@@ -94,6 +118,12 @@ const AssetComponent: React.FC<AssetProps> = ({
       data["Health"] = asset.health.toString();
     }
 
+    if (isForcedInactive) {
+      data["Status"] = "INACTIVE (Negative Money)";
+    } else {
+      data["Status"] = displayActive ? "ACTIVE" : "INACTIVE";
+    }
+
     return data;
   };
 
@@ -116,6 +146,47 @@ const AssetComponent: React.FC<AssetProps> = ({
     }
   };
 
+  const handleActivateClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onActivate) {
+      onActivate(asset.id);
+      // If we're currently hovering over this asset, update the hover data
+      // This will be handled by the parent component's state update
+    }
+  };
+
+  const handleDeactivateClick = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onDeactivate) {
+      onDeactivate(asset.id);
+      // If we're currently hovering over this asset, update the hover data
+      // This will be handled by the parent component's state update
+    }
+  };
+
+  const handleActivationHover = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    const actionData: { [key: string]: string } = { ...getAssetData() };
+    if (isFreezer) {
+      actionData["Action"] = "Freezers cannot be disabled";
+    } else if (!canToggle) {
+      actionData["Action"] = "Cannot activate - player has negative money";
+    } else if (displayActive) {
+      actionData["Action"] = "Click to deactivate this asset";
+    } else {
+      actionData["Action"] = "Click to activate this asset";
+    }
+    onHover(
+      {
+        type: "asset",
+        id: asset.id,
+        title: getAssetTitle(),
+        data: actionData,
+      },
+      event,
+    );
+  };
+
   const getAssetText = () => {
     if (asset.asset_type === AssetType.GENERATOR) return "G";
     if (asset.asset_type === AssetType.LOAD) {
@@ -125,7 +196,9 @@ const AssetComponent: React.FC<AssetProps> = ({
   };
 
   const getAssetColor = () => {
-    return asset.is_active ? owner.color : adjustColor(owner.color, 0.5);
+    // Always show as inactive if forced
+    const shouldBeInactive = isForcedInactive || !displayActive;
+    return shouldBeInactive ? adjustColor(owner.color, 0.5) : owner.color;
   };
 
   const adjustColor = (color: string, factor: number) => {
@@ -149,15 +222,15 @@ const AssetComponent: React.FC<AssetProps> = ({
     return brightness > 128 ? "#000000" : "#FFFFFF";
   };
 
-  const getBuyLocation = (bus: BusWithDisplayCoords, position: Position) => {
+  const getButtonLocation = (bus: BusWithDisplayCoords, position: Position) => {
     const x_offset = position.x - bus.display_position.x;
     const y_offset = position.y - bus.display_position.y;
-    const buy_x = bus.display_position.x + x_offset * 1.5;
-    const buy_y = bus.display_position.y + y_offset * 1.5;
+    const buy_x = bus.display_position.x + x_offset * 1.6;
+    const buy_y = bus.display_position.y + y_offset * 1.6;
     return { x: buy_x, y: buy_y } as Position;
   };
 
-  const buyLocation = getBuyLocation(bus, position);
+  const buttonLocation = getButtonLocation(bus, position);
   const radius = 5; // Increased from 12
   const fillColor = getAssetColor();
   const textColor = getContrastColor(fillColor);
@@ -248,8 +321,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       {isPurchasable && viewMode === "normal" && (
         <g className="purchase-button" opacity="0.9">
           <circle
-            cx={buyLocation.x}
-            cy={buyLocation.y}
+            cx={buttonLocation.x}
+            cy={buttonLocation.y}
             r="10"
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
@@ -260,8 +333,8 @@ const AssetComponent: React.FC<AssetProps> = ({
             onMouseLeave={onLeave}
           />
           <text
-            x={buyLocation.x}
-            y={buyLocation.y + 4}
+            x={buttonLocation.x}
+            y={buttonLocation.y + 4}
             textAnchor="middle"
             fontSize="10"
             fill="white"
@@ -272,6 +345,59 @@ const AssetComponent: React.FC<AssetProps> = ({
           </text>
         </g>
       )}
+
+      {/* Activation control for owned assets in sneaky tricks phase */}
+      {isOwnedByCurrentPlayer &&
+        isSneakyTricks &&
+        viewMode === "normal" &&
+        canToggle && (
+          <g className="activation-button" opacity="0.9">
+            <circle
+              cx={buttonLocation.x}
+              cy={buttonLocation.y}
+              r="10"
+              fill={displayActive ? "#22c55e" : "#9ca3af"}
+              stroke="white"
+              strokeWidth="2"
+              style={{ cursor: "pointer" }}
+              onClick={
+                isForcedInactive
+                  ? undefined
+                  : displayActive
+                    ? handleDeactivateClick
+                    : handleActivateClick
+              }
+              onMouseEnter={handleActivationHover}
+              onMouseLeave={onLeave}
+            />
+            {/* Tick for ACTIVE, cross for INACTIVE */}
+            {displayActive ? (
+              <text
+                x={buttonLocation.x}
+                y={buttonLocation.y + 4}
+                textAnchor="middle"
+                fontSize="10"
+                fill="white"
+                pointerEvents="none"
+                fontWeight="bold"
+              >
+                ✓
+              </text>
+            ) : (
+              <text
+                x={buttonLocation.x}
+                y={buttonLocation.y + 4}
+                textAnchor="middle"
+                fontSize="10"
+                fill="white"
+                pointerEvents="none"
+                fontWeight="bold"
+              >
+                ✗
+              </text>
+            )}
+          </g>
+        )}
     </g>
   );
 };

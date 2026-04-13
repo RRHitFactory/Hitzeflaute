@@ -68,7 +68,7 @@ class PlayerRepo(LdcRepo[Player]):
 
     # UPDATE
     def _adjust_money(self, player_id: PlayerId, func: Callable[[float], float]) -> Self:
-        df = self.df.copy()
+        df = self.df
         money: float = df.loc[player_id, "money"]  # type: ignore
         df.loc[player_id, "money"] = func(money)
         return self.update_frame(df)
@@ -83,7 +83,7 @@ class PlayerRepo(LdcRepo[Player]):
         return self.add_money(to_player, amount).subtract_money(from_player, amount)
 
     def _set_turn(self, player_id: PlayerId | list[PlayerId], is_having_turn: bool) -> Self:
-        df = self.df.copy()
+        df = self.df
         df.loc[player_id, "is_having_turn"] = is_having_turn
         return self.update_frame(df)
 
@@ -97,7 +97,7 @@ class PlayerRepo(LdcRepo[Player]):
         return self._set_turn(self.human_player_ids, True)
 
     def start_first_player_turn(self) -> Self:
-        df = self.df.copy()
+        df = self.df
         df.loc[:, "is_having_turn"] = False
         df.loc[self.human_player_ids[0], "is_having_turn"] = True
         return self.update_frame(df)
@@ -107,7 +107,7 @@ class PlayerRepo(LdcRepo[Player]):
         assert len(current_players) == 1, f"Expected exactly one current player, got {current_players}"
         current_player = current_players[0]
 
-        df = self.df.copy()
+        df = self.df
         df.loc[current_player, "is_having_turn"] = False
         human_ids = self.human_player_ids
         next_index = human_ids.index(current_players[0]) + 1
@@ -119,7 +119,7 @@ class PlayerRepo(LdcRepo[Player]):
         return self.update_frame(df)
 
     def eliminate_player(self, player_id: PlayerId) -> Self:
-        df = self.df.copy()
+        df = self.df
         df.loc[player_id, "still_alive"] = False
         return self.update_frame(df)
 

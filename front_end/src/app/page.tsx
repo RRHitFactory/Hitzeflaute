@@ -175,24 +175,52 @@ export default function Home() {
     wsClient.buyTransmissionLine(lineId.toString());
   };
 
-  // State for batch bidding
-  const [pendingBids, setPendingBids] = useState<Record<number, number>>({});
+  // State for activation changes during sneaky tricks phase
+  // Reset when current player or phase changes
+  const [pendingActivations, setPendingActivations] = useState<{
+    lines: Record<number, boolean>;
+    assets: Record<number, boolean>;
+  }>({ lines: {}, assets: {} });
 
-  // State to track insufficient funds status from BiddingTable
-  const [hasInsufficientFunds, setHasInsufficientFunds] = useState(false);
+  // Reset pending activations when current player or phase changes
+  useEffect(() => {
+    setPendingActivations({ lines: {}, assets: {} });
+  }, [gameState?.phase, currentPlayerFromGameState]);
 
-  const handleBidAsset = (assetId: number, newBidPrice: number) => {
-    // Store bid locally instead of sending immediately
-    setPendingBids((prev) => ({
+  const handleActivateLine = (lineId: number) => {
+    // Store activation in pending state
+    setPendingActivations((prev) => ({
       ...prev,
-      [assetId]: newBidPrice,
+      lines: { ...prev.lines, [lineId]: true },
     }));
-    console.log("Stored bid for asset:", assetId, "to:", newBidPrice);
+    console.log(`Activating line ${lineId} - stored locally`);
   };
 
-  const handleBidChange = (assetId: number, newBidPrice: number) => {
-    // This is called from the bidding table when input changes
-    handleBidAsset(assetId, newBidPrice);
+  const handleDeactivateLine = (lineId: number) => {
+    // Store deactivation in pending state
+    setPendingActivations((prev) => ({
+      ...prev,
+      lines: { ...prev.lines, [lineId]: false },
+    }));
+    console.log(`Deactivating line ${lineId} - stored locally`);
+  };
+
+  const handleActivateAsset = (assetId: number) => {
+    // Store activation in pending state
+    setPendingActivations((prev) => ({
+      ...prev,
+      assets: { ...prev.assets, [assetId]: true },
+    }));
+    console.log(`Activating asset ${assetId} - stored locally`);
+  };
+
+  const handleDeactivateAsset = (assetId: number) => {
+    // Store deactivation in pending state
+    setPendingActivations((prev) => ({
+      ...prev,
+      assets: { ...prev.assets, [assetId]: false },
+    }));
+    console.log(`Deactivating asset ${assetId} - stored locally`);
   };
 
   const handleSubmitAllBids = () => {
@@ -217,8 +245,44 @@ export default function Home() {
       return;
     }
 
+    // Check if we're in sneaky tricks phase with pending activations
+    if (gameState?.phase === 1) {
+      const hasUpdates =
+        Object.keys(pendingActivations.lines).length > 0 ||
+        Object.keys(pendingActivations.assets).length > 0;
+      if (hasUpdates) {
+        console.log("Submitting activation updates:", pendingActivations);
+        wsClient.activationUpdate({
+          line_activation: pendingActivations.lines,
+          asset_activation: pendingActivations.assets,
+        });
+      }
+    }
+    // Clear pending activations at end of turn
+    setPendingActivations({ lines: {}, assets: {} });
+
     console.log("Ending turn");
     wsClient.endTurn();
+  };
+
+  // State for batch bidding
+  const [pendingBids, setPendingBids] = useState<Record<number, number>>({});
+
+  // State to track insufficient funds status from BiddingTable
+  const [hasInsufficientFunds, setHasInsufficientFunds] = useState(false);
+
+  const handleBidAsset = (assetId: number, newBidPrice: number) => {
+    // Store bid locally instead of sending immediately
+    setPendingBids((prev) => ({
+      ...prev,
+      [assetId]: newBidPrice,
+    }));
+    console.log("Stored bid for asset:", assetId, "to:", newBidPrice);
+  };
+
+  const handleBidChange = (assetId: number, newBidPrice: number) => {
+    // This is called from the bidding table when input changes
+    handleBidAsset(assetId, newBidPrice);
   };
 
   // Show setup screen if not yet started
@@ -481,7 +545,12 @@ export default function Home() {
                 onPurchaseAsset={handlePurchaseAsset}
                 onPurchaseTransmissionLine={handlePurchaseTransmissionLine}
                 onBidAsset={handleBidAsset}
+                onActivateLine={handleActivateLine}
+                onDeactivateLine={handleDeactivateLine}
+                onActivateAsset={handleActivateAsset}
+                onDeactivateAsset={handleDeactivateAsset}
                 currentPlayer={currentPlayerFromGameState}
+                pendingActivations={pendingActivations}
               />
             </div>
           </div>

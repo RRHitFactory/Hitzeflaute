@@ -1,9 +1,10 @@
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
 import pandas as pd
 
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
+from src.models.pending_state import PendingState
 
 
 class GameStateComparator:
@@ -33,6 +34,7 @@ class GameStateComparator:
             "assets": lambda: game_state1.assets == game_state2.assets,
             "transmission": lambda: game_state1.transmission == game_state2.transmission,
             "market_coupling_result": lambda: cls.market_coupling_result_is_equal(game_state1.market_coupling_result, game_state2.market_coupling_result),
+            "pending_state": lambda: cls.pending_states_are_equal(game_state1.pending_state, game_state2.pending_state)
         }
 
     @staticmethod
@@ -54,6 +56,25 @@ class GameStateComparator:
         if not check_df(result1.assets_dispatch, result2.assets_dispatch):
             return False
         return True
+
+    @classmethod
+    def pending_states_are_equal(cls, ps1: PendingState, ps2: PendingState) -> bool:
+        dict_pairs = [(ps1.asset_activation, ps2.asset_activation), (ps1.line_activation, ps2.line_activation)]
+        for dp in dict_pairs:
+            d1, d2 = dp
+            if not cls.dicts_equal(d1, d2):
+                return False
+        return True
+
+    @staticmethod
+    def dicts_equal(d1: Mapping, d2: Mapping) -> bool:
+        if set(d1.keys()) != set(d2.keys()):
+            return False
+        for k, v in d1.items():
+            if v != d2[k]:
+                return False
+        return True
+
 
 
 def game_states_are_equal(game_state1: GameState, game_state2: GameState) -> bool:

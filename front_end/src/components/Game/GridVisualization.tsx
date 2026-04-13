@@ -9,7 +9,7 @@ import {
   Player,
   NPC_PLAYER_ID,
 } from "@/types/game";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
 import ViewToggle from "../UI/ViewToggle";
 import AssetComponent from "./Asset";
@@ -25,19 +25,33 @@ interface GridVisualizationProps {
   onPurchaseAsset?: (assetId: number) => void;
   onPurchaseTransmissionLine?: (lineId: number) => void;
   onBidAsset?: (assetId: number, newBidPrice: number) => void;
+  onActivateLine?: (lineId: number) => void;
+  onDeactivateLine?: (lineId: number) => void;
+  onActivateAsset?: (assetId: number) => void;
+  onDeactivateAsset?: (assetId: number) => void;
   currentPlayer?: number;
+  pendingActivations?: {
+    lines?: Record<number, boolean>;
+    assets?: Record<number, boolean>;
+  };
 }
 
 const GridVisualization: React.FC<GridVisualizationProps> = ({
   gameState,
   onPurchaseAsset,
   onPurchaseTransmissionLine,
+  onActivateLine,
+  onDeactivateLine,
+  onActivateAsset,
+  onDeactivateAsset,
   currentPlayer,
+  pendingActivations = {},
 }) => {
   const [hoveredElement, setHoveredElement] = useState<HoverableElement | null>(
     null,
   );
   const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
+
   const [selectedBusForMarket, setSelectedBusForMarket] = useState<
     number | null
   >(null);
@@ -56,6 +70,91 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     price: number;
   }>({ isOpen: false, type: "asset", id: -1, title: "", price: 0 });
   const [viewMode, setViewMode] = useState<"normal" | "market">("normal");
+
+  // Wrapper functions for activation that update hover state
+  const handleActivateAssetWrapper = useCallback(
+    (assetId: number) => {
+      if (onActivateAsset) {
+        onActivateAsset(assetId);
+        // Activation state will be handled by pendingActivations prop
+        // If this asset is currently hovered, update the hover data
+        if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
+          setHoveredElement((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  data: { ...prev.data, Status: "ACTIVE" },
+                }
+              : null,
+          );
+        }
+      }
+    },
+    [onActivateAsset, hoveredElement],
+  );
+
+  const handleDeactivateAssetWrapper = useCallback(
+    (assetId: number) => {
+      if (onDeactivateAsset) {
+        onDeactivateAsset(assetId);
+        // Activation state will be handled by pendingActivations prop
+        // If this asset is currently hovered, update the hover data
+        if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
+          setHoveredElement((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  data: { ...prev.data, Status: "INACTIVE" },
+                }
+              : null,
+          );
+        }
+      }
+    },
+    [onDeactivateAsset, hoveredElement],
+  );
+
+  const handleActivateLineWrapper = useCallback(
+    (lineId: number) => {
+      if (onActivateLine) {
+        onActivateLine(lineId);
+        // Activation state will be handled by pendingActivations prop
+        // If this line is currently hovered, update the hover data
+        if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
+          setHoveredElement((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  data: { ...prev.data, Status: "CLOSED" },
+                }
+              : null,
+          );
+        }
+      }
+    },
+    [onActivateLine, hoveredElement],
+  );
+
+  const handleDeactivateLineWrapper = useCallback(
+    (lineId: number) => {
+      if (onDeactivateLine) {
+        onDeactivateLine(lineId);
+        // Activation state will be handled by pendingActivations prop
+        // If this line is currently hovered, update the hover data
+        if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
+          setHoveredElement((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  data: { ...prev.data, Status: "OPEN" },
+                }
+              : null,
+          );
+        }
+      }
+    },
+    [onDeactivateLine, hoveredElement],
+  );
 
   const handleElementHover = (
     element: HoverableElement,
@@ -374,6 +473,16 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
             }
           }
 
+          // Check if player owns this line and we're in sneaky tricks phase
+          const isOwnedByCurrentPlayer =
+            currentPlayer !== undefined && line.owner_player === currentPlayer;
+          const isSneakyTricks = gameState.phase === GamePhase.SNEAKY_TRICKS;
+
+          // Get pending activation state if available, otherwise use game state
+          const pendingLineActive = pendingActivations.lines?.[line.id];
+          const isLineActive =
+            pendingLineActive !== undefined ? pendingLineActive : line.is_open;
+
           return (
             <TransmissionLineComponent
               key={line.id}
@@ -392,19 +501,22 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               maxFlow={maxFlow}
               actualFlow={linePower}
               showFlowAnimation={true}
+              currentPlayer={currentPlayer}
+              isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
+              isSneakyTricks={isSneakyTricks}
+              isActive={isLineActive}
+              onActivate={handleActivateLineWrapper}
+              onDeactivate={handleDeactivateLineWrapper}
             />
           );
         })}
 
         {/* Buses */}
         {busesWithDisplayCoords.map((bus) => {
-          const owner = getPlayerById(bus.player_id);
-          if (!owner) return null;
           return (
             <BusComponent
               key={bus.id}
               bus={bus}
-              owner={owner}
               onHover={handleElementHover}
               onLeave={handleMouseLeave}
               onClickProp={
@@ -421,6 +533,26 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
             const owner = getPlayerById(asset.owner_player);
             if (!owner) return null;
             const isPurchasable = isAssetPurchasable(asset);
+
+            // Check if player owns this asset and we're in sneaky tricks phase
+            const isOwnedByCurrentPlayer =
+              currentPlayer !== undefined &&
+              asset.owner_player === currentPlayer;
+            const isSneakyTricks = gameState.phase === GamePhase.SNEAKY_TRICKS;
+
+            // Get pending activation state if available, otherwise use game state
+            const pendingAssetActive = pendingActivations.assets?.[asset.id];
+            const isAssetActive =
+              pendingAssetActive !== undefined
+                ? pendingAssetActive
+                : asset.is_active;
+            {
+              owner.color;
+            }
+
+            // Check if player has negative money
+            const playerHasNegativeMoney = getCurrentPlayerMoney() < 0;
+
             return (
               <AssetComponent
                 key={asset.id}
@@ -435,6 +567,12 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 playerMoney={getCurrentPlayerMoney()}
                 currentPlayer={currentPlayer}
                 viewMode={viewMode}
+                isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
+                isSneakyTricks={isSneakyTricks}
+                isActive={isAssetActive}
+                onActivate={handleActivateAssetWrapper}
+                onDeactivate={handleDeactivateAssetWrapper}
+                playerHasNegativeMoney={playerHasNegativeMoney}
               />
             );
           }),
