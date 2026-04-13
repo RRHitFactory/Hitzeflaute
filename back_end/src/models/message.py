@@ -173,6 +173,21 @@ class IceCreamMeltedMessage(GameToPlayerMessage):
 
 
 @dataclass(frozen=True)
+class GridExpansionMessage(GameToPlayerMessage):
+    asset_id: AssetId
+
+
+@dataclass(frozen=True)
+class AssetBuiltMessage(GridExpansionMessage):
+    pass
+
+
+@dataclass(frozen=True)
+class TransmissionBuiltMessage(GridExpansionMessage):
+    pass
+
+
+@dataclass(frozen=True)
 class AssetWornMessage(GameToPlayerMessage):
     asset_id: AssetId
 

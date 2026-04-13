@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from src.models.assets import AssetInfo, AssetType
-from src.models.ids import AssetId, BusId, PlayerId
+from src.models.ids import AssetId, BusId, PlayerId, Round
 from src.new_game.util.technology_specs import TechnologySpecs
 from src.tools.random_choice import random_choice
 
@@ -16,7 +16,7 @@ class LoadMaker:
             cls,
             asset_id: AssetId,
             bus_id: BusId,
-            current_round: int,
+            current_round: Round,
             technology_name: str | None = None,
             player_id: PlayerId = PlayerId.get_npc(),
             except_freezer: bool = True

@@ -3,6 +3,7 @@ from typing import cast
 import polars as pl
 
 from src.engine.finance import FinanceCalculator
+from src.engine.grid_expansion import GridExpansion
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.engine.referee import Referee
 from src.models.game_state import GameState, Phase
@@ -98,7 +99,8 @@ class Engine:
         else:
             players = players.start_all_turns()
 
-        if msg.new_phase.value == 0:
+        if msg.new_phase.value == Phase.CONSTRUCTION:
+            new_game_state, building_msgs = GridExpansion.build_grid_elements_for_new_round(new_game_state)
             round = Round(new_game_state.game_round + 1)
         else:
             round = new_game_state.game_round

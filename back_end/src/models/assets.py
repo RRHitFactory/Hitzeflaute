@@ -110,6 +110,14 @@ class AssetRepo(LdcRepo[AssetInfo]):
         freezers = self.get_all_for_player(player_id).only_freezers
         return freezers.df.health.sum()
 
+    def get_total_generation_capacity(self) -> float:
+        generators = self.only_generators.only_active
+        return generators.df.power_expected.sum()
+
+    def get_total_consumption_capacity(self) -> float:
+        loads = self.only_loads.only_active
+        return loads.df.power_expected.sum()
+
     # UPDATE
     def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> "AssetRepo":
         df = self.df

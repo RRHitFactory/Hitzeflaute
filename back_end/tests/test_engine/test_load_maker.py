@@ -1,5 +1,5 @@
 from src.models.assets import AssetInfo
-from src.models.ids import AssetId, BusId, PlayerId
+from src.models.ids import AssetId, BusId, PlayerId, Round
 from src.new_game.loads.load_maker import LoadMaker
 from tests.base_test import BaseTest
 
@@ -11,7 +11,7 @@ class TestLoadMaker(BaseTest):
             technology_name='residential',
             asset_id=AssetId(1),
             bus_id=BusId(1),
-            current_round=0,
+            current_round=Round(0),
             player_id=PlayerId.get_npc()
         )
 
