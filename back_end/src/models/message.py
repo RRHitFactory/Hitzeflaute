@@ -80,14 +80,11 @@ class ConcludePhase(InternalMessage):
 class GameUpdate(GameToPlayerMessage):
     game_state: GameState
 
+
 @dataclass(frozen=True)
 class PlayerNotInTurn(GameToPlayerMessage):
     pass
 
-@dataclass(frozen=True)
-class UpdateBidResponse(GameToPlayerMessage):
-    success: bool
-    asset_id: AssetId
 
 @dataclass(frozen=True)
 class Ack(GameToPlayerMessage):
@@ -95,37 +92,8 @@ class Ack(GameToPlayerMessage):
 
 
 @dataclass(frozen=True)
-class UpdateBidRequest(PlayerToGameMessage):
-    asset_id: AssetId
-    bid_price: float
-
-    def make_response(self, success: bool, message: str) -> UpdateBidResponse:
-        return UpdateBidResponse(
-            game_id=self.game_id,
-            player_id=self.player_id,
-            asset_id=self.asset_id,
-            success=success,
-            message=message,
-        )
-
-
-# update_batch_bids_request
-@dataclass(frozen=True)
-class UpdateBatchBidResponse(GameToPlayerMessage):
-    success: bool
-
-
-@dataclass(frozen=True)
 class UpdateBatchBidsRequest(PlayerToGameMessage):
     bids: MappingProxyType[AssetId, float]
-
-    def make_response(self, success: bool, message: str) -> UpdateBatchBidResponse:
-        return UpdateBatchBidResponse(
-            game_id=self.game_id,
-            player_id=self.player_id,
-            success=success,
-            message=message
-        )
 
 
 @dataclass(frozen=True)
@@ -146,6 +114,7 @@ class BuyRequest[T_Id](PlayerToGameMessage):
             purchase_id=self.purchase_id,
             message=message,
         )
+
 
 @dataclass(frozen=True)
 class ActivationUpdateRequest(PlayerToGameMessage):

@@ -7,12 +7,9 @@ from tests.utils.game_state_maker import GameStateMaker
 
 
 class TestGridExpansion(BaseTest):
-
     @staticmethod
     def _create_game_state_without_assets() -> GameState:
-        settings = GameSettings(
-            probability_of_new_asset=1.0
-        )
+        settings = GameSettings(probability_of_new_asset=1.0)
         gs = GameStateMaker().make().update(settings)
         return gs
 

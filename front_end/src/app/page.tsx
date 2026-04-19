@@ -1,17 +1,17 @@
 "use client";
 
+import BiddingTable from "@/components/Game/BiddingTable";
 import GridVisualization from "@/components/Game/GridVisualization";
 import GameControls from "@/components/UI/GameControls";
 import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
 import { useCreateGame, useGamesList } from "@/lib/gameAPI";
-import BiddingTable from "@/components/Game/BiddingTable";
 import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 export default function Home() {
   const [gameId, setGameId] = useState<number>(-1);
-  const [currentPlayer] = useState(1); // For demo purposes, assume player_1 is active
+  const DEFAULT_PLAYER = 1; // For demo purposes, assume player_1 is active
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedGameId, setSelectedGameId] = useState<number>(-1);
@@ -62,11 +62,11 @@ export default function Home() {
     connectionState,
     gameState,
     isConnected,
-  } = useGameWebSocket(gameId, currentPlayer, callbacks);
+  } = useGameWebSocket(gameId, DEFAULT_PLAYER, callbacks);
 
   // Calculate current player from gameState (who is having their turn)
-  const currentPlayerFromGameState = React.useMemo(() => {
-    if (!gameState) return currentPlayer;
+  const currentPlayer = React.useMemo(() => {
+    if (!gameState) return DEFAULT_PLAYER;
 
     // Handle both array format (sample data) and repo format (backend)
     const playersArray = Array.isArray(gameState.players)
@@ -75,8 +75,8 @@ export default function Home() {
 
     // Find the player who is currently having their turn
     const activePlayer = playersArray.find((p: any) => p.is_having_turn);
-    return activePlayer ? activePlayer.id : currentPlayer;
-  }, [gameState, currentPlayer]);
+    return activePlayer ? activePlayer.id : DEFAULT_PLAYER;
+  }, [gameState]);
 
   // Calculate current player object and name from gameState
   const currentPlayerObj = React.useMemo(() => {
@@ -87,21 +87,17 @@ export default function Home() {
       ? gameState.players
       : gameState.players?.data || [];
 
-    return playersArray.find((p: any) => p.id === currentPlayerFromGameState);
-  }, [gameState, currentPlayerFromGameState]);
+    return playersArray.find((p: any) => p.id === currentPlayer);
+  }, [gameState, currentPlayer]);
 
   // Calculate current player name and trigram from gameState
   const currentPlayerName = React.useMemo(() => {
-    return currentPlayerObj
-      ? currentPlayerObj.name
-      : `Player ${currentPlayerFromGameState}`;
-  }, [currentPlayerObj, currentPlayerFromGameState]);
+    return currentPlayerObj ? currentPlayerObj.name : `Player ${currentPlayer}`;
+  }, [currentPlayerObj, currentPlayer]);
 
   const currentPlayerTrigram = React.useMemo(() => {
-    return currentPlayerObj
-      ? currentPlayerObj.trigram
-      : `P${currentPlayerFromGameState}`;
-  }, [currentPlayerObj, currentPlayerFromGameState]);
+    return currentPlayerObj ? currentPlayerObj.trigram : `P${currentPlayer}`;
+  }, [currentPlayerObj, currentPlayer]);
 
   const { createGame, loading: creatingGame } = useCreateGame();
   const { games, loading: gamesLoading, error: gamesError } = useGamesList();
@@ -142,18 +138,12 @@ export default function Home() {
   React.useEffect(() => {
     if (wsClient && !showSetup) {
       if (gameMode === "local") {
-        wsClient.setCurrentPlayerId(currentPlayerFromGameState);
-      } else {
         wsClient.setCurrentPlayerId(currentPlayer);
+      } else {
+        wsClient.setCurrentPlayerId(DEFAULT_PLAYER);
       }
     }
-  }, [
-    wsClient,
-    showSetup,
-    gameMode,
-    currentPlayerFromGameState,
-    currentPlayer,
-  ]);
+  }, [wsClient, showSetup, gameMode, currentPlayer]);
 
   const handlePurchaseAsset = (assetId: number) => {
     if (!wsClient || !wsClient.isConnected()) {
@@ -175,17 +165,20 @@ export default function Home() {
     wsClient.buyTransmissionLine(lineId.toString());
   };
 
-  // State for activation changes during sneaky tricks phase
-  // Reset when current player or phase changes
   const [pendingActivations, setPendingActivations] = useState<{
     lines: Record<number, boolean>;
     assets: Record<number, boolean>;
   }>({ lines: {}, assets: {} });
+  const [pendingBids, setPendingBids] = useState<Record<number, number>>({});
+
+  // State to track insufficient funds status from BiddingTable
+  const [hasInsufficientFunds, setHasInsufficientFunds] = useState(false);
 
   // Reset pending activations when current player or phase changes
   useEffect(() => {
     setPendingActivations({ lines: {}, assets: {} });
-  }, [gameState?.phase, currentPlayerFromGameState]);
+    setPendingBids({});
+  }, [gameState?.phase, currentPlayer]);
 
   const handleActivateLine = (lineId: number) => {
     // Store activation in pending state
@@ -223,34 +216,18 @@ export default function Home() {
     console.log(`Deactivating asset ${assetId} - stored locally`);
   };
 
-  const handleSubmitAllBids = () => {
-    if (!wsClient || !wsClient.isConnected()) {
-      setError("Not connected to server");
-      return;
-    }
-
-    if (Object.keys(pendingBids).length === 0) {
-      setError("No pending bids to submit");
-      return;
-    }
-
-    console.log("Submitting all bids:", pendingBids);
-    wsClient.submitBatchBids(pendingBids);
-    setPendingBids({}); // Clear pending bids after submission
-  };
-
   const handleEndTurn = () => {
     if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
       return;
     }
 
-    // Check if we're in sneaky tricks phase with pending activations
+    // Submit pending activations if in sneaky tricks phase
     if (gameState?.phase === 1) {
-      const hasUpdates =
+      const hasActivations =
         Object.keys(pendingActivations.lines).length > 0 ||
         Object.keys(pendingActivations.assets).length > 0;
-      if (hasUpdates) {
+      if (hasActivations) {
         console.log("Submitting activation updates:", pendingActivations);
         wsClient.activationUpdate({
           line_activation: pendingActivations.lines,
@@ -258,18 +235,22 @@ export default function Home() {
         });
       }
     }
-    // Clear pending activations at end of turn
+
+    // Submit pending bids if in bidding phase
+    if (gameState?.phase === 2) {
+      if (Object.keys(pendingBids).length > 0) {
+        console.log("Submitting pending bids:", pendingBids);
+        wsClient.submitBatchBids(pendingBids);
+      }
+    }
+
+    // Clear pending activations and bids at end of turn
     setPendingActivations({ lines: {}, assets: {} });
+    setPendingBids({});
 
     console.log("Ending turn");
     wsClient.endTurn();
   };
-
-  // State for batch bidding
-  const [pendingBids, setPendingBids] = useState<Record<number, number>>({});
-
-  // State to track insufficient funds status from BiddingTable
-  const [hasInsufficientFunds, setHasInsufficientFunds] = useState(false);
 
   const handleBidAsset = (assetId: number, newBidPrice: number) => {
     // Store bid locally instead of sending immediately
@@ -278,11 +259,6 @@ export default function Home() {
       [assetId]: newBidPrice,
     }));
     console.log("Stored bid for asset:", assetId, "to:", newBidPrice);
-  };
-
-  const handleBidChange = (assetId: number, newBidPrice: number) => {
-    // This is called from the bidding table when input changes
-    handleBidAsset(assetId, newBidPrice);
   };
 
   // Show setup screen if not yet started
@@ -549,7 +525,7 @@ export default function Home() {
                 onDeactivateLine={handleDeactivateLine}
                 onActivateAsset={handleActivateAsset}
                 onDeactivateAsset={handleDeactivateAsset}
-                currentPlayer={currentPlayerFromGameState}
+                currentPlayer={currentPlayer}
                 pendingActivations={pendingActivations}
               />
             </div>
@@ -566,8 +542,6 @@ export default function Home() {
               currentPlayerColor={currentPlayerObj?.color}
               isConnected={isConnected}
               onEndTurn={handleEndTurn}
-              onSubmitBids={handleSubmitAllBids}
-              hasPendingBids={Object.keys(pendingBids).length > 0}
               hasInsufficientFunds={hasInsufficientFunds}
             />
 
@@ -575,10 +549,10 @@ export default function Home() {
             {gameState.phase === 2 && (
               <BiddingTable
                 assets={gameState.assets.data}
-                currentPlayer={currentPlayerFromGameState}
+                currentPlayer={currentPlayer}
                 playerMoney={currentPlayerObj?.money || 0}
                 pendingBids={pendingBids}
-                onBidChange={handleBidChange}
+                onBidChange={handleBidAsset}
                 onInsufficientFundsChange={setHasInsufficientFunds}
               />
             )}

@@ -125,14 +125,11 @@ class AssetRepo(LdcRepo[AssetInfo]):
         df.loc[asset_id, "is_for_sale"] = False
         return self.update_frame(df)
 
-    def update_bid_price(self, asset_id: AssetId, bid_price: float) -> "AssetRepo":
+    def update_bids(self, bids: MappingProxyType[AssetId, float]) -> "AssetRepo":
         df = self.df
-        df.loc[asset_id, "bid_price"] = bid_price
-        return self.update_frame(df)
-
-    def batch_update_bid_price(self, asset_ids: list[AssetId], bid_prices: list[float]) -> "AssetRepo":
-        df = self.df
-        df.loc[asset_ids, "bid_price"] = bid_prices
+        asset_ids = list(bids.keys())
+        prices = list(bids.values())
+        df.loc[asset_ids, "bid_price"] = prices
         return self.update_frame(df)
 
     def _decrease_health(self, asset_id: AssetId) -> "AssetRepo":
@@ -154,16 +151,6 @@ class AssetRepo(LdcRepo[AssetInfo]):
         assert not self.df.loc[asset_id, "is_freezer"], "Only non-freezer assets can wear out"
         return self._decrease_health(asset_id)
 
-    def deactivate(self, asset_id: AssetId) -> "AssetRepo":
-        df = self.df
-        df.loc[asset_id, "is_active"] = False
-        return self.update_frame(df)
-
-    def activate(self, asset_id: AssetId) -> "AssetRepo":
-        df = self.df
-        df.loc[asset_id, "is_active"] = True
-        return self.update_frame(df)
-
     def batch_deactivate(self, asset_ids: list[AssetId]) -> "AssetRepo":
         df = self.df
         df.loc[asset_ids, "is_active"] = False
@@ -176,7 +163,6 @@ class AssetRepo(LdcRepo[AssetInfo]):
         df.loc[actives, "is_active"] = True
         df.loc[inactives, "is_active"] = False
         return self.update_frame(df)
-
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> "AssetRepo":

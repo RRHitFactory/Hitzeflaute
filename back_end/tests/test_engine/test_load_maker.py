@@ -5,20 +5,13 @@ from tests.base_test import BaseTest
 
 
 class TestLoadMaker(BaseTest):
-
     def test_make_load(self):
-        load = LoadMaker.make_one(
-            technology_name='residential',
-            asset_id=AssetId(1),
-            bus_id=BusId(1),
-            current_round=Round(0),
-            player_id=PlayerId.get_npc()
-        )
+        load = LoadMaker.make_one(technology_name="residential", asset_id=AssetId(1), bus_id=BusId(1), current_round=Round(0), player_id=PlayerId.get_npc())
 
         self.assertIsInstance(load, AssetInfo)
 
     def test_available_technologies(self):
         technologies = LoadMaker.get_available_technologies()
 
-        for tech in ['residential', 'industrial']:
+        for tech in ["residential", "industrial"]:
             self.assertIn(tech, technologies)

@@ -20,10 +20,7 @@ from src.models.message import (
     PlayerNotInTurn,
     PlayerToGameMessage,
     ToGameMessage,
-    UpdateBatchBidResponse,
     UpdateBatchBidsRequest,
-    UpdateBidRequest,
-    UpdateBidResponse,
 )
 from src.models.pending_state import PendingState
 
@@ -47,8 +44,6 @@ class Engine:
         match msg:
             case ConcludePhase():
                 return cls.handle_new_phase_message(game_state=game_state, msg=msg)
-            case UpdateBidRequest():
-                return cls.handle_update_bid_message(game_state=game_state, msg=msg)
             case UpdateBatchBidsRequest():
                 return cls.handle_update_batch_bid_message(game_state=game_state, msg=msg)
             case ActivationUpdateRequest():
@@ -68,7 +63,6 @@ class Engine:
         game_state: GameState,
         msg: ToGameMessage,
     ) -> tuple[GameState, list[Message]] | None:
-
         if not isinstance(msg, PlayerToGameMessage):
             return None
 
@@ -76,11 +70,7 @@ class Engine:
         if game_state.players[requesting_player_id].is_having_turn:
             return None
         else:
-            return game_state, [PlayerNotInTurn(
-                player_id=requesting_player_id,
-                game_id=game_state.game_id,
-                message=f"Player {requesting_player_id} cannot play when it is not their turn."
-            )]
+            return game_state, [PlayerNotInTurn(player_id=requesting_player_id, game_id=game_state.game_id, message=f"Player {requesting_player_id} cannot play when it is not their turn.")]
 
     @classmethod
     def handle_new_phase_message(
@@ -114,56 +104,9 @@ class Engine:
         game_state: GameState,
         msg: UpdateBatchBidsRequest,
     ) -> tuple[GameState, list[Message]]:
-        if game_state.phase != Phase.BIDDING:
-            response = msg.make_response(
-                success=False,
-                message=f"You can only update bids during the {Phase.BIDDING.nice_name} phase",
-            )
-            return game_state, [response]
-
-        list_responses, updated_asset_bids = cls._validate_update_batch_bid(gs=game_state, msg=msg)
-
-        new_assets = game_state.assets.batch_update_bid_price(asset_ids=list(updated_asset_bids.keys()),
-                                                              bid_prices=list(updated_asset_bids.values()))
-        new_game_state = game_state.update(new_assets)
-
-        response = UpdateBatchBidResponse(
-            game_id=msg.game_id,
-            player_id=msg.player_id,
-            success=True,
-            message=f"Player {msg.player_id} successfully updated batch bids.",
-        )
-
-        return new_game_state, [response]
-
-    @classmethod
-    def handle_update_bid_message(
-        cls,
-        game_state: GameState,
-        msg: UpdateBidRequest,
-    ) -> tuple[GameState, list[Message]]:
-        if game_state.phase != Phase.BIDDING:
-            response = msg.make_response(
-                success=False,
-                message=f"You can only update bids during the {Phase.BIDDING.nice_name} phase",
-            )
-            return game_state, [response]
-
-        list_failed_response = cls._validate_update_bid(gs=game_state, msg=msg)
-        if list_failed_response:
-            return game_state, cast(list[Message], list_failed_response)
-
-        new_assets = game_state.assets.update_bid_price(asset_id=msg.asset_id, bid_price=msg.bid_price)
-        new_game_state = game_state.update(new_assets)
-
-        response = UpdateBidResponse(
-            game_id=msg.game_id,
-            player_id=msg.player_id,
-            success=True,
-            message=f"Player {msg.player_id} successfully updated bid for asset {msg.asset_id} to {msg.bid_price}.",
-            asset_id=msg.asset_id,
-        )
-
+        pending_state = game_state.pending_state.update(PendingState(bids=msg.bids))
+        new_game_state = game_state.update(pending_state)
+        response = Ack(game_id=game_state.game_id, player_id=msg.player_id)
         return new_game_state, [response]
 
     @classmethod
@@ -303,78 +246,3 @@ class Engine:
             )
 
         return new_game_state, msgs
-
-    @classmethod
-    def _validate_update_bid(cls, gs: GameState, msg: UpdateBidRequest) -> list[Message]:
-        def make_failed_response(failed_message: str) -> list[Message]:
-            failed_response = UpdateBidResponse(
-                game_id=gs.game_id,
-                player_id=msg.player_id,
-                success=False,
-                message=failed_message,
-                asset_id=msg.asset_id,
-            )
-            return [failed_response]
-
-        if msg.asset_id not in gs.assets.asset_ids:
-            return make_failed_response("Asset does not exist.")
-
-        player = gs.players[msg.player_id]
-        asset = gs.assets[msg.asset_id]
-        min_bid = gs.game_settings.min_bid_price
-        max_bid = gs.game_settings.max_bid_price
-
-        if player.id != asset.owner_player:
-            return make_failed_response(f"Player {player.id} cannot bid on asset {asset.id} as they do not own it.")
-
-        if not (min_bid <= msg.bid_price <= max_bid):
-            return make_failed_response(f"Bid price {msg.bid_price} is not within the allowed range [{min_bid}, {max_bid}].")
-
-        return []
-
-    @classmethod
-    def _validate_update_batch_bid(cls, gs: GameState, msg: UpdateBatchBidsRequest) -> tuple[list[Message], dict[AssetId, float]]:
-        """Validates the batch bid update request and returns a list of messages for any failed validations, as well as a dict of accepted bids with their potentially adjusted bid prices."""
-        def make_failed_response(failed_message: str) -> list[Message]:
-            failed_response = UpdateBatchBidResponse(
-                game_id=gs.game_id,
-                player_id=msg.player_id,
-                success=False,
-                message=failed_message,
-            )
-            return [failed_response]
-
-        def make_success_response_with_warning(warning_message: str) -> list[Message]:
-            success_with_warning = UpdateBatchBidResponse(
-                game_id=gs.game_id,
-                player_id=msg.player_id,
-                success=True,
-                message=warning_message,
-            )
-            return [success_with_warning]
-
-        player = gs.players[msg.player_id]
-        min_bid = gs.game_settings.min_bid_price
-        max_bid = gs.game_settings.max_bid_price
-
-        responses: list[Message] = []
-        accepted_bids = dict(msg.bids)
-
-        for asset_id, bid_price in msg.bids.items():
-            if asset_id not in gs.assets.asset_ids:
-                responses += make_failed_response(f"Asset {asset_id} does not exist.")
-                accepted_bids.pop(asset_id)
-
-            asset = gs.assets[asset_id]
-            if asset.owner_player != player.id:
-                responses += make_failed_response(f"Player {player.id} cannot bid on asset {asset_id} as they do not own it.")
-                accepted_bids.pop(asset_id)
-
-            if not (min_bid <= bid_price <= max_bid):
-                accepted_bids[asset_id] = max(min(bid_price, max_bid), min_bid)
-                responses += make_success_response_with_warning(
-                    f"Bid price {bid_price} for asset {asset_id} is not within the allowed range [{min_bid}, {max_bid}]."
-                    f"It has been adjusted to {accepted_bids[asset_id]}."
-                )
-
-        return responses, accepted_bids
