@@ -105,25 +105,9 @@ class Engine:
         game_state: GameState,
         msg: UpdateBatchBidsRequest,
     ) -> tuple[GameState, list[Message]]:
-        if game_state.phase != Phase.BIDDING:
-            response = msg.make_response(
-                success=False,
-                message=f"You can only update bids during the {Phase.BIDDING.nice_name} phase",
-            )
-            return game_state, [response]
-
-        _, updated_asset_bids = cls._validate_update_batch_bid(gs=game_state, msg=msg)
-
-        new_assets = game_state.assets.update_bids(asset_ids=list(updated_asset_bids.keys()), bid_prices=list(updated_asset_bids.values()))
-        new_game_state = game_state.update(new_assets)
-
-        response = UpdateBatchBidResponse(
-            game_id=msg.game_id,
-            player_id=msg.player_id,
-            success=True,
-            message=f"Player {msg.player_id} successfully updated batch bids.",
-        )
-
+        pending_state = game_state.pending_state.update(PendingState(bids=msg.bids))
+        new_game_state = game_state.update(pending_state)
+        response = Ack(game_id=game_state.game_id, player_id=msg.player_id)
         return new_game_state, [response]
 
     @classmethod

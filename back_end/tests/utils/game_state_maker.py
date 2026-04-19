@@ -215,7 +215,7 @@ class GameStateMaker:
             else:
                 line_id = self.transmission_repo.transmission_ids[0]
                 asset_id = self.asset_repo.asset_ids[0]
-                self.pending_state = PendingState(line_activation=MappingProxyType({line_id: True}), asset_activation=MappingProxyType({asset_id: False}))
+                self.pending_state = PendingState(line_activation=MappingProxyType({line_id: True}), asset_activation=MappingProxyType({asset_id: False}), bids=MappingProxyType({asset_id: 20.0}))
 
         return GameState(
             game_id=self.game_id,

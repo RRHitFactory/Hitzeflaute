@@ -59,7 +59,7 @@ class GameStateComparator:
 
     @classmethod
     def pending_states_are_equal(cls, ps1: PendingState, ps2: PendingState) -> bool:
-        dict_pairs = [(ps1.asset_activation, ps2.asset_activation), (ps1.line_activation, ps2.line_activation)]
+        dict_pairs = [(ps1.asset_activation, ps2.asset_activation), (ps1.line_activation, ps2.line_activation), (ps1.bids, ps2.bids)]
         for dp in dict_pairs:
             d1, d2 = dp
             if not cls.dicts_equal(d1, d2):
