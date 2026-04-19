@@ -114,7 +114,7 @@ class Engine:
 
         _, updated_asset_bids = cls._validate_update_batch_bid(gs=game_state, msg=msg)
 
-        new_assets = game_state.assets.batch_update_bid_price(asset_ids=list(updated_asset_bids.keys()), bid_prices=list(updated_asset_bids.values()))
+        new_assets = game_state.assets.update_bids(asset_ids=list(updated_asset_bids.keys()), bid_prices=list(updated_asset_bids.values()))
         new_game_state = game_state.update(new_assets)
 
         response = UpdateBatchBidResponse(

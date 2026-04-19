@@ -46,9 +46,7 @@ class TestEngine(BaseTest):
         game_state = game_state.update(new_player_repo, construction_phase)
 
         player_msg = BuyRequest(game_state.game_id, player_not_in_turn, game_state.assets.asset_ids[-1])
-        result_game_state, failed_message = Engine.handle_message(
-            game_state=game_state, msg=player_msg
-        )
+        result_game_state, failed_message = Engine.handle_message(game_state=game_state, msg=player_msg)
         self.assertIsInstance(failed_message[0], PlayerNotInTurn)
 
     def test_buy_asset_message(self) -> None:
@@ -137,19 +135,8 @@ class TestEngine(BaseTest):
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_transmission_repo(transmission_repo).add_phase(Phase.SNEAKY_TRICKS).make()
         game_state = give_turn_to_player(game_state, player.id)
 
-
-        deactivate_request = ActivationUpdateRequest(
-            game_id=game_state.game_id,
-            player_id=player.id,
-            line_activation=MappingProxyType({my_line.id: False}),
-            asset_activation=MappingProxyType({})
-        )
-        activate_request = ActivationUpdateRequest(
-            game_id=game_state.game_id,
-            player_id=player.id,
-            line_activation=MappingProxyType({my_line.id: True}),
-            asset_activation=MappingProxyType({})
-        )
+        deactivate_request = ActivationUpdateRequest(game_id=game_state.game_id, player_id=player.id, line_activation=MappingProxyType({my_line.id: False}), asset_activation=MappingProxyType({}))
+        activate_request = ActivationUpdateRequest(game_id=game_state.game_id, player_id=player.id, line_activation=MappingProxyType({my_line.id: True}), asset_activation=MappingProxyType({}))
         game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_request)
 
         self.assertEqual(len(responses), 1)
@@ -168,7 +155,6 @@ class TestEngine(BaseTest):
         self.assertEqual(game_state.transmission[my_line.id].is_active, False)
         game_state = game_state.commit_pending_state()
         self.assertEqual(game_state.transmission[my_line.id].is_active, True)
-
 
     def test_operate_asset_messages(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()
@@ -182,18 +168,8 @@ class TestEngine(BaseTest):
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.SNEAKY_TRICKS).make()
         game_state = game_state.start_all_turns()
 
-        deactivate_request = ActivationUpdateRequest(
-            game_id=GameId(0),
-            player_id=player.id,
-            line_activation=MappingProxyType({}),
-            asset_activation=MappingProxyType({my_generator.id: False})
-        )
-        activate_request = ActivationUpdateRequest(
-            game_id=GameId(0),
-            player_id=player.id,
-            line_activation=MappingProxyType({}),
-            asset_activation=MappingProxyType({my_generator.id: True})
-        )
+        deactivate_request = ActivationUpdateRequest(game_id=GameId(0), player_id=player.id, line_activation=MappingProxyType({}), asset_activation=MappingProxyType({my_generator.id: False}))
+        activate_request = ActivationUpdateRequest(game_id=GameId(0), player_id=player.id, line_activation=MappingProxyType({}), asset_activation=MappingProxyType({my_generator.id: True}))
         game_state, responses = Engine.handle_message(game_state=game_state, msg=deactivate_request)
 
         self.assertEqual(len(responses), 1)
@@ -212,8 +188,6 @@ class TestEngine(BaseTest):
         self.assertEqual(game_state.assets[my_generator.id].is_active, False)
         game_state = game_state.commit_pending_state()
         self.assertEqual(game_state.assets[my_generator.id].is_active, True)
-
-
 
     def test_post_clearing_book_keeping(self):
         game_maker = GameStateMaker()

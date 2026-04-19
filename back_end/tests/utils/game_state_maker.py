@@ -215,11 +215,7 @@ class GameStateMaker:
             else:
                 line_id = self.transmission_repo.transmission_ids[0]
                 asset_id = self.asset_repo.asset_ids[0]
-                self.pending_state = PendingState(
-                    line_activation=MappingProxyType({line_id: True}),
-                    asset_activation=MappingProxyType({asset_id: False})
-                )
-
+                self.pending_state = PendingState(line_activation=MappingProxyType({line_id: True}), asset_activation=MappingProxyType({asset_id: False}))
 
         return GameState(
             game_id=self.game_id,
@@ -230,5 +226,5 @@ class GameStateMaker:
             assets=self.asset_repo,
             transmission=self.transmission_repo,
             market_coupling_result=self.market_coupling_result,
-            pending_state=self.pending_state
+            pending_state=self.pending_state,
         )

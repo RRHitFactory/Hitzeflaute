@@ -15,6 +15,7 @@ from src.tools.serialization import simplify_type, un_simplify_type
 
 __all__ = ["Phase", "GameState"]
 
+
 class Phase(IntEnum):
     CONSTRUCTION = 0
     SNEAKY_TRICKS = 1
@@ -66,8 +67,15 @@ class GameState:
         return self.players.get_currently_playing().player_ids
 
     def commit_pending_state(self) -> Self:
-        assets = self.assets.update_activations(self.pending_state.asset_activation)
-        transmission = self.transmission.update_activations(self.pending_state.line_activation)
+        assets = self.assets
+        transmission = self.transmission
+        if len(self.pending_state.asset_activation):
+            assets = assets.update_activations(self.pending_state.asset_activation)
+        if len(self.pending_state.line_activation):
+            transmission = transmission.update_activations(self.pending_state.line_activation)
+        if len(self.pending_state.bids):
+            assets = assets.update_bids(self.pending_state.bids)
+
         return self.update(assets, transmission, PendingState())
 
     def add_asset(self, asset: AssetInfo) -> Self:
@@ -121,7 +129,6 @@ class GameState:
 
         return replace(self, **map_new_attributes)  # type: ignore[arg-type]
 
-
     def to_simple_dict(self) -> dict:
         return {
             "game_id": self.game_id.as_int(),
@@ -134,7 +141,7 @@ class GameState:
             "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
             "market_summary": (self.market_summary.to_simple_dict() if self.market_summary else None),
             "game_round": self.game_round,
-            "pending_state": self.pending_state.to_simple_dict()
+            "pending_state": self.pending_state.to_simple_dict(),
         }
 
     @classmethod
@@ -144,7 +151,6 @@ class GameState:
         attr_to_type["market_coupling_result"] = MarketCouplingResult
         type_to_attr: dict[type[GameStateAttributes], str] = {v: k for k, v in attr_to_type.items()}
         return type_to_attr
-
 
     @classmethod
     def from_simple_dict(cls, simple_dict: dict) -> Self:
@@ -159,5 +165,5 @@ class GameState:
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
             market_summary=(MarketCouplingSummary.from_simple_dict(simple_dict["market_summary"]) if simple_dict.get("market_summary") else None),
             game_round=Round(simple_dict["game_round"]),
-            pending_state=PendingState.from_simple_dict(simple_dict["pending_state"])
+            pending_state=PendingState.from_simple_dict(simple_dict["pending_state"]),
         )

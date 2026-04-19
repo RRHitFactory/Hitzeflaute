@@ -12,14 +12,7 @@ class GeneratorMaker:
     path = Path(os.path.dirname(__file__))
 
     @classmethod
-    def make_one(
-            cls,
-            asset_id: AssetId,
-            bus_id: BusId,
-            current_round: Round,
-            technology_name: str | None = None,
-            player_id: PlayerId = PlayerId.get_npc()
-    ) -> AssetInfo:
+    def make_one(cls, asset_id: AssetId, bus_id: BusId, current_round: Round, technology_name: str | None = None, player_id: PlayerId = PlayerId.get_npc()) -> AssetInfo:
         """Create a generator with properties based on the current round."""
         if technology_name is None:
             technology_name = random_choice(cls.get_available_technologies())

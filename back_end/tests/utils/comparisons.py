@@ -34,7 +34,7 @@ class GameStateComparator:
             "assets": lambda: game_state1.assets == game_state2.assets,
             "transmission": lambda: game_state1.transmission == game_state2.transmission,
             "market_coupling_result": lambda: cls.market_coupling_result_is_equal(game_state1.market_coupling_result, game_state2.market_coupling_result),
-            "pending_state": lambda: cls.pending_states_are_equal(game_state1.pending_state, game_state2.pending_state)
+            "pending_state": lambda: cls.pending_states_are_equal(game_state1.pending_state, game_state2.pending_state),
         }
 
     @staticmethod
@@ -74,7 +74,6 @@ class GameStateComparator:
             if v != d2[k]:
                 return False
         return True
-
 
 
 def game_states_are_equal(game_state1: GameState, game_state2: GameState) -> bool:

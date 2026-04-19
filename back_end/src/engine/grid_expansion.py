@@ -11,7 +11,6 @@ from src.tools.random_choice import sample_boolean
 
 
 class GridExpansion:
-
     @classmethod
     def build_grid_elements_for_new_round(cls, game_state: GameState) -> tuple[GameState, list[AssetBuiltMessage | TransmissionBuiltMessage]]:
         new_game_state, build_transmission_msgs = cls.try_build_transmission(game_state)
@@ -34,12 +33,7 @@ class GridExpansion:
 
         asset_maker = LoadMaker() if cls._check_system_adequacy(game_state) else GeneratorMaker()
 
-        new_asset = asset_maker.make_one(
-            asset_id=AssetId(game_state.assets.next_id()),
-            bus_id=socket_manager.get_bus_with_free_socket(use=True),
-            current_round=game_state.game_round,
-            **kwargs
-        )
+        new_asset = asset_maker.make_one(asset_id=AssetId(game_state.assets.next_id()), bus_id=socket_manager.get_bus_with_free_socket(use=True), current_round=game_state.game_round, **kwargs)
         new_game_state = game_state.update(game_state.assets + new_asset)
 
         msgs = [
@@ -60,16 +54,10 @@ class GridExpansion:
 
     @classmethod
     def _create_asset_socket_manager(cls, game_state: GameState) -> BusSocketManager:
-        available_bus_sockets = {
-            bus.id: bus.max_assets - len(game_state.assets.get_all_assets_at_bus(bus.id))
-            for bus in game_state.buses
-        }
+        available_bus_sockets = {bus.id: bus.max_assets - len(game_state.assets.get_all_assets_at_bus(bus.id)) for bus in game_state.buses}
         return BusSocketManager(starting_sockets=available_bus_sockets)
 
     @classmethod
     def _create_transmission_socket_manager(cls, game_state: GameState) -> BusSocketManager:
-        available_bus_sockets = {
-            bus.id: bus.max_lines - len(game_state.transmission.get_all_at_bus(bus.id))
-            for bus in game_state.buses
-        }
+        available_bus_sockets = {bus.id: bus.max_lines - len(game_state.transmission.get_all_at_bus(bus.id)) for bus in game_state.buses}
         return BusSocketManager(starting_sockets=available_bus_sockets)

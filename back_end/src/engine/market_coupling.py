@@ -103,9 +103,7 @@ class MarketCouplingCalculator:
                 game_state=game_state,
                 message=f"PyPSA optimization failed with status: {status}. Please check the network setup.",
             )
-        logging.getLogger(__name__).info(
-            f"Optimization successfully ended with status: {status}."
-        )
+        logging.getLogger(__name__).info(f"Optimization successfully ended with status: {status}.")
         return
 
     @classmethod

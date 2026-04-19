@@ -178,9 +178,7 @@ class TestMarketCoupling(BaseTest):
         with self.assertLogs("src.engine.market_coupling") as cm:
             MarketCouplingCalculator.run(game_state_no_assets)
 
-        self.assertIn(
-            "No active assets, skipping market coupling", cm.output[0]
-        )
+        self.assertIn("No active assets, skipping market coupling", cm.output[0])
 
     def test_coupling_under_market_split(self) -> None:
         gs = self.create_game_state()
@@ -191,7 +189,5 @@ class TestMarketCoupling(BaseTest):
         with self.assertLogs("src.engine.market_coupling") as cm:
             result = MarketCouplingCalculator.run(game_state_no_transmission)
 
-        self.assertIn(
-            "Optimization successfully ended with status: optimal", cm.output[0]
-        )
+        self.assertIn("Optimization successfully ended with status: optimal", cm.output[0])
         assert result.transmission_flows.empty, "Expected no transmission flows when there are no transmission lines."
