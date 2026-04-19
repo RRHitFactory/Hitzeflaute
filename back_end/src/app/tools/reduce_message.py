@@ -2,13 +2,13 @@ from dataclasses import replace
 from typing import Protocol, runtime_checkable
 
 import pandas as pd
-from src.models.pending_state import PendingState
 
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
 from src.models.ids import AssetId, BusId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
 from src.models.message import Message
+from src.models.pending_state import PendingState
 
 
 @runtime_checkable
