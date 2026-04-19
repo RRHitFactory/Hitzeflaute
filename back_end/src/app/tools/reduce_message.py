@@ -2,6 +2,7 @@ from dataclasses import replace
 from typing import Protocol, runtime_checkable
 
 import pandas as pd
+from back_end.src.models.pending_state import PendingState
 
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
@@ -23,7 +24,7 @@ def reduce_message[T: Message](msg: T) -> T:
 
 def reduce_game_state(game_state: GameState) -> GameState:
     """
-    Makes the game state more compact before passing to the front end
+    Makes the game state more compact before passing to the front end. Also hide the pending state as it is private.
     """
     if game_state.market_coupling_result is None:
         return game_state
@@ -33,15 +34,15 @@ def reduce_game_state(game_state: GameState) -> GameState:
     line_results = {line: reduce_one_line(game_state=game_state, coupling_result=game_state.market_coupling_result, line_id=line) for line in game_state.transmission.transmission_ids}
     pnl = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=game_state.market_coupling_result)
     market_summary = MarketCouplingSummary(bus_results=bus_results, line_results=line_results, pnl=pnl)
-    return replace(game_state, market_summary=market_summary, market_coupling_result=None)
+    return replace(game_state, market_summary=market_summary, market_coupling_result=None, pending_state=PendingState())
 
 
 def reduce_one_line(game_state: GameState, coupling_result: MarketCouplingResult, line_id: TransmissionId) -> pd.DataFrame:
     line = game_state.transmission[line_id]
 
     flow = float(coupling_result.transmission_flows[line_id].sum())
-    b1_price = float(coupling_result.bus_prices.loc[0, line.bus1])
-    b2_price = float(coupling_result.bus_prices.loc[0, line.bus2])
+    b1_price = float(coupling_result.bus_prices.loc[0, line.bus1])  # type: ignore
+    b2_price = float(coupling_result.bus_prices.loc[0, line.bus2])  # type: ignore
     if flow >= 0 - 1e-3:
         direction = f"{line.bus1} -> {line.bus2}"
         price_spread = b2_price - b1_price

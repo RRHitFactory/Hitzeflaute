@@ -20,7 +20,6 @@ from src.models.message import (
     PlayerNotInTurn,
     PlayerToGameMessage,
     ToGameMessage,
-    UpdateBatchBidResponse,
     UpdateBatchBidsRequest,
 )
 from src.models.pending_state import PendingState
@@ -247,50 +246,3 @@ class Engine:
             )
 
         return new_game_state, msgs
-
-    @classmethod
-    def _validate_update_batch_bid(cls, gs: GameState, msg: UpdateBatchBidsRequest) -> tuple[list[Message], dict[AssetId, float]]:
-        """Validates the batch bid update request and returns a list of messages for any failed validations, as well as a dict of accepted bids with their potentially adjusted bid prices."""
-
-        def make_failed_response(failed_message: str) -> list[Message]:
-            failed_response = UpdateBatchBidResponse(
-                game_id=gs.game_id,
-                player_id=msg.player_id,
-                success=False,
-                message=failed_message,
-            )
-            return [failed_response]
-
-        def make_success_response_with_warning(warning_message: str) -> list[Message]:
-            success_with_warning = UpdateBatchBidResponse(
-                game_id=gs.game_id,
-                player_id=msg.player_id,
-                success=True,
-                message=warning_message,
-            )
-            return [success_with_warning]
-
-        player = gs.players[msg.player_id]
-        min_bid = gs.game_settings.min_bid_price
-        max_bid = gs.game_settings.max_bid_price
-
-        responses: list[Message] = []
-        accepted_bids = dict(msg.bids)
-
-        for asset_id, bid_price in msg.bids.items():
-            if asset_id not in gs.assets.asset_ids:
-                responses += make_failed_response(f"Asset {asset_id} does not exist.")
-                accepted_bids.pop(asset_id)
-
-            asset = gs.assets[asset_id]
-            if asset.owner_player != player.id:
-                responses += make_failed_response(f"Player {player.id} cannot bid on asset {asset_id} as they do not own it.")
-                accepted_bids.pop(asset_id)
-
-            if not (min_bid <= bid_price <= max_bid):
-                accepted_bids[asset_id] = max(min(bid_price, max_bid), min_bid)
-                responses += make_success_response_with_warning(
-                    f"Bid price {bid_price} for asset {asset_id} is not within the allowed range [{min_bid}, {max_bid}].It has been adjusted to {accepted_bids[asset_id]}."
-                )
-
-        return responses, accepted_bids

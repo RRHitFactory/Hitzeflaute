@@ -6,6 +6,7 @@ from src.models.ids import AssetId, TransmissionId
 
 @dataclass(frozen=True)
 class PendingState:
+    # A record of actions that have been taken but are not yet public
     line_activation: MappingProxyType[TransmissionId, bool] = field(default_factory=lambda: MappingProxyType({}))
     asset_activation: MappingProxyType[AssetId, bool] = field(default_factory=lambda: MappingProxyType({}))
     bids: MappingProxyType[AssetId, float] = field(default_factory=lambda: MappingProxyType({}))

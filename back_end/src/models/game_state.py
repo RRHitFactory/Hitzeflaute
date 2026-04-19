@@ -56,7 +56,7 @@ class GameState:
     market_coupling_result: MarketCouplingResult | None
     market_summary: MarketCouplingSummary | None = None
     game_round: Round = Round(1)
-    pending_state: PendingState = PendingState()
+    pending_state: PendingState = PendingState()  # A record of actions that cannot be made public yet
 
     def __post_init__(self) -> None:
         assert isinstance(self.game_round, Round), f"game_round must be of type Round. Got {type(self.game_round)}"
