@@ -2,7 +2,7 @@ from dataclasses import replace
 from typing import Protocol, runtime_checkable
 
 import pandas as pd
-from back_end.src.models.pending_state import PendingState
+from src.models.pending_state import PendingState
 
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState

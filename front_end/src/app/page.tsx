@@ -92,15 +92,11 @@ export default function Home() {
 
   // Calculate current player name and trigram from gameState
   const currentPlayerName = React.useMemo(() => {
-    return currentPlayerObj
-      ? currentPlayerObj.name
-      : `Player ${currentPlayer}`;
+    return currentPlayerObj ? currentPlayerObj.name : `Player ${currentPlayer}`;
   }, [currentPlayerObj, currentPlayer]);
 
   const currentPlayerTrigram = React.useMemo(() => {
-    return currentPlayerObj
-      ? currentPlayerObj.trigram
-      : `P${currentPlayer}`;
+    return currentPlayerObj ? currentPlayerObj.trigram : `P${currentPlayer}`;
   }, [currentPlayerObj, currentPlayer]);
 
   const { createGame, loading: creatingGame } = useCreateGame();
@@ -147,12 +143,7 @@ export default function Home() {
         wsClient.setCurrentPlayerId(DEFAULT_PLAYER);
       }
     }
-  }, [
-    wsClient,
-    showSetup,
-    gameMode,
-    currentPlayer,
-  ]);
+  }, [wsClient, showSetup, gameMode, currentPlayer]);
 
   const handlePurchaseAsset = (assetId: number) => {
     if (!wsClient || !wsClient.isConnected()) {
@@ -244,7 +235,7 @@ export default function Home() {
         });
       }
     }
-    
+
     // Submit pending bids if in bidding phase
     if (gameState?.phase === 2) {
       if (Object.keys(pendingBids).length > 0) {
@@ -252,7 +243,7 @@ export default function Home() {
         wsClient.submitBatchBids(pendingBids);
       }
     }
-    
+
     // Clear pending activations and bids at end of turn
     setPendingActivations({ lines: {}, assets: {} });
     setPendingBids({});
