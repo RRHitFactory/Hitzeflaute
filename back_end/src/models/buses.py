@@ -43,6 +43,7 @@ class BusRepo(LdcRepo[Bus]):
     def bus_ids(self) -> list[BusId]:
         return [BusId(x) for x in self.df.index.tolist()]
 
+
 class BusFullException(Exception):
     # You have to sit on the bus driver's lap
     pass

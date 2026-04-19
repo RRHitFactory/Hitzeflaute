@@ -12,9 +12,7 @@ from types import MappingProxyType
 from pydantic import BaseModel
 
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
-from src.models.message import ActivationUpdateRequest, BuyRequest, EndTurn, GameToPlayerMessage, PlayerToGameMessage, UpdateBatchBidsRequest, UpdateBidRequest
-
-# Serialization handled by message objects directly
+from src.models.message import ActivationUpdateRequest, BuyRequest, EndTurn, GameToPlayerMessage, PlayerToGameMessage, UpdateBatchBidsRequest
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -57,7 +55,6 @@ class WebsocketMessage(BaseModel):
     def to_py_message(self) -> PlayerToGameMessage:
         mapping: dict[type[PlayerToGameMessage], Callable[[], PlayerToGameMessage]] = {
             UpdateBatchBidsRequest: self._to_batch_bid_request,
-            UpdateBidRequest: self._to_bid_request,
             BuyRequest: self._to_buy_request,
             ActivationUpdateRequest: self._to_activation_update_request,
             EndTurn: self._to_end_turn,
@@ -70,9 +67,6 @@ class WebsocketMessage(BaseModel):
 
     def _to_batch_bid_request(self) -> UpdateBatchBidsRequest:
         return UpdateBatchBidsRequest(game_id=self.game_id_obj, player_id=self.player_id_obj, bids=MappingProxyType({AssetId(int(k)): v for k, v in self.data["bids"].items()}))
-
-    def _to_bid_request(self) -> UpdateBidRequest:
-        return UpdateBidRequest(game_id=self.game_id_obj, player_id=self.player_id_obj, asset_id=AssetId(self.data["asset_id"]), bid_price=self.data["bid_price"])
 
     def _to_buy_request(self) -> BuyRequest[AssetId | TransmissionId]:
         id_type = {"asset": AssetId, "transmission": TransmissionId}[self.data["purchase_type"]]
