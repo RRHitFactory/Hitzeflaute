@@ -14,8 +14,10 @@ from src.models.message import (
     ActivationUpdateRequest,
     AuctionClearedMessage,
     BuyRequest,
+    ClearAuction,
     ConcludePhase,
     EndTurn,
+    GameUpdate,
     Message,
     PlayerNotInTurn,
     PlayerToGameMessage,
@@ -47,6 +49,8 @@ class Engine:
         match msg:
             case ConcludePhase():
                 return cls.handle_new_phase_message(game_state=game_state, msg=msg)
+            case ClearAuction():
+                return cls.handle_clear_auction_message(game_state=game_state, msg=msg)
             case UpdateBidRequest():
                 return cls.handle_update_bid_message(game_state=game_state, msg=msg)
             case UpdateBatchBidsRequest():
@@ -68,7 +72,6 @@ class Engine:
         game_state: GameState,
         msg: ToGameMessage,
     ) -> tuple[GameState, list[Message]] | None:
-
         if not isinstance(msg, PlayerToGameMessage):
             return None
 
@@ -76,11 +79,22 @@ class Engine:
         if game_state.players[requesting_player_id].is_having_turn:
             return None
         else:
-            return game_state, [PlayerNotInTurn(
-                player_id=requesting_player_id,
-                game_id=game_state.game_id,
-                message=f"Player {requesting_player_id} cannot play when it is not their turn."
-            )]
+            return game_state, [PlayerNotInTurn(player_id=requesting_player_id, game_id=game_state.game_id, message=f"Player {requesting_player_id} cannot play when it is not their turn.")]
+
+    @classmethod
+    def handle_clear_auction_message(
+        cls,
+        game_state: GameState,
+        msg: ClearAuction,
+    ) -> tuple[GameState, list[Message]]:
+        new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
+
+        market_result = MarketCouplingCalculator.run(game_state=new_game_state)
+
+        new_game_state, new_msgs = cls._run_post_clearing_book_keeping(game_state=new_game_state, market_result=market_result)
+        conclude_phase = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)
+
+        return new_game_state, msgs_load_deactivation + new_msgs + [conclude_phase]
 
     @classmethod
     def handle_new_phase_message(
@@ -88,25 +102,30 @@ class Engine:
         game_state: GameState,
         msg: ConcludePhase,
     ) -> tuple[GameState, list[Message]]:
-        if msg.new_phase == Phase.DA_AUCTION:
-            new_game_state, msgs = cls._process_day_ahead_auction_phase(game_state)
-        else:
-            new_game_state, msgs = game_state, []
+        gs = game_state
+        new_phase = msg.new_phase
+        round = gs.game_round
+        players = gs.players
 
-        players = new_game_state.players
+        if msg.new_phase == Phase.DA_AUCTION:
+            ca_message = ClearAuction(game_state.game_id)
+            update_msgs = [GameUpdate(game_id=gs.game_id, player_id=p, message="", game_state=gs) for p in players.player_ids]
+            msgs: list[Message] = update_msgs + [ca_message]  # type: ignore
+            return game_state.update(msg.new_phase), msgs
+
+        msgs: list[Message] = []
+        if new_phase == Phase.CONSTRUCTION:
+            gs, building_msgs = GridExpansion.build_grid_elements_for_new_round(gs)
+            round = Round(gs.game_round + 1)
+            msgs += building_msgs
+
         if msg.new_phase.is_turn_based:
             players = players.start_first_player_turn()
         else:
             players = players.start_all_turns()
 
-        if msg.new_phase.value == Phase.CONSTRUCTION:
-            new_game_state, building_msgs = GridExpansion.build_grid_elements_for_new_round(new_game_state)
-            round = Round(new_game_state.game_round + 1)
-        else:
-            round = new_game_state.game_round
-
-        new_game_state = new_game_state.update(msg.new_phase, players, round)
-        return new_game_state, msgs
+        gs = gs.update(new_phase, players, round)
+        return gs, msgs
 
     @classmethod
     def handle_update_batch_bid_message(
@@ -123,8 +142,7 @@ class Engine:
 
         list_responses, updated_asset_bids = cls._validate_update_batch_bid(gs=game_state, msg=msg)
 
-        new_assets = game_state.assets.batch_update_bid_price(asset_ids=list(updated_asset_bids.keys()),
-                                                              bid_prices=list(updated_asset_bids.values()))
+        new_assets = game_state.assets.batch_update_bid_price(asset_ids=list(updated_asset_bids.keys()), bid_prices=list(updated_asset_bids.values()))
         new_game_state = game_state.update(new_assets)
 
         response = UpdateBatchBidResponse(
@@ -254,16 +272,6 @@ class Engine:
             return game_state, []
 
     @classmethod
-    def _process_day_ahead_auction_phase(cls, game_state: GameState) -> tuple[GameState, list[Message]]:
-        new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
-
-        market_result = MarketCouplingCalculator.run(game_state=new_game_state)
-
-        new_game_state, new_msgs = cls._run_post_clearing_book_keeping(game_state=new_game_state, market_result=market_result)
-
-        return new_game_state, msgs_load_deactivation + new_msgs
-
-    @classmethod
     def _run_post_clearing_book_keeping(cls, game_state: GameState, market_result: MarketCouplingResult) -> tuple[GameState, list[Message]]:
         game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(game_state=game_state, market_coupling_result=market_result)
         game_state, ice_cream_msgs = Referee.melt_ice_creams(game_state)
@@ -335,6 +343,7 @@ class Engine:
     @classmethod
     def _validate_update_batch_bid(cls, gs: GameState, msg: UpdateBatchBidsRequest) -> tuple[list[Message], dict[AssetId, float]]:
         """Validates the batch bid update request and returns a list of messages for any failed validations, as well as a dict of accepted bids with their potentially adjusted bid prices."""
+
         def make_failed_response(failed_message: str) -> list[Message]:
             failed_response = UpdateBatchBidResponse(
                 game_id=gs.game_id,
@@ -373,8 +382,7 @@ class Engine:
             if not (min_bid <= bid_price <= max_bid):
                 accepted_bids[asset_id] = max(min(bid_price, max_bid), min_bid)
                 responses += make_success_response_with_warning(
-                    f"Bid price {bid_price} for asset {asset_id} is not within the allowed range [{min_bid}, {max_bid}]."
-                    f"It has been adjusted to {accepted_bids[asset_id]}."
+                    f"Bid price {bid_price} for asset {asset_id} is not within the allowed range [{min_bid}, {max_bid}].It has been adjusted to {accepted_bids[asset_id]}."
                 )
 
         return responses, accepted_bids

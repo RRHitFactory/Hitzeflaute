@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { GameState } from "@/types/game";
+import { GameState, GamePhase } from "@/types/game";
 
 interface GameControlsProps {
   gameState: GameState;
@@ -28,6 +28,18 @@ const GameControls: React.FC<GameControlsProps> = ({
   hasPendingBids = false,
   hasInsufficientFunds = false,
 }) => {
+  // Show loading animation during DA ahead auction phase
+  if (gameState.phase === GamePhase.DA_AUCTION) {
+    return (
+      <div className="bg-white rounded-lg shadow-sm border p-6 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <h3 className="text-lg font-bold text-gray-900">Clearing auction</h3>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6">
       <h3 className="text-lg font-bold text-black">Controls</h3>
@@ -47,7 +59,7 @@ const GameControls: React.FC<GameControlsProps> = ({
         </div>
       )}
       <div className="space-y-4">
-        {gameState.phase === 2 && onSubmitBids && (
+        {gameState.phase === GamePhase.BIDDING && onSubmitBids && (
           <button
             onClick={onSubmitBids}
             disabled={!isConnected || !hasPendingBids || hasInsufficientFunds}

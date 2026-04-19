@@ -1,13 +1,14 @@
 "use client";
 
 import GridVisualization from "@/components/Game/GridVisualization";
+import { GamePhase } from "@/types/game";
 import GameControls from "@/components/UI/GameControls";
 import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
 import { useCreateGame, useGamesList } from "@/lib/gameAPI";
 import BiddingTable from "@/components/Game/BiddingTable";
 import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 export default function Home() {
   const [gameId, setGameId] = useState<number>(-1);
@@ -572,7 +573,7 @@ export default function Home() {
             />
 
             {/* Bidding Table (only shown during bidding phase) */}
-            {gameState.phase === 2 && (
+            {gameState.phase === GamePhase.BIDDING && (
               <BiddingTable
                 assets={gameState.assets.data}
                 currentPlayer={currentPlayerFromGameState}
