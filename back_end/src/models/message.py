@@ -85,31 +85,14 @@ class PlayerNotInTurn(GameToPlayerMessage):
     pass
 
 @dataclass(frozen=True)
-class UpdateBidResponse(GameToPlayerMessage):
-    success: bool
-    asset_id: AssetId
+class Ack(GameToPlayerMessage):
+    message: str = "👍"
 
 @dataclass(frozen=True)
 class Ack(GameToPlayerMessage):
     message: str = "👍"
 
 
-@dataclass(frozen=True)
-class UpdateBidRequest(PlayerToGameMessage):
-    asset_id: AssetId
-    bid_price: float
-
-    def make_response(self, success: bool, message: str) -> UpdateBidResponse:
-        return UpdateBidResponse(
-            game_id=self.game_id,
-            player_id=self.player_id,
-            asset_id=self.asset_id,
-            success=success,
-            message=message,
-        )
-
-
-# update_batch_bids_request
 @dataclass(frozen=True)
 class UpdateBatchBidResponse(GameToPlayerMessage):
     success: bool
