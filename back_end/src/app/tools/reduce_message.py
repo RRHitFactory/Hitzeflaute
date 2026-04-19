@@ -61,16 +61,19 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
     gens = bus_assets.only_generators
     loads = bus_assets.only_loads
 
+    total_dispatch = coupling_result.assets_dispatch.sum()
+    dispatch_dict: dict[AssetId, float] = {AssetId(k): v for k, v in total_dispatch.to_dict().items()}
+
     def make_gen_row(asset_id: AssetId) -> dict[str, str | float]:
         asset = gens[asset_id]
-        produced_power = coupling_result.assets_dispatch[asset_id].sum()
+        produced_power = dispatch_dict.get(asset_id, 0.0)
         return {"asset_id": str(asset_id), "owner_player": str(asset.owner_player), "produced_power": produced_power, "marginal_price": asset.marginal_cost, "bid_price": asset.bid_price}
 
     gen_df = pd.DataFrame([make_gen_row(asset_id) for asset_id in gens.asset_ids])
 
     def make_load_row(asset_id: AssetId) -> dict[str, str | float]:
         asset = loads[asset_id]
-        consumed_power = coupling_result.assets_dispatch[asset_id].sum()
+        consumed_power = dispatch_dict.get(asset_id, 0.0)
         return {
             "asset_id": str(asset_id),
             "owner_player": str(asset.owner_player),
@@ -78,6 +81,7 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
             "marginal_price": asset.marginal_cost,
             "bid_price": asset.bid_price,
         }
+
 
     load_df = pd.DataFrame([make_load_row(asset_id) for asset_id in loads.asset_ids])
 

@@ -15,8 +15,6 @@ export const parseDataFrame = (
 };
 
 export const parseDataFrameToDict = (dfData: any): { [key: string]: any } => {
-  console.log("parseDataFrameToDict input:", dfData);
-
   if (!dfData || !dfData.columns || !dfData.index || !dfData.values) {
     console.log("Missing required properties in dfData");
     return {};
@@ -24,9 +22,6 @@ export const parseDataFrameToDict = (dfData: any): { [key: string]: any } => {
 
   // Create dictionary from index and data
   const dict: { [key: string]: any } = {};
-
-  console.log("Index:", dfData.index);
-  console.log("Values:", dfData.values);
 
   // Handle different data structures
   if (Array.isArray(dfData.index) && Array.isArray(dfData.values)) {
@@ -54,8 +49,6 @@ export const parseDataFrameToDict = (dfData: any): { [key: string]: any } => {
       });
     }
   }
-
-  console.log("parseDataFrameToDict output:", dict);
   return dict;
 };
 

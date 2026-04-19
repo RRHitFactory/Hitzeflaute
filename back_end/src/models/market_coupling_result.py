@@ -3,7 +3,7 @@ from typing import Self
 
 import pandas as pd
 
-from src.models.ids import BusId, TransmissionId
+from src.models.ids import AssetId, BusId, TransmissionId
 from src.models.pnl import PnlFrame
 from src.tools.serialization import SerializedDf, SimpleDict, dataframe_to_dict, dict_to_dataframe, polars_dataframe_to_dict
 
@@ -20,6 +20,30 @@ class MarketCouplingResult:
         self._assets_dispatch = assets_dispatch
 
         self._validate()
+
+    def add_non_cleared_elements(self, new_buses: list[BusId], new_assets: list[AssetId], new_lines: list[TransmissionId]) -> "MarketCouplingResult":
+        if len(new_buses):
+            bus_prices = self._bus_prices.copy()
+            for b in new_buses:
+                bus_prices[b.as_int()] = 0.0
+        else:
+            bus_prices = self._bus_prices
+
+        if len(new_lines):
+            transmission_flows = self._transmission_flows.copy()
+            for t in new_lines:
+                transmission_flows[t.as_int()] = 0.0
+        else:
+            transmission_flows = self._transmission_flows
+
+        if len(new_assets):
+            assets_dispatch = self._assets_dispatch.copy()
+            for a in new_assets:
+                assets_dispatch[a.as_int()] = 0.0
+        else:
+            assets_dispatch = self._assets_dispatch
+
+        return MarketCouplingResult(bus_prices=bus_prices, transmission_flows=transmission_flows, assets_dispatch=assets_dispatch)
 
     def _validate(self) -> None:
         assert self.market_time_units.name == "time", f"Expected time index to have name 'time', but got '{self.market_time_units.name}'"

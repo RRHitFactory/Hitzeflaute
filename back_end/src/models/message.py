@@ -10,14 +10,10 @@ from src.models.transmission import TransmissionId
 from src.tools.serialization import SerializableDcSimple
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Message(ABC, SerializableDcSimple):
     game_id: GameId
 
-
-@dataclass(frozen=True)
-class InternalMessage(Message, ABC):
-    # A message from the game to itself
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}>"
 
@@ -25,7 +21,11 @@ class InternalMessage(Message, ABC):
         return str(self)
 
 
-@dataclass(frozen=True)
+
+@dataclass(frozen=True, repr=False)
+class InternalMessage(Message, ABC): ... # A message from the game to itself
+
+@dataclass(frozen=True, repr=False)
 class PlayerToGameMessage(Message, ABC):
     player_id: PlayerId
 
@@ -50,7 +50,7 @@ class PlayerToGameMessage(Message, ABC):
         return str(self)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class GameToPlayerMessage(Message, ABC):
     player_id: PlayerId
     message: str
@@ -67,7 +67,7 @@ type FromGameMessage = InternalMessage | GameToPlayerMessage
 T_Id = TypeVar("T_Id", bound=AssetId | TransmissionId)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class ConcludePhase(InternalMessage):
     phase: Phase
 
@@ -76,32 +76,32 @@ class ConcludePhase(InternalMessage):
         return self.phase.get_next()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class ClearAuction(InternalMessage): ...
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class GameUpdate(GameToPlayerMessage):
     game_state: GameState
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class PlayerNotInTurn(GameToPlayerMessage):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class UpdateBidResponse(GameToPlayerMessage):
     success: bool
     asset_id: AssetId
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class Ack(GameToPlayerMessage):
     message: str = "👍"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class UpdateBidRequest(PlayerToGameMessage):
     asset_id: AssetId
     bid_price: float
@@ -117,12 +117,12 @@ class UpdateBidRequest(PlayerToGameMessage):
 
 
 # update_batch_bids_request
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class UpdateBatchBidResponse(GameToPlayerMessage):
     success: bool
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class UpdateBatchBidsRequest(PlayerToGameMessage):
     bids: MappingProxyType[AssetId, float]
 
@@ -130,13 +130,13 @@ class UpdateBatchBidsRequest(PlayerToGameMessage):
         return UpdateBatchBidResponse(game_id=self.game_id, player_id=self.player_id, success=success, message=message)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class BuyResponse[T_Id](GameToPlayerMessage):
     success: bool
     purchase_id: T_Id
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class BuyRequest[T_Id](PlayerToGameMessage):
     purchase_id: T_Id
 
@@ -150,7 +150,7 @@ class BuyRequest[T_Id](PlayerToGameMessage):
         )
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class ActivationUpdateRequest(PlayerToGameMessage):
     """
     Describes the activation state of all lines and assets (if they are active or not)
@@ -160,56 +160,56 @@ class ActivationUpdateRequest(PlayerToGameMessage):
     asset_activation: MappingProxyType[AssetId, bool]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class EndTurn(PlayerToGameMessage):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class AuctionClearedMessage(GameToPlayerMessage):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class IceCreamMeltedMessage(GameToPlayerMessage):
     asset_id: AssetId
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class GridExpansionMessage(GameToPlayerMessage):
     asset_id: AssetId
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class AssetBuiltMessage(GridExpansionMessage):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class TransmissionBuiltMessage(GridExpansionMessage):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class AssetWornMessage(GameToPlayerMessage):
     asset_id: AssetId
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class TransmissionWornMessage(GameToPlayerMessage):
     transmission_id: TransmissionId
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class LoadsDeactivatedMessage(GameToPlayerMessage):
     asset_ids: list[AssetId]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class PlayerEliminatedMessage(GameToPlayerMessage):
     pass
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, repr=False)
 class GameOverMessage(GameToPlayerMessage):
     winner_id: PlayerId | None

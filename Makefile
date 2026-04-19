@@ -77,6 +77,22 @@ run-backend:
 		echo "Virtual environment not found. Run 'make install-backend' first."; \
 	fi
 
+run-frontend-q:
+	@echo "Starting frontend quickly.."
+	@cd front_end && \
+	( \
+		npm run dev & \
+		if [[ "$$OSTYPE" == "msys"* ]] || [[ "$$OSTYPE" == "cygwin"* ]]; then \
+			cmd /c start "" "http://localhost:3000"; \
+		elif [[ "$$OSTYPE" == "darwin"* ]]; then \
+			open "http://localhost:3000"; \
+		else \
+			xdg-open "http://localhost:3000"; \
+		fi; \
+		wait \
+	)
+
+
 run-frontend:
 	@echo "Starting frontend..."
 	@cd front_end && \

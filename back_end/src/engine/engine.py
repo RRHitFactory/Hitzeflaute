@@ -17,7 +17,6 @@ from src.models.message import (
     ClearAuction,
     ConcludePhase,
     EndTurn,
-    GameUpdate,
     Message,
     PlayerNotInTurn,
     PlayerToGameMessage,
@@ -109,9 +108,8 @@ class Engine:
 
         if msg.new_phase == Phase.DA_AUCTION:
             ca_message = ClearAuction(game_state.game_id)
-            update_msgs = [GameUpdate(game_id=gs.game_id, player_id=p, message="", game_state=gs) for p in players.player_ids]
-            msgs: list[Message] = update_msgs + [ca_message]  # type: ignore
-            return game_state.update(msg.new_phase), msgs
+            gs = gs.update(msg.new_phase)
+            return gs, [ca_message]
 
         msgs: list[Message] = []
         if new_phase == Phase.CONSTRUCTION:
