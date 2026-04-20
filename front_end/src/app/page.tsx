@@ -521,7 +521,6 @@ export default function Home() {
                 gameState={gameState}
                 onPurchaseAsset={handlePurchaseAsset}
                 onPurchaseTransmissionLine={handlePurchaseTransmissionLine}
-                onBidAsset={handleBidAsset}
                 onActivateLine={handleActivateLine}
                 onDeactivateLine={handleDeactivateLine}
                 onActivateAsset={handleActivateAsset}
