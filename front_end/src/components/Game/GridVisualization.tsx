@@ -6,10 +6,9 @@ import {
   GameState,
   HoverableElement,
   mapBackendToDisplay,
-  Player,
   NPC_PLAYER_ID,
 } from "@/types/game";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
 import ViewToggle from "../UI/ViewToggle";
 import AssetComponent from "./Asset";
@@ -24,7 +23,6 @@ interface GridVisualizationProps {
   gameState: GameState;
   onPurchaseAsset?: (assetId: number) => void;
   onPurchaseTransmissionLine?: (lineId: number) => void;
-  onBidAsset?: (assetId: number, newBidPrice: number) => void;
   onActivateLine?: (lineId: number) => void;
   onDeactivateLine?: (lineId: number) => void;
   onActivateAsset?: (assetId: number) => void;

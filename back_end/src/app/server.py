@@ -92,22 +92,14 @@ class WebSocketFrontEnd:
     def __init__(self, connection_manager: ConnectionManager):
         self.connection_manager = connection_manager
 
-    def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None:
+    async def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None:
         """Handle messages from game engine and send to appropriate players via WebSocket"""
         for msg in msgs:
             try:
                 # Convert message to simple dict for JSON serialization
                 reduced = reduce_message(msg)
                 message = WebsocketMessage.from_py_message(reduced)
-                import asyncio
-
-                loop = asyncio.get_event_loop()
-                if loop.is_running():
-                    # If we're in an async context, create a task
-                    asyncio.create_task(self.connection_manager.send_to_one_player(message))
-                else:
-                    # If not in async context, run it
-                    loop.run_until_complete(self.connection_manager.send_to_one_player(message))
+                await self.connection_manager.send_to_one_player(message)
 
             except Exception as e:
                 error_msg = f"Error handling message {msg}: {e}"
@@ -259,9 +251,9 @@ async def handle_websocket_message(message: WebsocketMessage) -> None:
     try:
         if message.message_type == "get_game_state":
             # Shortcut for requesting the game state
-            game_manager.update_players(game_id=message.game_id_obj, players=[message.player_id_obj])
+            await game_manager.update_players(game_id=message.game_id_obj, players=[message.player_id_obj])
         else:
-            game_manager.handle_player_message(game_id=message.game_id_obj, msg=message.to_py_message())
+            await game_manager.handle_player_message(game_id=message.game_id_obj, msg=message.to_py_message())
 
     except Exception as e:
         error_msg = f"Error creating player message: {e}"

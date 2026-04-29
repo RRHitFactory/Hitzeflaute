@@ -1,5 +1,6 @@
 "use client";
 
+import { GameState } from "@/types/game";
 import { useEffect, useRef, useState } from "react";
 
 /**
@@ -85,11 +86,6 @@ export class GameWebSocketClient {
       };
 
       this.ws.onmessage = (event: MessageEvent) => {
-        console.log("=== Raw WebSocket Message ===");
-        console.log("Raw WebSocket data:", event.data);
-        console.log("Data type:", typeof event.data);
-        console.log("Data length:", event.data.length);
-
         try {
           const data: WebSocketMessage = JSON.parse(event.data);
           this.onMessage(data);
@@ -101,7 +97,6 @@ export class GameWebSocketClient {
             error instanceof Error ? error.message : error,
           );
         }
-        console.log("=== End Raw WebSocket Processing ===");
       };
 
       this.ws.onclose = (event: CloseEvent) => {
@@ -314,13 +309,9 @@ export function useGameWebSocket(
       (msg: WebSocketMessage) => {
         if (msg.message_type === "GameUpdate") {
           console.log("=== GAME UPDATE ===");
-          console.log("Message type:", msg.message_type);
-          console.log(
-            "Raw game state data:",
-            JSON.stringify(msg.data, null, 2),
-          );
           // Validate the structure
-          const gameStateData = msg.data.game_state;
+          const gameStateData: GameState = msg.data.game_state;
+          console.log("Current phase: " + gameStateData.phase);
 
           // Check players for is_having_turn
           if (gameStateData?.players?.data) {

@@ -14,6 +14,7 @@ from src.models.message import (
     ActivationUpdateRequest,
     AuctionClearedMessage,
     BuyRequest,
+    ClearAuction,
     ConcludePhase,
     EndTurn,
     Message,
@@ -44,6 +45,8 @@ class Engine:
         match msg:
             case ConcludePhase():
                 return cls.handle_new_phase_message(game_state=game_state, msg=msg)
+            case ClearAuction():
+                return cls.handle_clear_auction_message(game_state=game_state, msg=msg)
             case UpdateBatchBidsRequest():
                 return cls.handle_update_batch_bid_message(game_state=game_state, msg=msg)
             case ActivationUpdateRequest():
@@ -73,30 +76,49 @@ class Engine:
             return game_state, [PlayerNotInTurn(player_id=requesting_player_id, game_id=game_state.game_id, message=f"Player {requesting_player_id} cannot play when it is not their turn.")]
 
     @classmethod
+    def handle_clear_auction_message(
+        cls,
+        game_state: GameState,
+        msg: ClearAuction,
+    ) -> tuple[GameState, list[Message]]:
+        new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
+
+        market_result = MarketCouplingCalculator.run(game_state=new_game_state)
+
+        new_game_state, new_msgs = cls._run_post_clearing_book_keeping(game_state=new_game_state, market_result=market_result)
+        conclude_phase = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)
+
+        return new_game_state, msgs_load_deactivation + new_msgs + [conclude_phase]
+
+    @classmethod
     def handle_new_phase_message(
         cls,
         game_state: GameState,
         msg: ConcludePhase,
     ) -> tuple[GameState, list[Message]]:
-        if msg.new_phase == Phase.DA_AUCTION:
-            new_game_state, msgs = cls._process_day_ahead_auction_phase(game_state)
-        else:
-            new_game_state, msgs = game_state, []
+        gs = game_state
+        new_phase = msg.new_phase
+        round = gs.game_round
+        players = gs.players
 
-        players = new_game_state.players
+        if msg.new_phase == Phase.DA_AUCTION:
+            ca_message = ClearAuction(game_state.game_id)
+            gs = gs.update(msg.new_phase)
+            return gs, [ca_message]
+
+        msgs: list[Message] = []
+        if new_phase == Phase.CONSTRUCTION:
+            gs, building_msgs = GridExpansion.build_grid_elements_for_new_round(gs)
+            round = Round(gs.game_round + 1)
+            msgs += building_msgs
+
         if msg.new_phase.is_turn_based:
             players = players.start_first_player_turn()
         else:
             players = players.start_all_turns()
 
-        if msg.new_phase.value == Phase.CONSTRUCTION:
-            new_game_state, building_msgs = GridExpansion.build_grid_elements_for_new_round(new_game_state)
-            round = Round(new_game_state.game_round + 1)
-        else:
-            round = new_game_state.game_round
-
-        new_game_state = new_game_state.update(msg.new_phase, players, round)
-        return new_game_state, msgs
+        gs = gs.update(new_phase, players, round)
+        return gs, msgs
 
     @classmethod
     def handle_update_batch_bid_message(
@@ -195,16 +217,6 @@ class Engine:
             return game_state, [ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)]
         else:
             return game_state, []
-
-    @classmethod
-    def _process_day_ahead_auction_phase(cls, game_state: GameState) -> tuple[GameState, list[Message]]:
-        new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
-
-        market_result = MarketCouplingCalculator.run(game_state=new_game_state)
-
-        new_game_state, new_msgs = cls._run_post_clearing_book_keeping(game_state=new_game_state, market_result=market_result)
-
-        return new_game_state, msgs_load_deactivation + new_msgs
 
     @classmethod
     def _run_post_clearing_book_keeping(cls, game_state: GameState, market_result: MarketCouplingResult) -> tuple[GameState, list[Message]]:

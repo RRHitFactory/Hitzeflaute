@@ -2,6 +2,7 @@
 
 import BiddingTable from "@/components/Game/BiddingTable";
 import GridVisualization from "@/components/Game/GridVisualization";
+import { GamePhase } from "@/types/game";
 import GameControls from "@/components/UI/GameControls";
 import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
@@ -520,7 +521,6 @@ export default function Home() {
                 gameState={gameState}
                 onPurchaseAsset={handlePurchaseAsset}
                 onPurchaseTransmissionLine={handlePurchaseTransmissionLine}
-                onBidAsset={handleBidAsset}
                 onActivateLine={handleActivateLine}
                 onDeactivateLine={handleDeactivateLine}
                 onActivateAsset={handleActivateAsset}
@@ -546,7 +546,7 @@ export default function Home() {
             />
 
             {/* Bidding Table (only shown during bidding phase) */}
-            {gameState.phase === 2 && (
+            {gameState.phase === GamePhase.BIDDING && (
               <BiddingTable
                 assets={gameState.assets.data}
                 currentPlayer={currentPlayer}
