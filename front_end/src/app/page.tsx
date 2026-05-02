@@ -26,17 +26,28 @@ export default function Home() {
     "Player 1",
     "Player 2",
   ]);
+  const [isEndingTurn, setIsEndingTurn] = useState(false);
 
   // Memoize callback functions to prevent infinite re-renders
-  const handleMessage = useCallback((msg: WebSocketMessage) => {
-    console.log("=== WebSocket Message Received ===");
-    if (msg.message_type === "error") {
-      console.error("=== SERVER ERROR ===");
-      console.error(msg.data);
-      setError(msg.data || "Unknown server error");
-    }
-    console.log("=== End WebSocket Message Processing ===");
-  }, []);
+  const handleMessage = useCallback(
+    (msg: WebSocketMessage) => {
+      console.log("=== WebSocket Message Received ===");
+      if (msg.message_type === "error") {
+        console.error("=== SERVER ERROR ===");
+        console.error(msg.data);
+        setError(msg.data || "Unknown server error");
+      } else if (msg.message_type === "GameUpdate") {
+        // Reset isEndingTurn when we receive a game state update
+        // This indicates the backend has processed the turn change
+        if (isEndingTurn) {
+          console.log("Game state updated, resetting isEndingTurn");
+          setIsEndingTurn(false);
+        }
+      }
+      console.log("=== End WebSocket Message Processing ===");
+    },
+    [isEndingTurn],
+  );
 
   const handleError = useCallback((error: any) => {
     console.error("WebSocket error:", error);
@@ -218,8 +229,8 @@ export default function Home() {
   };
 
   const handleEndTurn = () => {
-    if (!wsClient || !wsClient.isConnected()) {
-      setError("Not connected to server");
+    if (!wsClient || !wsClient.isConnected() || isEndingTurn) {
+      if (!isEndingTurn) setError("Not connected to server");
       return;
     }
 
@@ -250,6 +261,7 @@ export default function Home() {
     setPendingBids({});
 
     console.log("Ending turn");
+    setIsEndingTurn(true);
     wsClient.endTurn();
   };
 
@@ -543,6 +555,7 @@ export default function Home() {
               isConnected={isConnected}
               onEndTurn={handleEndTurn}
               hasInsufficientFunds={hasInsufficientFunds}
+              isEndingTurn={isEndingTurn}
             />
 
             {/* Bidding Table (only shown during bidding phase) */}
