@@ -24,6 +24,7 @@ class TestMarketCoupling(BaseTest):
 
         transmission_maker = TransmissionRepoMaker(players=player_repo.human_player_ids, buses=bus_repo)
         transmission_maker.add_transmission(is_active=False)
+        transmission_maker.add_transmission(line_or_link="Link")
         transmission_maker.add_n_random(1)
 
         # add generators
