@@ -1,1 +1,34 @@
-placeholder
+line_or_link: "Line"
+
+reactance:
+  base: 2
+  change_per_round: -0.1
+  max: 2
+  min: 0.9
+  random_band_pu: 0.05
+
+capacity:
+  base: 20
+  change_per_round: 10
+  max: 400
+  min: 20
+  random_band_pu: 0.1
+
+capital_cost_per_mw:
+  base: 200
+  change_per_round: -5
+  max: 200
+  min: 30
+  random_band_pu: 0.1
+
+fixed_cost:
+  base: 0
+  change_per_round: 0
+  max: 0
+  min: 0
+
+lifespan:
+  base: 10
+  change_per_round: 0
+  max: 10
+  min: 10

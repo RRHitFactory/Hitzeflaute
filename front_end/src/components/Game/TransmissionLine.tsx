@@ -71,6 +71,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
         `$${line.minimum_acquisition_price.toLocaleString()}`;
     }
 
+    data["Supply Mode"] = line.line_or_link === "Line" ? "AC" : "DC";
     data["Status"] = displayActive ? "CLOSED" : "OPEN";
 
     return data;

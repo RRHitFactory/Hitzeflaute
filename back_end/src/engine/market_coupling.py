@@ -46,17 +46,17 @@ class MarketCouplingCalculator:
         network.add(class_name="Carrier", name="AC")
         for bus in game_state.buses:
             network.add(class_name="Bus", name=cls.get_pypsa_name(bus.id), carrier="AC")
-        for line in game_state.transmission:
-            if not line.is_active:
+        for transmission in game_state.transmission:
+            if not transmission.is_active:
                 continue
             network.add(
-                class_name="Line",
-                name=cls.get_pypsa_name(line.id),
-                bus0=cls.get_pypsa_name(line.bus1),
-                bus1=cls.get_pypsa_name(line.bus2),
-                x=line.reactance,
+                class_name=transmission.line_or_link,
+                name=cls.get_pypsa_name(transmission.id),
+                bus0=cls.get_pypsa_name(transmission.bus1),
+                bus1=cls.get_pypsa_name(transmission.bus2),
+                x=transmission.reactance,
                 # r=0.01 * line.reactance,  # Assuming a small resistance for numerical stability
-                s_nom=line.capacity,
+                s_nom=transmission.capacity,
                 carrier="AC",
             )
         for generator in game_state.assets.only_generators:

@@ -11,6 +11,7 @@ class TechEvolutionIndicator:
     change_per_round: float
     max: float
     min: float
+    random_band_pu: float = 0.0
 
     def __post_init__(self):
         assert self.min <= self.base <= self.max, "Base value must be within min and max bounds."
@@ -18,7 +19,12 @@ class TechEvolutionIndicator:
     def value_at_round(self, round_number: int) -> float:
         """Linear function with clipping at min and max"""
         val = self.base + self.change_per_round * round_number
+        val = self.add_noise(val)
         return float(np.clip(val, self.min, self.max))
+
+    def add_noise(self, val: float) -> float:
+        rng = np.random.default_rng()
+        return val * (1 + rng.uniform(-self.random_band_pu, self.random_band_pu))
 
 
 @dataclass(frozen=True)

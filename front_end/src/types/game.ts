@@ -30,6 +30,7 @@ export interface TransmissionLine {
   is_active: boolean;
   is_open: boolean;
   birthday: number;
+  line_or_link: string;
   color: string;
 }
 
