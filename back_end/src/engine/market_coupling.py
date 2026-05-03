@@ -69,7 +69,7 @@ class MarketCouplingCalculator:
                 name=cls.get_pypsa_name(transmission.id),
                 bus0=cls.get_pypsa_name(transmission.bus1),
                 bus1=cls.get_pypsa_name(transmission.bus2),
-                **other_parameters
+                **other_parameters # type: ignore
             )
 
         for generator in game_state.assets.only_generators:
