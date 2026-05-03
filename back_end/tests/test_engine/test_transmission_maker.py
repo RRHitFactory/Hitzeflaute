@@ -13,5 +13,5 @@ class TestTransmissionMaker(BaseTest):
     def test_available_technologies(self):
         technologies = TransmissionMaker.get_available_technologies()
 
-        for tech in ["AC", "DC"]:
+        for tech in ["ac", "dc"]:
             self.assertIn(tech, technologies)
