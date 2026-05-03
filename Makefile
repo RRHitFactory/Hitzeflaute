@@ -41,6 +41,12 @@ format-frontend:
 pre-commit:
 	@echo "Running pre-commit tasks..."
 	bash -c '"$(MAKE)" fix-imports & "$(MAKE)" format'
+	cd back_end && \
+	uv run ruff check src --output-format=full && \
+	uv run mypy src --config-file=pyproject.toml && \
+	uv run pytest tests && \
+	cd ../front_end && \
+	npm run lint
 
 fix-imports:
 	@echo "Fixing and linting imports in back_end/src and back_end/tests..."
