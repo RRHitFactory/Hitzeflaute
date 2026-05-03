@@ -5,7 +5,7 @@ from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import IceCreamMeltedMessage
 from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
-from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker
+from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
 
 
 class TestReferee(BaseTest):
@@ -16,9 +16,11 @@ class TestReferee(BaseTest):
         player_repo = PlayerRepoMaker.make_quick(n=max(3, n_melted))
         buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
         asset_maker = AssetRepoMaker(bus_repo=buses, players=player_repo)
+        transmission_maker = TransmissionRepoMaker(players=player_repo, buses=buses)
 
         for _ in range(6):
             asset_maker.add_asset(cat="Generator", power_std=0, is_for_sale=True)
+            transmission_maker.add_transmission(is_for_sale=True)
 
         assets = asset_maker.make()
         game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).make()

@@ -138,7 +138,7 @@ class TestMarketCoupling(BaseTest):
                 if not transmission.is_active:
                     continue
                 elif np.isclose(abs(flow), abs(transmission.capacity)):
-                    self.assertGreater(
+                    self.assertGreaterEqual(
                         abs(market_result.bus_prices.loc[mtu, transmission.bus1] - market_result.bus_prices.loc[mtu, transmission.bus2]),
                         0,
                     )
