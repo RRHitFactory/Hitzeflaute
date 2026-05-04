@@ -23,6 +23,7 @@ class TransmissionInfo(LightDc):
     minimum_acquisition_price: float = 0.0  # 0 = Not for sale
     is_active: bool = True
     birthday: int = 1  # Round when the asset was created
+    line_or_link: str = "Line"
 
     @property
     def is_open(self) -> bool:
@@ -35,6 +36,7 @@ class TransmissionInfo(LightDc):
     def __post_init__(self) -> None:
         assert self.bus2 > self.bus1, f"bus2 must be greater than bus1. Got {self.bus2} and {self.bus1}"
         assert self.reactance > 0, f"Reactance must be positive. Got {self.reactance}"
+        assert self.line_or_link in ["Line", "Link"], f"line_or_link must be either 'Line' or 'Link'. Got {self.line_or_link}"
 
 
 class TransmissionRepo(LdcRepo[TransmissionInfo]):

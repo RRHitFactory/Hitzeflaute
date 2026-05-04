@@ -44,21 +44,34 @@ class MarketCouplingCalculator:
         network.set_snapshots(pd.Index([0], name="time"))  # type: ignore
 
         network.add(class_name="Carrier", name="AC")
+
         for bus in game_state.buses:
             network.add(class_name="Bus", name=cls.get_pypsa_name(bus.id), carrier="AC")
-        for line in game_state.transmission:
-            if not line.is_active:
+
+        for transmission in game_state.transmission:
+            if not transmission.is_active:
                 continue
+
+            if transmission.line_or_link=="Line":
+                other_parameters = {
+                    "x": transmission.reactance,
+                    "s_nom": transmission.capacity,
+                }
+            elif transmission.line_or_link=="Link":
+                other_parameters = {
+                    "p_nom": transmission.capacity,
+                }
+            else:
+                other_parameters = {}
+
             network.add(
-                class_name="Line",
-                name=cls.get_pypsa_name(line.id),
-                bus0=cls.get_pypsa_name(line.bus1),
-                bus1=cls.get_pypsa_name(line.bus2),
-                x=line.reactance,
-                # r=0.01 * line.reactance,  # Assuming a small resistance for numerical stability
-                s_nom=line.capacity,
-                carrier="AC",
+                class_name=transmission.line_or_link,
+                name=cls.get_pypsa_name(transmission.id),
+                bus0=cls.get_pypsa_name(transmission.bus1),
+                bus1=cls.get_pypsa_name(transmission.bus2),
+                **other_parameters # type: ignore
             )
+
         for generator in game_state.assets.only_generators:
             if not generator.is_active:
                 continue
@@ -70,6 +83,7 @@ class MarketCouplingCalculator:
                 p_nom=generator.sample_power(),
                 carrier="AC",
             )
+
         for load in game_state.assets.only_loads:
             if not load.is_active:
                 continue
@@ -112,7 +126,10 @@ class MarketCouplingCalculator:
 
     @classmethod
     def get_transmission_flows(cls, network: pypsa.Network, transmission: TransmissionRepo) -> pd.DataFrame:
-        df = cls._tidy_df(df=network.lines_t.p0, column_name="Line")
+        df = cls._tidy_df(
+            df=pd.concat([network.lines_t.p0, network.links_t.p0], axis=1),
+            column_name="Line"
+        )
         # Add zero flows to open lines
         open_ids = transmission.only_open.transmission_ids
         df.loc[:, open_ids] = 0.0

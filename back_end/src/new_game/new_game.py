@@ -15,6 +15,7 @@ from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
 from src.new_game.generators.generator_maker import GeneratorMaker
 from src.new_game.loads.load_maker import LoadMaker
+from src.new_game.transmission.transmission_maker import TransmissionMaker
 from src.new_game.trigram_maker import make_trigrams
 from src.tools.random_choice import random_choice, random_choice_multi
 
@@ -285,13 +286,13 @@ class GameInitializer:
         gen_maker = GeneratorMaker()
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-            asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0), player_id=PlayerId.get_npc())
+            asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0))
             assets.append(asset)
 
         load_maker = LoadMaker()
         for _ in range(self.settings.n_init_non_freezer_loads):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0), player_id=PlayerId.get_npc(), except_freezer=True)
+            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0), except_freezer=True)
             assets.append(asset)
 
         return AssetRepo(assets)
@@ -311,7 +312,7 @@ class GameInitializer:
         # TODO This should be considered during topology construction rather than just checking it at the end
         socket_manager = BusSocketManager(starting_sockets={bus.id: bus.max_lines for bus in bus_repo})
 
-        rng = np.random.default_rng()
+        transmission_maker = TransmissionMaker()
 
         lines: list[TransmissionInfo] = []
         for bus1, bus2 in topology:
@@ -319,18 +320,7 @@ class GameInitializer:
             socket_manager.use_socket(bus1)
             socket_manager.use_socket(bus2)
 
-            line = TransmissionInfo(
-                id=next(t_id_iter),
-                owner_player=PlayerId.get_npc(),  # NPC owns all initial transmissions
-                bus1=bus1,
-                bus2=bus2,
-                reactance=rng.uniform(0.1, 1.0),  # Random reactance for each transmission
-                capacity=round(rng.uniform(10, 100)),
-                health=5,
-                fixed_operating_cost=1,
-                is_for_sale=True,
-                minimum_acquisition_price=round(rng.uniform(10, 100)),  # Random purchase cost for each transmission
-            )
+            line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round= Round(0))
             lines.append(line)
 
         return TransmissionRepo(lines)

@@ -355,6 +355,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         is_for_sale: bool | None = None,
         minimum_acquisition_price: float | None = None,
         is_active: bool | None = None,
+        line_or_link: str | None = None,
     ) -> Self:
         if transmission_info is None:
             transmission = self._make_dc(
@@ -367,6 +368,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
                 is_for_sale=is_for_sale,
                 minimum_acquisition_price=minimum_acquisition_price,
                 is_active=is_active,
+                line_or_link=line_or_link,
             )
 
         self._safe_append(transmission)
@@ -399,6 +401,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         is_for_sale: bool | None = None,
         minimum_acquisition_price: float | None = None,
         is_active: bool | None = None,
+        line_or_link: str | None = None,
     ) -> TransmissionInfo:
         transmission_id = TransmissionId(next(self.id_counter))
         if owner is None:
@@ -422,6 +425,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
             is_for_sale=is_for_sale if is_for_sale is not None else random_choice([True, False]),
             minimum_acquisition_price=(minimum_acquisition_price if minimum_acquisition_price is not None else float(np.random.rand() * 1000) if random_choice([True, False]) else 0.0),
             is_active=is_active if is_active is not None else True,
+            line_or_link=line_or_link if line_or_link is not None else "Line",
         )
 
     def _get_repo_type(self) -> type[TransmissionRepo]:
