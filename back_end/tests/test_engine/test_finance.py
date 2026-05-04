@@ -1,6 +1,8 @@
+import polars as pl
+
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
-from src.models.ids import AssetId
+from src.models.ids import AssetId, BusId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
@@ -33,27 +35,27 @@ class TestFinanceCalculator(BaseTest):
     def test_compute_assets_cashflow(self):
         game_state, market_coupling_result = self.create_game_state_and_market_coupling_result()
         assets_dispatch: dict[AssetId, float] = market_coupling_result.assets_dispatch.loc[0].to_dict()  # type: ignore
-        bus_prices = market_coupling_result.bus_prices.loc[0].to_dict()
+        bus_prices: dict[BusId, float] = market_coupling_result.bus_prices.loc[0].to_dict()  # type: ignore
 
         asset_repo = game_state.assets
+        cashflow = FinanceCalculator.compute_assets_cashflow(assets=asset_repo, assets_dispatch=assets_dispatch, bus_prices=bus_prices)
+
         for asset in asset_repo:
-            single_asset_repo = asset_repo._filter({"id": asset.id})
-            asset_cashflow = FinanceCalculator.compute_assets_cashflow(single_asset_repo, assets_dispatch, bus_prices)
             sign = asset.cashflow_sign
-            total_cashflow = asset_cashflow["cashflow"].sum()
+            total_cashflow: float = cashflow.filter(pl.col("asset_id") == asset.id, pl.col("cat").is_in(["market", "operation"]))["cashflow"].sum()
             self.assertAlmostEqual(total_cashflow, sign * (bus_prices[asset.bus] - asset.marginal_cost) * assets_dispatch[asset.id] - asset.fixed_operating_cost, places=1)
 
     def test_compute_transmission_cashflow(self):
         game_state, market_coupling_result = self.create_game_state_and_market_coupling_result()
-        transmission_flows = market_coupling_result.transmission_flows.loc[0].to_dict()
-        bus_prices = market_coupling_result.bus_prices.loc[0].to_dict()
+        transmission_flows: dict[TransmissionId, float] = market_coupling_result.transmission_flows.loc[0].to_dict()  # type: ignore
+        bus_prices: dict[BusId, float] = market_coupling_result.bus_prices.loc[0].to_dict()  # type: ignore
 
         transmission_repo = game_state.transmission
+        cashflow = FinanceCalculator.compute_transmission_cashflow(transmission_repo=transmission_repo, transmission_flows=transmission_flows, bus_prices=bus_prices)
+
         for transmission in transmission_repo:
-            single_transmission_repo = transmission_repo._filter({"id": transmission.id})
-            transmission_cashflow = FinanceCalculator.compute_transmission_cashflow(single_transmission_repo, transmission_flows, bus_prices)
-            price_spread = bus_prices[transmission.bus1] - bus_prices[transmission.bus2]
-            total_cashflow = transmission_cashflow["cashflow"].sum()
+            price_spread = bus_prices[transmission.bus2] - bus_prices[transmission.bus1]
+            total_cashflow = cashflow.filter(pl.col("transmission_id") == transmission.id, pl.col("cat") == "congestion")["cashflow"].sum()
             self.assertAlmostEqual(total_cashflow, transmission_flows[transmission.id] * price_spread, places=1)
 
     def test_validate_bid_based_on_expected_loads_cost(self):
