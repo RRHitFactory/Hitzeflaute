@@ -54,7 +54,7 @@ class TestFinanceCalculator(BaseTest):
         cashflow = FinanceCalculator.compute_transmission_cashflow(transmission_repo=transmission_repo, transmission_flows=transmission_flows, bus_prices=bus_prices)
 
         for transmission in transmission_repo:
-            price_spread = bus_prices[transmission.bus1] - bus_prices[transmission.bus2]
+            price_spread = bus_prices[transmission.bus2] - bus_prices[transmission.bus1]
             total_cashflow = cashflow.filter(pl.col("transmission_id") == transmission.id, pl.col("cat") == "congestion")["cashflow"].sum()
             self.assertAlmostEqual(total_cashflow, transmission_flows[transmission.id] * price_spread, places=1)
 

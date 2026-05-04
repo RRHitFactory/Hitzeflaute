@@ -39,7 +39,7 @@ class FinanceCalculator:
         for line in transmission_repo:
             player_id = line.owner_player
             volume = transmission_flows[line.id]
-            price_spread = bus_prices[line.bus1] - bus_prices[line.bus2]
+            price_spread = bus_prices[line.bus2] - bus_prices[line.bus1]
             congestion_payments = volume * price_spread
             cashflows.append({"cat": "congestion", "player_id": player_id, "asset_id": None, "transmission_id": line.id, "cashflow": congestion_payments})
 
