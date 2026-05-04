@@ -15,20 +15,17 @@ class FinanceCalculator:
         assets_dispatch: dict[AssetId, float],
         bus_prices: dict[BusId, float],
     ) -> PnlFrame:
-        operative_cashflow = 0.0
-        market_cashflow = 0.0
-
-        cashflows: list[dict[str, float | PnlCat | int]] = []
+        cashflows: list[dict[str, float | PnlCat | int | None]] = []
         for asset in assets:
             sign = asset.cashflow_sign
             player_id = asset.owner_player
 
             dispatched_volume = assets_dispatch[asset.id]
-            operative_cashflow += -sign * abs(dispatched_volume) * asset.marginal_cost - asset.fixed_operating_cost
-            cashflows.append({"cat": "operation", "player_id": player_id.as_int(), "thing_id": asset.id.as_int(), "cashflow": operative_cashflow})
+            operative_cashflow = -sign * abs(dispatched_volume) * asset.marginal_cost - asset.fixed_operating_cost
+            cashflows.append({"cat": "operation", "player_id": player_id, "asset_id": asset.id, "transmission_id": None, "cashflow": operative_cashflow})
 
-            market_cashflow += sign * abs(dispatched_volume) * bus_prices[asset.bus]
-            cashflows.append({"cat": "market", "player_id": player_id.as_int(), "thing_id": asset.id.as_int(), "cashflow": market_cashflow})
+            market_cashflow = sign * abs(dispatched_volume) * bus_prices[asset.bus]
+            cashflows.append({"cat": "market", "player_id": player_id, "asset_id": asset.id, "transmission_id": None, "cashflow": market_cashflow})
 
         return PnlFrameSchema.validate(pl.DataFrame(cashflows), cast=True)
 
@@ -38,15 +35,13 @@ class FinanceCalculator:
         transmission_flows: dict[TransmissionId, float],
         bus_prices: dict[BusId, float],
     ) -> PnlFrame:
-        congestion_payments = 0.0
-
-        cashflows: list[dict[str, float | PnlCat | int]] = []
+        cashflows: list[dict[str, float | PnlCat | int | None]] = []
         for line in transmission_repo:
             player_id = line.owner_player
             volume = transmission_flows[line.id]
             price_spread = bus_prices[line.bus1] - bus_prices[line.bus2]
-            congestion_payments += volume * price_spread
-            cashflows.append({"cat": "market", "player_id": player_id.as_int(), "thing_id": line.id.as_int(), "cashflow": congestion_payments})
+            congestion_payments = volume * price_spread
+            cashflows.append({"cat": "congestion", "player_id": player_id, "asset_id": None, "transmission_id": line.id, "cashflow": congestion_payments})
 
         return PnlFrameSchema.validate(pl.DataFrame(cashflows), cast=True)
 
