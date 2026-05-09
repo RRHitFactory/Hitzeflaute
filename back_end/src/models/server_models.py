@@ -11,6 +11,12 @@ from types import MappingProxyType
 
 from pydantic import BaseModel
 
+from dataclasses import dataclass, field
+from datetime import datetime
+
+from src.models.ids import GameId, PlayerId, TransmissionId
+
+
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
 from src.models.message import ActivationUpdateRequest, BuyRequest, EndTurn, GameToPlayerMessage, PlayerToGameMessage, UpdateBatchBidsRequest
 
@@ -101,3 +107,107 @@ class WebsocketMessage(BaseModel):
     @classmethod
     def make_error(cls, game_id: GameId, player_id: PlayerId, error_message: str) -> "WebsocketMessage":
         return cls(game_id=game_id.as_int(), player_id=player_id.as_int(), message_type="error", data={"err": error_message})
+
+
+# Lobby API models
+class CreateLobbyRequest(BaseModel):
+    player_name: str
+
+
+class CreateLobbyResponse(BaseModel):
+    game_id: str
+    player_id: str
+    message: str
+
+
+class JoinLobbyRequest(BaseModel):
+    player_name: str
+
+
+class JoinLobbyResponse(BaseModel):
+    game_id: str
+    player_id: str
+    message: str
+
+
+class LobbyInfoResponse(BaseModel):
+    game_id: str
+    host_player_id: str
+    players: list[dict]
+    created_at: str
+    max_players: int
+    is_started: bool
+    player_count: int
+
+
+class LobbyListResponse(BaseModel):
+    lobbies: list[dict]
+    count: int
+
+
+"""
+Lobby models for PowerFlowGame multiplayer lobby system
+"""
+
+@dataclass
+class LobbyPlayer:
+    """Represents a player in a lobby"""
+
+    player_id: PlayerId
+    name: str
+    is_host: bool = False
+    joined_at: datetime = field(default_factory=datetime.now)
+
+    def to_dict(self) -> dict:
+        return {
+            "player_id": int(self.player_id),
+            "name": self.name,
+            "is_host": self.is_host,
+            "joined_at": self.joined_at.isoformat(),
+        }
+
+
+@dataclass
+class Lobby:
+    """Represents a game lobby"""
+
+    game_id: GameId
+    host_player_id: PlayerId
+    players: dict[PlayerId, LobbyPlayer] = field(default_factory=dict)
+    created_at: datetime = field(default_factory=datetime.now)
+    max_players: int = 5
+    is_started: bool = False
+
+    def add_player(self, player_id: PlayerId, name: str) -> LobbyPlayer:
+        """Add a player to the lobby"""
+        player = LobbyPlayer(
+            player_id=player_id,
+            name=name,
+            is_host=(player_id == self.host_player_id)
+        )
+        self.players[player_id] = player
+        return player
+
+    def get_player_list(self) -> list[dict]:
+        """Get list of players in the lobby"""
+        return [p.to_dict() for p in self.players.values()]
+
+    def get_player_names(self) -> list[str]:
+        """Get list of player names"""
+        return [p.name for p in self.players.values()]
+
+    def is_full(self) -> bool:
+        """Check if lobby is full"""
+        return len(self.players) >= self.max_players
+
+    def to_dict(self) -> dict:
+        """Convert lobby to dictionary"""
+        return {
+            "game_id": int(self.game_id),
+            "host_player_id": int(self.host_player_id),
+            "players": self.get_player_list(),
+            "created_at": self.created_at.isoformat(),
+            "max_players": self.max_players,
+            "is_started": self.is_started,
+            "player_count": len(self.players),
+        }

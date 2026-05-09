@@ -6,25 +6,26 @@ from src.models.ids import GameId
 
 class BaseGameStateRepo(ABC):
     @abstractmethod
-    def generate_game_id(self) -> GameId:
+    def reserve_game_id(self) -> GameId:
         pass
 
     @abstractmethod
-    def add_game_state(self, game: GameState) -> None:
+    def create(self, game: GameState) -> None:
         pass
 
     @abstractmethod
-    def update_game_state(self, game: GameState) -> None:
+    def read(self, game_id: GameId) -> GameState:
         pass
 
     @abstractmethod
-    def get_game_state(self, game_id: GameId) -> GameState:
+    def update(self, game: GameState) -> None:
         pass
 
     @abstractmethod
-    def list_game_ids(self) -> list[GameId]:
+    def delete(self, game_id: GameId, missing_ok: bool = True) -> None:
         pass
 
     @abstractmethod
-    def delete_game_state(self, game_id: GameId, missing_ok: bool = True) -> None:
+    def list_games(self) -> list[GameId]:
         pass
+

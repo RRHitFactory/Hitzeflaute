@@ -25,25 +25,32 @@ class GameManager:
     def __init__(
         self,
         game_repo: BaseGameStateRepo,
-        game_engine: Engine,
-        front_end_interface: FrontEndMessageHandler,
+        game_engine: Engine
     ) -> None:
         assert isinstance(game_repo, BaseGameStateRepo)
-        assert isinstance(front_end_interface, FrontEndMessageHandler)
         self.game_repo = game_repo
         self.game_engine = game_engine
-        self.front_end = front_end_interface
+        self._front_end : FrontEndMessageHandler | None = None
+
+    @property
+    def front_end(self) -> FrontEndMessageHandler:
+        assert self._front_end is not None
+        return self._front_end
+
+    def set_front_end(self, x: FrontEndMessageHandler) -> None:
+        assert isinstance(x, FrontEndMessageHandler)
+        self._front_end = x
 
     async def update_players(self, game_id: GameId, players: list[PlayerId]) -> None:
-        game_state = self.game_repo.get_game_state(game_id)
+        game_state = self.game_repo.read(game_id)
         game_update_messages = [GameUpdate(game_id=game_id, player_id=p, game_state=game_state, message="") for p in players]
-        await self.front_end.handle_player_messages(msgs=game_update_messages)  # type: ignore
+        await self._front_end.handle_player_messages(msgs=game_update_messages)  # type: ignore
 
     async def handle_player_message(self, game_id: GameId, msg: PlayerToGameMessage) -> None:
         # TODO Make this atomic
-        game_state = self.game_repo.get_game_state(game_id)
+        game_state = self.game_repo.read(game_id)
         updated_game_state = await self._handle_message(game_id=game_id, game_state=game_state, msg=msg)
-        self.game_repo.update_game_state(updated_game_state)
+        self.game_repo.update(updated_game_state)
 
     async def _handle_message(self, game_id: GameId, game_state: GameState, msg: ToGameMessage) -> GameState:
         print(f"Handling message: {msg}")
@@ -71,9 +78,9 @@ class GameManager:
 
     @classmethod
     def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str]) -> GameId:
-        game_id = game_repo.generate_game_id()
+        game_id = game_repo.reserve_game_id()
         settings = GameSettings()
         game_initializer = GameInitializer(settings=settings)
         new_game_state = game_initializer.create_new_game(game_id=game_id, player_names=player_names)
-        game_repo.add_game_state(game=new_game_state)
+        game_repo.create(game=new_game_state)
         return game_id
