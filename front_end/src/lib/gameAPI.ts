@@ -131,7 +131,6 @@ export class GameAPIClient {
 
   // Lobby endpoints
   async createLobby(): Promise<CreateLobbyResponse> {
-    console.log("Post");
     return this.request<CreateLobbyResponse>("/lobby/create", {
       method: "POST",
     });
@@ -361,7 +360,6 @@ export function useGameState(gameId: number): UseGameStateResult {
 
 export function useCreateLobby(): UseCreateLobbyResult {
   const { execute, loading, error } = useGameAPI();
-  console.log("useCreateLobby");
 
   const createLobby =
     React.useCallback(async (): Promise<CreateLobbyResponse> => {

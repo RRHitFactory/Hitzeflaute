@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useJoinLobby, useLobbyInfo, useStartLobby } from "@/lib/gameAPI";
 import { useLobbyWebSocket } from "@/lib/lobbyWebSocket";
+import { BACKEND_HOST } from "@/config/apiConfig";
 
 function LobbyContent() {
   const searchParams = useSearchParams();
@@ -77,10 +78,11 @@ function LobbyContent() {
     }
   }, [gameStartedRedirect]);
 
-  // Get public URL (replace localhost with actual IP for sharing)
+  // Get public URL using the configured backend host for sharing
   const getPublicUrl = () => {
     if (typeof window === "undefined") return "";
-    let url = `${window.location.origin}/lobby?gameId=${gameId}`;
+    // Use the configured backend host to ensure consistent URL generation
+    let url = `${window.location.protocol}//${BACKEND_HOST}:${window.location.port}/lobby?gameId=${gameId}`;
     return url;
   };
 

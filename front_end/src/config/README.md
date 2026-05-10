@@ -35,5 +35,13 @@ All API-related files now import from this centralized configuration:
 - `src/lib/gameAPI.ts` - REST API client
 - `src/lib/lobbyWebSocket.ts` - Lobby WebSocket client  
 - `src/lib/gameWebSocket.ts` - Game WebSocket client
+- `src/app/lobby/page.tsx` - Lobby URL generation
 
-This ensures consistent configuration across all API communications.
+This ensures consistent configuration across all API communications and URL generation.
+
+## Benefits
+
+1. **Single source of truth**: Change the IP address in one place
+2. **Consistency**: All API calls and WebSocket connections use the same host
+3. **Easier deployment**: Simple to switch between development, testing, and production environments
+4. **Better maintainability**: No need to search through multiple files to update configuration
