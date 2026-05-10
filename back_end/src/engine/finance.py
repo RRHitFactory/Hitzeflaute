@@ -43,6 +43,9 @@ class FinanceCalculator:
             congestion_payments = volume * price_spread
             cashflows.append({"cat": "congestion", "player_id": player_id, "asset_id": None, "transmission_id": line.id, "cashflow": congestion_payments})
 
+            operative_cashflow = -line.fixed_operating_cost
+            cashflows.append({"cat": "operation", "player_id": player_id, "asset_id": None, "transmission_id": line.id, "cashflow": operative_cashflow})
+
         return PnlFrameSchema.validate(pl.DataFrame(cashflows), cast=True)
 
     @staticmethod
