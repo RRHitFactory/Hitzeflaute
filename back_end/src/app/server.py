@@ -54,6 +54,7 @@ app.add_middleware(
         "capacitor://localhost",
         f"http://{get_local_ip()}:8000",
         f"http://{get_local_ip()}:3000",
+        "*"
     ],  # React dev server + mobile origins + local network IP
     allow_credentials=True,
     allow_methods=["*"],

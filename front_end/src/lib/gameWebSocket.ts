@@ -2,6 +2,7 @@
 
 import { GameState } from "@/types/game";
 import { useEffect, useRef, useState } from "react";
+import { BACKEND_HOST } from "@/config/apiConfig";
 
 /**
  * WebSocket client for PowerFlowGame
@@ -57,10 +58,7 @@ export class GameWebSocketClient {
   }
 
   private connect(): void {
-    // Replace with your dev machine's local IP (e.g., "192.168.68.116")
-    const backendHost =
-      typeof window !== "undefined" ? "192.168.68.116" : "localhost";
-    const wsUrl = `ws://${backendHost}:8000/ws/games/${this.gameId}/${this.playerId}`;
+    const wsUrl = `ws://${BACKEND_HOST}:8000/ws/games/${this.gameId}/${this.playerId}`;
     console.log(`Connecting to WebSocket: ${wsUrl}`);
 
     try {

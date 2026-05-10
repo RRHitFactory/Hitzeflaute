@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { BACKEND_HOST } from "@/config/apiConfig";
 
 // Type definitions
 export interface LobbyWebSocketMessage {
@@ -63,11 +64,8 @@ export class LobbyWebSocketClient {
   }
 
   private connect(): void {
-    // Replace with your dev machine's local IP (e.g., "192.168.68.116")
-    const backendHost =
-      typeof window !== "undefined" ? "192.168.68.116" : "localhost";
     // Use the existing game WebSocket endpoint for lobby
-    const wsUrl = `ws://${backendHost}:8000/ws/lobby/${this.gameId}/${this.playerId}`;
+    const wsUrl = `ws://${BACKEND_HOST}:8000/ws/lobby/${this.gameId}/${this.playerId}`;
     console.log(`[LobbyWS] Connecting to WebSocket: ${wsUrl}`);
 
     try {

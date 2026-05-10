@@ -5,10 +5,8 @@
 
 import React from "react";
 
-// Replace with your dev machine's local IP (e.g., "192.168.68.116")
-const BACKEND_HOST =
-  typeof window !== "undefined" ? "192.168.68.116" : "localhost";
-const API_BASE_URL = `http://${BACKEND_HOST}:8000/api`;
+// Import centralized API configuration
+import { BACKEND_HOST, API_BASE_URL } from "@/config/apiConfig";
 
 // Error types
 export class GameAPIError extends Error {
@@ -133,6 +131,7 @@ export class GameAPIClient {
 
   // Lobby endpoints
   async createLobby(): Promise<CreateLobbyResponse> {
+    console.log("Post");
     return this.request<CreateLobbyResponse>("/lobby/create", {
       method: "POST",
     });
@@ -362,6 +361,7 @@ export function useGameState(gameId: number): UseGameStateResult {
 
 export function useCreateLobby(): UseCreateLobbyResult {
   const { execute, loading, error } = useGameAPI();
+  console.log("useCreateLobby");
 
   const createLobby =
     React.useCallback(async (): Promise<CreateLobbyResponse> => {

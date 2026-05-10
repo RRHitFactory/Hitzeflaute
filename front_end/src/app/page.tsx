@@ -1,9 +1,9 @@
 "use client";
 
+import { useCreateLobby } from "@/lib/gameAPI";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useCreateLobby } from "@/lib/gameAPI";
 
 export default function HomePage() {
   const router = useRouter();
