@@ -58,7 +58,8 @@ export class GameWebSocketClient {
 
   private connect(): void {
     // Replace with your dev machine's local IP (e.g., "192.168.68.116")
-    const backendHost = typeof window !== "undefined" ? "192.168.68.116" : "localhost";
+    const backendHost =
+      typeof window !== "undefined" ? "192.168.68.116" : "localhost";
     const wsUrl = `ws://${backendHost}:8000/ws/games/${this.gameId}/${this.playerId}`;
     console.log(`Connecting to WebSocket: ${wsUrl}`);
 

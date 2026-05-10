@@ -64,7 +64,8 @@ export class LobbyWebSocketClient {
 
   private connect(): void {
     // Replace with your dev machine's local IP (e.g., "192.168.68.116")
-    const backendHost = typeof window !== "undefined" ? "192.168.68.116" : "localhost";
+    const backendHost =
+      typeof window !== "undefined" ? "192.168.68.116" : "localhost";
     // Use the existing game WebSocket endpoint for lobby
     const wsUrl = `ws://${backendHost}:8000/ws/lobby/${this.gameId}/${this.playerId}`;
     console.log(`[LobbyWS] Connecting to WebSocket: ${wsUrl}`);
@@ -74,7 +75,12 @@ export class LobbyWebSocketClient {
 
       this.ws.onopen = (event: Event) => {
         console.log("[LobbyWS] WebSocket connected successfully!");
-        console.log("[LobbyWS] Game ID:", this.gameId, "Player ID:", this.playerId);
+        console.log(
+          "[LobbyWS] Game ID:",
+          this.gameId,
+          "Player ID:",
+          this.playerId,
+        );
         this.reconnectAttempts = 0;
         this.reconnectDelay = 1000;
       };
@@ -84,14 +90,24 @@ export class LobbyWebSocketClient {
           const data: LobbyWebSocketMessage = JSON.parse(event.data);
           console.log("[LobbyWS] Received message:", data);
           this.onMessage(data);
-          
+
           // Handle specific message types
-          if (data.message_type === "game_started" && data.game_id && this.onGameStartedCallback) {
-            console.log("[LobbyWS] Game started event received, game_id:", data.game_id);
+          if (
+            data.message_type === "game_started" &&
+            data.game_id &&
+            this.onGameStartedCallback
+          ) {
+            console.log(
+              "[LobbyWS] Game started event received, game_id:",
+              data.game_id,
+            );
             this.onGameStartedCallback(data.game_id);
           }
-          
-          if (data.message_type === "lobby_update" && this.onLobbyUpdateCallback) {
+
+          if (
+            data.message_type === "lobby_update" &&
+            this.onLobbyUpdateCallback
+          ) {
             console.log("[LobbyWS] Lobby update event received, refreshing...");
             this.onLobbyUpdateCallback();
           }
@@ -185,7 +201,8 @@ export function useLobbyWebSocket(
   callbacks: LobbyWebSocketCallbacks = {},
 ) {
   const [client, setClient] = useState<LobbyWebSocketClient | null>(null);
-  const [connectionState, setConnectionState] = useState<string>("DISCONNECTED");
+  const [connectionState, setConnectionState] =
+    useState<string>("DISCONNECTED");
 
   // Use a ref to store the latest callbacks without causing re-renders
   const callbacksRef = useRef(callbacks);
@@ -194,7 +211,9 @@ export function useLobbyWebSocket(
   useEffect(() => {
     // Skip if invalid IDs
     if (gameId === -1 || playerId === -1) {
-      console.log("[LobbyWS Hook] Skipping connection - invalid gameId or playerId");
+      console.log(
+        "[LobbyWS Hook] Skipping connection - invalid gameId or playerId",
+      );
       return;
     }
 

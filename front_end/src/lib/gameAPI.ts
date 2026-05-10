@@ -6,7 +6,8 @@
 import React from "react";
 
 // Replace with your dev machine's local IP (e.g., "192.168.68.116")
-const BACKEND_HOST = typeof window !== "undefined" ? "192.168.68.116" : "localhost";
+const BACKEND_HOST =
+  typeof window !== "undefined" ? "192.168.68.116" : "localhost";
 const API_BASE_URL = `http://${BACKEND_HOST}:8000/api`;
 
 // Error types
@@ -84,7 +85,7 @@ export class GameAPIClient {
 
   async request<T = unknown>(
     endpoint: string,
-    options?: RequestInit
+    options?: RequestInit,
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
 
@@ -95,7 +96,12 @@ export class GameAPIClient {
       ...options,
     };
 
-    if (config.body && typeof config.body === "object" && !(config.body instanceof Blob) && !(config.body instanceof FormData)) {
+    if (
+      config.body &&
+      typeof config.body === "object" &&
+      !(config.body instanceof Blob) &&
+      !(config.body instanceof FormData)
+    ) {
       config.body = JSON.stringify(config.body);
     }
 
@@ -105,9 +111,10 @@ export class GameAPIClient {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new GameAPIError(
-          (errorData as { detail?: string }).detail || `HTTP ${response.status}`,
+          (errorData as { detail?: string }).detail ||
+            `HTTP ${response.status}`,
           response.status,
-          errorData
+          errorData,
         );
       }
 
@@ -119,7 +126,7 @@ export class GameAPIClient {
       throw new GameAPIError(
         `Network error: ${(error as Error).message}`,
         0,
-        null
+        null,
       );
     }
   }
@@ -127,11 +134,14 @@ export class GameAPIClient {
   // Lobby endpoints
   async createLobby(): Promise<CreateLobbyResponse> {
     return this.request<CreateLobbyResponse>("/lobby/create", {
-      method: "POST"
+      method: "POST",
     });
   }
 
-  async joinLobby(gameId: string | number, playerName: string): Promise<JoinLobbyResponse> {
+  async joinLobby(
+    gameId: string | number,
+    playerName: string,
+  ): Promise<JoinLobbyResponse> {
     return this.request<JoinLobbyResponse>(`/lobby/join/${gameId}`, {
       method: "POST",
       body: JSON.stringify({ player_name: playerName }),
@@ -141,10 +151,15 @@ export class GameAPIClient {
   async getLobbyInfo(gameId: string | number): Promise<LobbyInfoResponse> {
     return this.request<LobbyInfoResponse>(`/lobby/info/${gameId}`);
   }
-  async startLobby(gameId: string | number): Promise<{ message: string; game_id?: string }> {
-    return this.request<{ message: string; game_id?: string }>(`/lobby/start/${gameId}`, {
-      method: "POST"
-    });
+  async startLobby(
+    gameId: string | number,
+  ): Promise<{ message: string; game_id?: string }> {
+    return this.request<{ message: string; game_id?: string }>(
+      `/lobby/start/${gameId}`,
+      {
+        method: "POST",
+      },
+    );
   }
 
   // Game management endpoints
@@ -178,7 +193,7 @@ export class GameAPIClient {
       throw new GameAPIError(
         `Health check failed: HTTP ${response.status}`,
         response.status,
-        response
+        response,
       );
     }
 
@@ -221,7 +236,10 @@ export interface UseCreateLobbyResult {
 }
 
 export interface UseJoinLobbyResult {
-  joinLobby: (gameId: string | number, playerName: string) => Promise<JoinLobbyResponse>;
+  joinLobby: (
+    gameId: string | number,
+    playerName: string,
+  ) => Promise<JoinLobbyResponse>;
   loading: boolean;
   error: Error | null;
 }
@@ -234,7 +252,9 @@ export interface UseLobbyInfoResult {
 }
 
 export interface UseStartLobbyResult {
-  startLobby: (gameId: string | number) => Promise<{ message: string; game_id?: string }>;
+  startLobby: (
+    gameId: string | number,
+  ) => Promise<{ message: string; game_id?: string }>;
   loading: boolean;
   error: Error | null;
 }
@@ -260,7 +280,7 @@ export function useGameAPI(): UseGameAPIResult {
         setLoading(false);
       }
     },
-    [client]
+    [client],
   );
 
   return { client, loading, error, execute };
@@ -274,7 +294,7 @@ export function useCreateGame(): UseCreateGameResult {
     async (playerNames: string[]): Promise<CreateGameResponse> => {
       return execute((client) => client.createGame(playerNames));
     },
-    [execute]
+    [execute],
   );
 
   return { createGame, loading, error };
@@ -343,12 +363,10 @@ export function useGameState(gameId: number): UseGameStateResult {
 export function useCreateLobby(): UseCreateLobbyResult {
   const { execute, loading, error } = useGameAPI();
 
-  const createLobby = React.useCallback(
-    async (): Promise<CreateLobbyResponse> => {
+  const createLobby =
+    React.useCallback(async (): Promise<CreateLobbyResponse> => {
       return execute((client: GameAPIClient) => client.createLobby());
-    },
-    [execute]
-  );
+    }, [execute]);
 
   return { createLobby, loading, error };
 }
@@ -357,10 +375,15 @@ export function useJoinLobby(): UseJoinLobbyResult {
   const { execute, loading, error } = useGameAPI();
 
   const joinLobby = React.useCallback(
-    async (gameId: string | number, playerName: string): Promise<JoinLobbyResponse> => {
-      return execute((client: GameAPIClient) => client.joinLobby(gameId, playerName));
+    async (
+      gameId: string | number,
+      playerName: string,
+    ): Promise<JoinLobbyResponse> => {
+      return execute((client: GameAPIClient) =>
+        client.joinLobby(gameId, playerName),
+      );
     },
-    [execute]
+    [execute],
   );
 
   return { joinLobby, loading, error };
@@ -368,7 +391,9 @@ export function useJoinLobby(): UseJoinLobbyResult {
 
 export function useLobbyInfo(gameId: string | number): UseLobbyInfoResult {
   const { client } = useGameAPI();
-  const [lobbyInfo, setLobbyInfo] = React.useState<LobbyInfoResponse | null>(null);
+  const [lobbyInfo, setLobbyInfo] = React.useState<LobbyInfoResponse | null>(
+    null,
+  );
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
 
@@ -397,10 +422,12 @@ export function useStartLobby(): UseStartLobbyResult {
   const { execute, loading, error } = useGameAPI();
 
   const startLobby = React.useCallback(
-    async (gameId: string | number): Promise<{ message: string; game_id?: string }> => {
+    async (
+      gameId: string | number,
+    ): Promise<{ message: string; game_id?: string }> => {
       return execute((client: GameAPIClient) => client.startLobby(gameId));
     },
-    [execute]
+    [execute],
   );
 
   return { startLobby, loading, error };

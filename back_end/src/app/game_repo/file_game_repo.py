@@ -23,9 +23,9 @@ class FileGameStateRepo(BaseGameStateRepo):
         if not reserved_file.exists():
             return set()
         try:
-            with open(reserved_file, "r") as f:
+            with open(reserved_file) as f:
                 return {int(line.strip()) for line in f if line.strip()}
-        except (ValueError, IOError):
+        except (OSError, ValueError):
             return set()
 
     def _add_reserved_id(self, game_id: GameId) -> None:
@@ -38,19 +38,19 @@ class FileGameStateRepo(BaseGameStateRepo):
         with self._lock:
             # Get IDs from existing game files
             game_ids = self.list_games()
-            
+
             # Get IDs from reserved file
             reserved_ids = self._get_reserved_ids()
-            
+
             # Combine all IDs and find the maximum
             all_ids = {gid.as_int() for gid in game_ids} | reserved_ids
-            
+
             new_id = max(all_ids) + 1 if all_ids else 0
             game_id = GameId(new_id)
-            
+
             # Record the reserved ID
             self._add_reserved_id(game_id)
-            
+
             return game_id
 
     def create(self, game: GameState) -> None:
@@ -82,21 +82,21 @@ class FileGameStateRepo(BaseGameStateRepo):
     def delete(self, game_id: GameId, missing_ok: bool = True) -> None:
         path = self.game_id_to_file_path(game_id)
         path.unlink(missing_ok=missing_ok)
-        
+
         # Also remove from reserved_ids.txt if present
         with self._lock:
             reserved_file = self.cache_dir / self.RESERVED_IDS_FILE
             if reserved_file.exists():
                 try:
-                    with open(reserved_file, "r") as f:
+                    with open(reserved_file) as f:
                         lines = f.readlines()
                     new_lines = [
-                        line for line in lines 
+                        line for line in lines
                         if line.strip() and int(line.strip()) != game_id.as_int()
                     ]
                     with open(reserved_file, "w") as f:
                         f.writelines(new_lines)
-                except (ValueError, IOError):
+                except (OSError, ValueError):
                     pass
 
     def game_id_to_file_path(self, game_id: GameId) -> Path:

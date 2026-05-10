@@ -8,7 +8,13 @@ import PlayerTable from "@/components/UI/PlayerTable";
 import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
 import { GamePhase } from "@/types/game";
 import { useSearchParams } from "next/navigation";
-import React, { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -69,8 +75,12 @@ function GameContent() {
     [handleMessage, handleError, handleClose],
   );
 
-  const { client: wsClient, connectionState, gameState, isConnected } =
-    useGameWebSocket(gameId || -1, DEFAULT_PLAYER, callbacks);
+  const {
+    client: wsClient,
+    connectionState,
+    gameState,
+    isConnected,
+  } = useGameWebSocket(gameId || -1, DEFAULT_PLAYER, callbacks);
 
   // Track when we first connect successfully
   useEffect(() => {
@@ -280,7 +290,10 @@ function GameContent() {
               </div>
 
               <div className="flex-shrink-0">
-                <GameStatus phase={gameState.phase} round={gameState.game_round} />
+                <GameStatus
+                  phase={gameState.phase}
+                  round={gameState.game_round}
+                />
               </div>
             </div>
           </div>
@@ -307,7 +320,9 @@ function GameContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
-              <h2 className="text-xl font-bold mb-4 text-black">Grid Visualization</h2>
+              <h2 className="text-xl font-bold mb-4 text-black">
+                Grid Visualization
+              </h2>
               <GridVisualization
                 gameState={gameState}
                 onPurchaseAsset={handlePurchaseAsset}
@@ -363,7 +378,6 @@ function GameContent() {
     </div>
   );
 }
-
 
 export default function GamePage() {
   return (

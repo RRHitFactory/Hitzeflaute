@@ -2,10 +2,10 @@ import json
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 
-from src.app.lobby_ws_manager import LobbyWebSocketConnectionManager
-from src.app.routes.logging import log_exception_with_traceback
 from src.app.game_manager import GameManager
 from src.app.lobby_manager import LobbyManager
+from src.app.lobby_ws_manager import LobbyWebSocketConnectionManager
+from src.app.routes.logging import log_exception_with_traceback
 from src.models.ids import GameId, PlayerId
 from src.models.server_models import (
     CreateLobbyResponse,

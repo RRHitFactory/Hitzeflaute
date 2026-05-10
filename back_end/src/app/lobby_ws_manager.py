@@ -1,6 +1,6 @@
-from src.app.routes.logging import console_logger, log_exception_with_traceback
 from fastapi import WebSocket
 
+from src.app.routes.logging import console_logger, log_exception_with_traceback
 from src.models.ids import GameId, PlayerId
 
 

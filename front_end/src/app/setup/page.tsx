@@ -112,7 +112,7 @@ export default function SetupPage() {
               <p>Loading games...</p>
             ) : gamesError ? (
               <p className="text-red-600">
-                Error loading games: {" "}
+                Error loading games:{" "}
                 {(gamesError as Error)?.message || "Unknown error"}
               </p>
             ) : games.length === 0 ? (
@@ -121,7 +121,9 @@ export default function SetupPage() {
               <select
                 value={selectedGameId !== -1 ? selectedGameId : -1}
                 onChange={(e) =>
-                  setSelectedGameId(e.target.value ? parseInt(e.target.value) : -1)
+                  setSelectedGameId(
+                    e.target.value ? parseInt(e.target.value) : -1,
+                  )
                 }
                 className="w-full p-2 border border-gray-400 rounded-md text-black"
               >

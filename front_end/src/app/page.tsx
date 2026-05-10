@@ -26,9 +26,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-300 flex items-center justify-center">
       <div className="bg-gray-400 rounded-lg shadow-lg p-8 max-w-md w-full text-center">
-        <h1 className="text-3xl font-bold text-black mb-8">
-          Power Flow Game
-        </h1>
+        <h1 className="text-3xl font-bold text-black mb-8">Power Flow Game</h1>
 
         <div className="space-y-4">
           <button

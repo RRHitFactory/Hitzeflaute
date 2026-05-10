@@ -4,8 +4,8 @@ Combines REST endpoints for serving the React app and managing games,
 with WebSocket connections for real-time message communication.
 """
 
-from pathlib import Path
 import socket
+from pathlib import Path
 
 import uvicorn
 from fastapi import FastAPI
@@ -13,14 +13,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-from src.app.lobby_manager import LobbyManager
-from src.app.lobby_ws_manager import LobbyWebSocketConnectionManager
-from src.app.ws_manager import WebSocketConnectionManager
 from src.app.game_manager import GameManager
 from src.app.game_repo.file_game_repo import FileGameStateRepo
+from src.app.lobby_manager import LobbyManager
+from src.app.lobby_ws_manager import LobbyWebSocketConnectionManager
 from src.app.routes.game import get_game_rest_router, get_game_ws_router
 from src.app.routes.lobby import get_lobby_rest_router, get_lobby_ws_router
+from src.app.ws_manager import WebSocketConnectionManager
 from src.engine.engine import Engine
+
 
 def get_local_ip():
     """Get the local network IP address"""

@@ -33,7 +33,7 @@ class LobbyManager:
 
     def join_lobby(self, game_id: GameId, player_name: str) -> LobbyPlayer | None:
         """Join an existing lobby"""
-        
+
         lobby = self.get_lobby(game_id)
         if not lobby:
             return None

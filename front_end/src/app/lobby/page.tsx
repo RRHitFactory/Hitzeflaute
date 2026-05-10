@@ -12,32 +12,52 @@ function LobbyContent() {
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState<string>("");
-  const [gameStartedRedirect, setGameStartedRedirect] = useState<number | null>(null);
+  const [gameStartedRedirect, setGameStartedRedirect] = useState<number | null>(
+    null,
+  );
   const [isPlayerReady, setIsPlayerReady] = useState<boolean>(false);
   const { joinLobby, loading, error } = useJoinLobby();
-  const { startLobby, loading: startLoading, error: startError } = useStartLobby();
+  const {
+    startLobby,
+    loading: startLoading,
+    error: startError,
+  } = useStartLobby();
   const promptedRef = useRef<Record<string, boolean>>({});
 
   // Get lobby info with player list
-  const { lobbyInfo, loading: infoLoading, error: infoError, refresh: refreshLobbyInfo } = useLobbyInfo(gameId);
+  const {
+    lobbyInfo,
+    loading: infoLoading,
+    error: infoError,
+    refresh: refreshLobbyInfo,
+  } = useLobbyInfo(gameId);
 
   // WebSocket connection for real-time updates - only connect when player is ready
   const parsedPlayerId = playerId ? parseInt(playerId) : -1;
   const isHost = parsedPlayerId == 0;
 
-  const { client: wsClient, connectionState, isConnected } = useLobbyWebSocket(
+  const {
+    client: wsClient,
+    connectionState,
+    isConnected,
+  } = useLobbyWebSocket(
     isPlayerReady && gameId ? parseInt(gameId) : -1,
     isPlayerReady ? parsedPlayerId : -1,
     {
       onGameStarted: (newGameId: number) => {
-        console.log("Game started! Redirecting to game page with gameId:", newGameId);
+        console.log(
+          "Game started! Redirecting to game page with gameId:",
+          newGameId,
+        );
         setGameStartedRedirect(newGameId);
       },
       onLobbyUpdate: () => {
-        console.log("Lobby update received via WebSocket, refreshing lobby info...");
+        console.log(
+          "Lobby update received via WebSocket, refreshing lobby info...",
+        );
         refreshLobbyInfo();
       },
-    }
+    },
   );
 
   // Poll for lobby updates every 5 seconds as fallback
@@ -71,14 +91,27 @@ function LobbyContent() {
     if (gameId && !promptedRef.current[gameId]) {
       promptedRef.current[gameId] = true;
       // Check localStorage for existing player info for this game
-      const storedGameId = typeof window !== "undefined" ? localStorage.getItem(`lobby_gameId_${gameId}`) : null;
-      const storedPlayerId = typeof window !== "undefined" ? localStorage.getItem(`lobby_playerId_${gameId}`) : null;
-      const storedPlayerName = typeof window !== "undefined" ? localStorage.getItem(`lobby_playerName_${gameId}`) : null;
+      const storedGameId =
+        typeof window !== "undefined"
+          ? localStorage.getItem(`lobby_gameId_${gameId}`)
+          : null;
+      const storedPlayerId =
+        typeof window !== "undefined"
+          ? localStorage.getItem(`lobby_playerId_${gameId}`)
+          : null;
+      const storedPlayerName =
+        typeof window !== "undefined"
+          ? localStorage.getItem(`lobby_playerName_${gameId}`)
+          : null;
 
-      const newPlayer = !storedPlayerId || !storedPlayerName || storedGameId !== gameId;
+      const newPlayer =
+        !storedPlayerId || !storedPlayerName || storedGameId !== gameId;
 
       if (newPlayer) {
-        const name = prompt("Enter your player name:", `Player ${Math.floor(Math.random() * 1000) + 1}`);
+        const name = prompt(
+          "Enter your player name:",
+          `Player ${Math.floor(Math.random() * 1000) + 1}`,
+        );
         if (name) {
           setPlayerName(name);
           joinLobby(gameId, name)
@@ -87,7 +120,10 @@ function LobbyContent() {
               // Store in localStorage for future visits
               if (typeof window !== "undefined") {
                 localStorage.setItem(`lobby_gameId_${gameId}`, gameId);
-                localStorage.setItem(`lobby_playerId_${gameId}`, result.player_id);
+                localStorage.setItem(
+                  `lobby_playerId_${gameId}`,
+                  result.player_id,
+                );
                 localStorage.setItem(`lobby_playerName_${gameId}`, name);
               }
               // Mark player as ready to show content and connect WebSocket
@@ -126,7 +162,9 @@ function LobbyContent() {
   const handleStartGame = async () => {
     try {
       const result = await startLobby(gameId);
-      console.log("Game started, waiting for WebSocket broadcast to all players...");
+      console.log(
+        "Game started, waiting for WebSocket broadcast to all players...",
+      );
     } catch (err) {
       console.error("Failed to start game:", err);
       alert("Failed to start game. Need at least 2 players.");
@@ -214,7 +252,8 @@ function LobbyContent() {
               <div className="flex">
                 <div className="ml-3">
                   <p className="text-sm text-blue-700">
-                    Starting game... All players will be redirected automatically.
+                    Starting game... All players will be redirected
+                    automatically.
                   </p>
                 </div>
               </div>
@@ -230,7 +269,9 @@ function LobbyContent() {
                 {playerName}
               </code>
               {isHost && (
-                <p className="text-sm text-gray-700 text-center mt-2">You are the host</p>
+                <p className="text-sm text-gray-700 text-center mt-2">
+                  You are the host
+                </p>
               )}
             </div>
           )}
@@ -259,23 +300,36 @@ function LobbyContent() {
 
           {/* Player Table */}
           <div className="mb-6">
-            <h3 className="text-lg font-bold text-black mb-3">Players in Lobby ({players.length}/{lobbyInfo?.max_players || 5})</h3>
+            <h3 className="text-lg font-bold text-black mb-3">
+              Players in Lobby ({players.length}/{lobbyInfo?.max_players || 5})
+            </h3>
             {players.length === 0 ? (
-              <p className="text-black text-center py-4">No players yet. Share the link below to invite others.</p>
+              <p className="text-black text-center py-4">
+                No players yet. Share the link below to invite others.
+              </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full bg-gray-400 rounded-md">
                   <thead className="bg-gray-500">
                     <tr>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-black">Player Name</th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-black">Player ID</th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-black">
+                        Player Name
+                      </th>
+                      <th className="px-4 py-2 text-left text-sm font-medium text-black">
+                        Player ID
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="bg-gray-300">
                     {players.map((player) => (
-                      <tr key={player.player_id} className="border-t border-gray-500">
+                      <tr
+                        key={player.player_id}
+                        className="border-t border-gray-500"
+                      >
                         <td className="px-4 py-2 text-black">{player.name}</td>
-                        <td className="px-4 py-2 text-black">{player.player_id}</td>
+                        <td className="px-4 py-2 text-black">
+                          {player.player_id}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -292,7 +346,11 @@ function LobbyContent() {
                 disabled={!canStart || startLoading || showStartingMessage}
                 className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
               >
-                {startLoading ? "Starting Game..." : showStartingMessage ? "Game Starting..." : "Start Game"}
+                {startLoading
+                  ? "Starting Game..."
+                  : showStartingMessage
+                    ? "Game Starting..."
+                    : "Start Game"}
               </button>
             </div>
           )}
@@ -326,12 +384,16 @@ function LobbyContent() {
           <div className="text-sm text-black text-center">
             <p>Players who open this link will join your lobby.</p>
             {isHost ? (
-              <p className="mt-2">You are the host. Start the game when ready.</p>
+              <p className="mt-2">
+                You are the host. Start the game when ready.
+              </p>
             ) : (
               <p className="mt-2">Waiting for the host to start the game.</p>
             )}
             {!canStart && isHost && (
-              <p className="mt-2 text-red-600">Need at least 2 players to start.</p>
+              <p className="mt-2 text-red-600">
+                Need at least 2 players to start.
+              </p>
             )}
           </div>
         </div>
@@ -339,7 +401,6 @@ function LobbyContent() {
     </div>
   );
 }
-
 
 export default function LobbyPage() {
   return (
