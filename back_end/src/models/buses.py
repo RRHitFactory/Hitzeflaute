@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 
-from src.models.data.ldc_repo import LdcRepo
+import dataframely as dy
+
 from src.models.data.light_dc import LightDc
-from src.models.geometry import Point
+from src.models.data.polar_repo import PolarRepo, PrSchema
 from src.models.ids import BusId
 from src.tools.random_choice import random_choice, random_choice_multi
 
@@ -12,36 +13,22 @@ class Bus(LightDc):
     id: BusId
     x: float
     y: float
-    max_lines: int = 5
-    max_assets: int = 5
-
-    def __post_init__(self) -> None:
-        assert self.total_sockets % 2 == 0, f"Total sockets must be even. Got {self.total_sockets}"
-        assert self.max_assets >= 0, f"max_assets must be non-negative. Got {self.max_assets}"
-        assert self.max_lines >= 0, f"max_lines must be non-negative. Got {self.max_lines}"
-
-    @property
-    def total_sockets(self) -> int:
-        return self.max_assets + self.max_lines
-
-    @property
-    def sockets_per_side(self) -> int:
-        return round(self.total_sockets / 2)
-
-    @property
-    def point(self) -> Point:
-        return Point(x=self.x, y=self.y)
 
 
-class BusRepo(LdcRepo[Bus]):
+class BusRepoSchema(PrSchema):
+    x = dy.Float64()
+    y = dy.Float64()
+
+
+class BusPolarRepo(PolarRepo[BusRepoSchema, Bus, BusId]):
     @classmethod
-    def _get_dc_type(cls) -> type[Bus]:
-        return Bus
+    def get_schema(cls) -> tuple[type[BusRepoSchema], type[Bus], type[BusId]]:
+        return BusRepoSchema, Bus, BusId
 
-    # GET
+    # READ
     @property
     def bus_ids(self) -> list[BusId]:
-        return [BusId(x) for x in self.df.index.tolist()]
+        return [BusId(x) for x in self.df["id"].to_list()]
 
 
 class BusFullException(Exception):

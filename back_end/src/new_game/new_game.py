@@ -5,7 +5,7 @@ from itertools import combinations, count
 import numpy as np
 
 from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
-from src.models.buses import Bus, BusRepo, BusSocketManager
+from src.models.buses import Bus, BusPolarRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
@@ -81,23 +81,23 @@ type Topology = set[tuple[BusId, BusId]]
 
 class TransmissionTopologyMaker:
     @staticmethod
-    def _get_bus_combinations(bus_repo: BusRepo) -> list[tuple[BusId, BusId]]:
+    def _get_bus_combinations(bus_repo: BusPolarRepo) -> list[tuple[BusId, BusId]]:
         """
         Generate all unique combinations of bus pairs for transmission lines.
-        :param bus_repo: BusRepo containing the buses in the game.
+        :param bus_repo: BusPolarRepo containing the buses in the game.
         :return: List of tuples containing bus pairs.
         """
         return sorted(combinations(bus_repo.bus_ids, 2))
 
     @staticmethod
-    def make_sequential(bus_repo: BusRepo) -> Topology:
+    def make_sequential(bus_repo: BusPolarRepo) -> Topology:
         """
         Create a linear transmission topology with the specified number of buses
         """
         return {(bus_repo.bus_ids[i], bus_repo.bus_ids[i + 1]) for i in range(len(bus_repo))}
 
     @staticmethod
-    def make_random(bus_repo: BusRepo, n_connections: int) -> Topology:
+    def make_random(bus_repo: BusPolarRepo, n_connections: int) -> Topology:
         """
         Create a random transmission topology with the specified number of buses and connections
         """
@@ -105,10 +105,10 @@ class TransmissionTopologyMaker:
         return {random_choice(possible_connections) for _ in range(n_connections)}
 
     @staticmethod
-    def make_grid(bus_repo: BusRepo, n_buses_per_row: int) -> Topology:
+    def make_grid(bus_repo: BusPolarRepo, n_buses_per_row: int) -> Topology:
         """
         Create a grid transmission topology with the specified number of buses.
-        :param bus_repo: BusRepo containing the buses in the game.
+        :param bus_repo: BusPolarRepo containing the buses in the game.
         :param n_buses_per_row: Number of buses per row in the grid.
         """
         connections: list[tuple[BusId, BusId]] = []
@@ -121,10 +121,10 @@ class TransmissionTopologyMaker:
         return set(connections)
 
     @staticmethod
-    def make_spiderweb(bus_repo: BusRepo, n_buses_per_layer: int) -> Topology:
+    def make_spiderweb(bus_repo: BusPolarRepo, n_buses_per_layer: int) -> Topology:
         """
         Create a spiderweb-like transmission topology.
-        :param bus_repo: BusRepo containing the buses in the game.
+        :param bus_repo: BusPolarRepo containing the buses in the game.
         :param n_buses_per_layer: Number of buses per layer.
         """
         connections: list[tuple[BusId, BusId]] = []
@@ -219,7 +219,7 @@ class GameInitializer:
 
         return PlayerRepo(players)
 
-    def _create_bus_repo(self, player_repo: PlayerRepo) -> BusRepo:
+    def _create_bus_repo(self, player_repo: PlayerRepo) -> BusPolarRepo:
         topology = BusTopologyMaker.make_layered_polygon(
             n_buses=self.settings.n_buses,
             n_buses_per_layer=self.settings.n_buses,
@@ -236,9 +236,9 @@ class GameInitializer:
         for bus_id, top in zip(bus_ids, topos):
             buses.append(Bus(id=bus_id, x=top.x, y=top.y))
 
-        return BusRepo(buses)
+        return BusPolarRepo._make_quick(buses)
 
-    def _create_asset_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> AssetRepo:
+    def _create_asset_repo(self, player_repo: PlayerRepo, bus_repo: BusPolarRepo) -> AssetRepo:
         assets: list[AssetInfo] = []
 
         def asset_id_iterator(start: int = 1) -> Generator[AssetId, None, None]:
@@ -247,7 +247,7 @@ class GameInitializer:
 
         asset_ids = asset_id_iterator(start=1)
 
-        socket_manager = BusSocketManager(starting_sockets={b.id: b.max_assets for b in bus_repo})
+        socket_manager = BusSocketManager(starting_sockets={b: self.settings.max_assets_per_bus for b in bus_repo.bus_ids})
 
         # Create one freezer load for each player
         freezer_power = 50
@@ -297,7 +297,7 @@ class GameInitializer:
 
         return AssetRepo(assets)
 
-    def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> TransmissionRepo:
+    def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusPolarRepo) -> TransmissionRepo:
         topology = TransmissionTopologyMaker.make_spiderweb(bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players)
         self._assert_topology_has_no_islands(buses=bus_repo.bus_ids, topology=topology)
 
@@ -310,7 +310,7 @@ class GameInitializer:
         t_id_iter = transmission_id_iterator(start=1)
 
         # TODO This should be considered during topology construction rather than just checking it at the end
-        socket_manager = BusSocketManager(starting_sockets={bus.id: bus.max_lines for bus in bus_repo})
+        socket_manager = BusSocketManager(starting_sockets={bus: self.settings.max_lines_per_bus for bus in bus_repo.bus_ids})
 
         transmission_maker = TransmissionMaker()
 
@@ -320,7 +320,7 @@ class GameInitializer:
             socket_manager.use_socket(bus1)
             socket_manager.use_socket(bus2)
 
-            line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round= Round(0))
+            line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round=Round(0))
             lines.append(line)
 
         return TransmissionRepo(lines)

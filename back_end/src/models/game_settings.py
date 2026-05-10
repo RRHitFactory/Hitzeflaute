@@ -16,11 +16,12 @@ class GameSettings:
     min_bid_price: float = -1000
     max_bid_price: float = 1000
     initial_funds: int = 10000
-    max_connections_per_bus: int = 7
     probability_of_new_asset: float = 0.2
     probability_of_new_transmission: float = 0.0
     probability_of_new_bus: float = 0.0
     map_area: Shape = field(default_factory=lambda: Shape.make_rectangle(bottom_left=Point(-30, -15), top_right=Point(30, 15)))
+    max_assets_per_bus: int = 5
+    max_lines_per_bus: int = 5
 
     def __post_init__(self) -> None:
         assert self.map_area.shape_type is ShapeType.Rectangle
@@ -36,11 +37,12 @@ class GameSettings:
             "min_bid_price": self.min_bid_price,
             "max_bid_price": self.max_bid_price,
             "initial_funds": self.initial_funds,
-            "max_connections_per_bus": self.max_connections_per_bus,
             "probability_of_new_asset": self.probability_of_new_asset,
             "probability_of_new_transmission": self.probability_of_new_transmission,
             "probability_of_new_bus": self.probability_of_new_bus,
             "map_area": self.map_area.to_simple_dict(),
+            "max_assets_per_bus": self.max_assets_per_bus,
+            "max_lines_per_bus": self.max_lines_per_bus,
         }
 
     @classmethod
@@ -54,9 +56,10 @@ class GameSettings:
             min_bid_price=simple_dict["min_bid_price"],
             max_bid_price=simple_dict["max_bid_price"],
             initial_funds=simple_dict["initial_funds"],
-            max_connections_per_bus=simple_dict["max_connections_per_bus"],
             probability_of_new_asset=simple_dict["probability_of_new_asset"],
             probability_of_new_transmission=simple_dict["probability_of_new_transmission"],
             probability_of_new_bus=simple_dict["probability_of_new_bus"],
             map_area=Shape.from_simple_dict(simple_dict["map_area"]),
+            max_assets_per_bus=simple_dict["max_assets_per_bus"],
+            max_lines_per_bus=simple_dict["max_lines_per_bus"],
         )

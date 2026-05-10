@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from src.models.assets import AssetRepo
-from src.models.buses import BusRepo
+from src.models.buses import BusPolarRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
 from src.models.ids import GameId, PlayerId, TransmissionId
@@ -27,7 +27,7 @@ class MarketResultMaker:
     def make_quick(
         cls,
         player_repo: PlayerRepo | None = None,
-        bus_repo: BusRepo | None = None,
+        bus_repo: BusPolarRepo | None = None,
         asset_repo: AssetRepo | None = None,
         transmission_repo: TransmissionRepo | None = None,
         n_random_congested_transmissions: int = 0,
@@ -62,7 +62,7 @@ class MarketResultMaker:
     def __init__(
         self,
         player_repo: PlayerRepo,
-        bus_repo: BusRepo,
+        bus_repo: BusPolarRepo,
         asset_repo: AssetRepo,
         transmission_repo: TransmissionRepo,
     ) -> None:
@@ -149,7 +149,7 @@ class GameStateMaker:
         self.game_settings: GameSettings | None = None
         self.phase: Phase | None = None
         self.player_repo: PlayerRepo | None = None
-        self.bus_repo: BusRepo | None = None
+        self.bus_repo: BusPolarRepo | None = None
         self.asset_repo: AssetRepo | None = None
         self.transmission_repo: TransmissionRepo | None = None
         self.market_coupling_result: MarketCouplingResult | None = None
@@ -171,7 +171,7 @@ class GameStateMaker:
         self.player_repo = player_repo
         return self
 
-    def add_bus_repo(self, bus_repo: BusRepo) -> Self:
+    def add_bus_repo(self, bus_repo: BusPolarRepo) -> Self:
         self.bus_repo = bus_repo
         return self
 

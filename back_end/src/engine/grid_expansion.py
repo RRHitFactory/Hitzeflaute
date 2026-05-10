@@ -57,10 +57,12 @@ class GridExpansion:
 
     @classmethod
     def _create_asset_socket_manager(cls, game_state: GameState) -> BusSocketManager:
-        available_bus_sockets = {bus.id: bus.max_assets - len(game_state.assets.get_all_assets_at_bus(bus.id)) for bus in game_state.buses}
+        max_assets = game_state.game_settings.max_assets_per_bus
+        available_bus_sockets = {bus.id: max_assets - len(game_state.assets.get_all_assets_at_bus(bus.id)) for bus in game_state.buses}
         return BusSocketManager(starting_sockets=available_bus_sockets)
 
     @classmethod
     def _create_transmission_socket_manager(cls, game_state: GameState) -> BusSocketManager:
-        available_bus_sockets = {bus.id: bus.max_lines - len(game_state.transmission.get_all_at_bus(bus.id)) for bus in game_state.buses}
+        max_lines = game_state.game_settings.max_lines_per_bus
+        available_bus_sockets = {bus.id: max_lines - len(game_state.transmission.get_all_at_bus(bus.id)) for bus in game_state.buses}
         return BusSocketManager(starting_sockets=available_bus_sockets)

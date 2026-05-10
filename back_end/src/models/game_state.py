@@ -4,7 +4,7 @@ from functools import cached_property, lru_cache
 from typing import Self
 
 from src.models.assets import AssetInfo, AssetRepo
-from src.models.buses import BusFullException, BusRepo
+from src.models.buses import BusFullException, BusPolarRepo
 from src.models.game_settings import GameSettings
 from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
@@ -41,7 +41,7 @@ class Phase(IntEnum):
         return Phase(next_index)
 
 
-type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
+type GameStateAttributes = Phase | PlayerRepo | BusPolarRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
 
 
 @dataclass(frozen=True)
@@ -50,7 +50,7 @@ class GameState:
     game_settings: GameSettings
     phase: Phase
     players: PlayerRepo
-    buses: BusRepo
+    buses: BusPolarRepo
     assets: AssetRepo
     transmission: TransmissionRepo
     market_coupling_result: MarketCouplingResult | None
@@ -80,32 +80,35 @@ class GameState:
 
     def add_asset(self, asset: AssetInfo) -> Self:
         bus_id = asset.bus
-        bus = self.buses[bus_id]
         n_assets_at_bus = len(self.assets.get_all_assets_at_bus(bus_id=bus_id))
 
-        if (n_assets_at_bus + 1) > bus.max_assets:
+        max_assets = self.game_settings.max_assets_per_bus
+        if (n_assets_at_bus + 1) > max_assets:
             raise BusFullException(f"Cannot add new asset {asset.id} to bus {bus_id}")
 
         return self.update(self.assets + asset)
 
     def add_transmission_line(self, transmission_info: TransmissionInfo) -> Self:
+        max_lines = self.game_settings.max_lines_per_bus
+
         for bus_id in [transmission_info.bus1, transmission_info.bus2]:
-            bus = self.buses[bus_id]
             n_lines_at_bus = len(self.transmission.get_all_at_bus(bus_id=bus_id))
-            if (n_lines_at_bus + 1) > bus.max_lines:
+            if (n_lines_at_bus + 1) > max_lines:
                 raise BusFullException(f"Cannot add new line {transmission_info.id} to bus {bus_id}")
 
         return self.update(self.transmission + transmission_info)
 
     def get_remaining_space_for_assets_at_bus(self, bus_id: BusId) -> int:
-        bus = self.buses[bus_id]
         n_assets_at_bus = len(self.assets.get_all_assets_at_bus(bus_id=bus_id))
-        return bus.max_assets - n_assets_at_bus
+
+        max_assets = self.game_settings.max_assets_per_bus
+        return max_assets - n_assets_at_bus
 
     def get_remaining_space_for_lines_at_bus(self, bus_id: BusId) -> int:
-        bus = self.buses[bus_id]
+        max_lines = self.game_settings.max_lines_per_bus
+
         n_lines_at_bus = len(self.transmission.get_all_at_bus(bus_id=bus_id))
-        return bus.max_lines - n_lines_at_bus
+        return max_lines - n_lines_at_bus
 
     def start_all_turns(self) -> Self:
         return self.update(self.players.start_all_turns())
@@ -159,7 +162,7 @@ class GameState:
             game_settings=GameSettings.from_simple_dict(simple_dict["game_settings"]),
             phase=un_simplify_type(x=simple_dict["phase"], t=Phase),
             players=PlayerRepo.from_simple_dict(simple_dict["players"]),
-            buses=BusRepo.from_simple_dict(simple_dict["buses"]),
+            buses=BusPolarRepo.from_simple_dict(simple_dict["buses"]),
             assets=AssetRepo.from_simple_dict(simple_dict["assets"]),
             transmission=TransmissionRepo.from_simple_dict(simple_dict["transmission"]),
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),

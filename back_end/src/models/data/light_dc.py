@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Self, TypeVar
+from typing import Self
 
 from src.tools.serialization import FlatDict, SerializableDcFlat, simplify_type, un_simplify_type
 
@@ -20,6 +20,3 @@ class LightDc(SerializableDcFlat):
     def from_simple_dict(cls, simple_dict: FlatDict) -> Self:
         init_dict = {k: un_simplify_type(x=simple_dict[k], t=v.type) for k, v in cls.get_serializable_fields().items()}  # type: ignore
         return cls(**init_dict)  # noqa
-
-
-T_LightDc = TypeVar("T_LightDc", bound=LightDc)

@@ -121,7 +121,7 @@ class SerializableDcFlat:
 
     @classmethod
     def get_serializable_fields(cls) -> dict[str, Field]:
-        return {k: v for k, v in cls.__dataclass_fields__.items() if k != "allow_recursion"}
+        return {k: v for k, v in cls.__dataclass_fields__.items()}
 
 
 @dataclass(frozen=True)

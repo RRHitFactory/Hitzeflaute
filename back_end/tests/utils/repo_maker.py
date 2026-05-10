@@ -3,9 +3,10 @@ from itertools import count
 from typing import Literal, Self, TypeVar
 
 import numpy as np
+from src.models.data.polar_repo import PolarRepo
 
 from src.models.assets import AssetInfo, AssetRepo, AssetType
-from src.models.buses import Bus, BusRepo, BusSocketManager
+from src.models.buses import Bus, BusPolarRepo, BusSocketManager
 from src.models.colors import Color
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
@@ -17,13 +18,13 @@ from src.tools.random_choice import random_choice
 T_RepoMaker = TypeVar("T_RepoMaker", bound="RepoMaker")
 
 
-class RepoMaker[T_LdcRepo: LdcRepo, T_LightDc: LightDc]:
+class RepoMaker[T_Repo: LdcRepo | PolarRepo, T_LightDc: LightDc]:
     def __init__(self, *args, **kwargs) -> None:
         self.dcs: list[T_LightDc] = []
         self.id_counter = count(start=0)
 
     @abstractmethod
-    def _get_repo_type(self) -> type[T_LdcRepo]:
+    def _get_repo_type(self) -> type[T_Repo]:
         pass
 
     @abstractmethod
@@ -44,14 +45,15 @@ class RepoMaker[T_LdcRepo: LdcRepo, T_LightDc: LightDc]:
         new_dcs = [self._make_dc() for _ in range(n)]
         return self + new_dcs
 
-    def make(self) -> T_LdcRepo:
+    def make(self) -> T_Repo:
         self._pre_make_hook()
-        return self._get_repo_type()(dcs=self.dcs)
+        RT = self._get_repo_type()
+        return RT(self.dcs)
 
 
-class BusRepoMaker(RepoMaker[BusRepo, Bus]):
+class BusRepoMaker(RepoMaker[BusPolarRepo, Bus]):
     @classmethod
-    def make_quick(cls, n_buses: int = 10, players: list[PlayerId] | PlayerRepo | None = None) -> BusRepo:
+    def make_quick(cls, n_buses: int = 10, players: list[PlayerId] | PlayerRepo | None = None) -> BusPolarRepo:
         return cls(players=players).add_n_random(n_buses).make()
 
     def __init__(self, players: list[PlayerId] | PlayerRepo | None = None) -> None:
@@ -79,7 +81,7 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         y = -centre_y + abs(half_width - centre_y) * centre_rand()
 
         bus_id = next(self.id_counter)
-        return Bus(id=BusId(bus_id), x=x, y=y, max_assets=20, max_lines=10)
+        return Bus(id=BusId(bus_id), x=x, y=y)
 
     def _get_current_centre(self) -> tuple[float, float]:
         """Get the current centre of the buses."""
@@ -89,8 +91,8 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         y_coords = [bus.y for bus in self.dcs]
         return float(np.mean(x_coords)), float(np.mean(y_coords))
 
-    def _get_repo_type(self) -> type[BusRepo]:
-        return BusRepo
+    def _get_repo_type(self) -> type[BusPolarRepo]:
+        return BusPolarRepo
 
     def _pre_make_hook(self) -> None:
         # Ensure that there is at least one bus per non-npc player
@@ -140,14 +142,14 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
         cls,
         n_normal_assets: int = 3,
         players: list[PlayerId] | PlayerRepo | None = None,
-        bus_repo: BusRepo | None = None,
+        bus_repo: BusPolarRepo | None = None,
     ) -> AssetRepo:
         return cls(players=players, bus_repo=bus_repo).add_n_random(n_normal_assets).add_asset(owner=PlayerId.get_npc(), is_for_sale=True).make()
 
     def __init__(
         self,
         players: list[PlayerId] | PlayerRepo | None = None,
-        bus_repo: BusRepo | None = None,
+        bus_repo: BusPolarRepo | None = None,
     ) -> None:
         super().__init__()
         if players is None:
@@ -159,7 +161,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             bus_repo = BusRepoMaker.make_quick(players=players)
         self.player_ids = players
         self.buses = bus_repo
-        self._socket_manager = BusSocketManager({b.id: b.max_assets for b in bus_repo})
+        self._socket_manager = BusSocketManager({b: 20 for b in bus_repo.bus_ids})
 
         bus_id_iter = iter(self.buses.bus_ids)
         for player in players:
@@ -304,18 +306,18 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         cls,
         n: int | None = None,
         players: list[PlayerId] | PlayerRepo | None = None,
-        buses: BusRepo | None = None,
+        buses: BusPolarRepo | None = None,
     ) -> TransmissionRepo:
         if n is None:
             assert buses is not None, "Either n or buses must be provided"
-            n = min(10, round(sum([b.max_lines for b in buses]) * 0.4))
+            n = min(10, round(5 * len(buses) * 0.4))
         maker = cls(players=players, buses=buses)
         return maker.add_n_random(n).make()
 
     def __init__(
         self,
         players: list[PlayerId] | PlayerRepo | None = None,
-        buses: BusRepo | None = None,
+        buses: BusPolarRepo | None = None,
     ) -> None:
         super().__init__()
         if players is None:
@@ -328,7 +330,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
 
         self.player_ids = players
         self.buses = buses
-        self._socket_manager = BusSocketManager({b.id: b.max_lines for b in buses})
+        self._socket_manager = BusSocketManager({b: 10 for b in buses.bus_ids})
 
     def __add__(self, dc: TransmissionInfo | list[TransmissionInfo]) -> Self:
         if isinstance(dc, list):

@@ -208,10 +208,15 @@ class Engine:
         game_state: GameState,
         msg: FreezerMigrationRequest,
     ) -> tuple[GameState, list[Message]]:
+        max_asset_sockets = game_state.game_settings.max_assets_per_bus
+
         freezer_current_bus = game_state.assets[msg.asset_id].bus
         is_freezer = game_state.assets[msg.asset_id].is_freezer
         is_losing_player = Referee.get_losing_player(gs=game_state) == msg.player_id
-        bus_has_sockets = game_state.buses[msg.bus].max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
+
+        used_sockets = len(game_state.assets.get_all_assets_at_bus(msg.bus))
+        bus_has_sockets = max_asset_sockets > used_sockets
+
         freezer_is_already_there = freezer_current_bus == msg.bus
         is_asset_owner = game_state.assets[msg.asset_id].owner_player == msg.player_id
         if not is_losing_player:

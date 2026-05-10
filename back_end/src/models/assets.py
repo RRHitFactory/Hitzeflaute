@@ -3,6 +3,9 @@ from enum import IntEnum
 from functools import cached_property
 from types import MappingProxyType
 
+import dataframely as dy
+import polars as pl
+from back_end.src.models.data.polar_repo import PolarRepo, PrSchema
 from randcraft import make_dirac, make_uniform
 from randcraft.random_variable import RandomVariable
 
@@ -60,15 +63,155 @@ class AssetInfo(LightDc):
         return 1 if self.asset_type == AssetType.GENERATOR else -1
 
 
+class AssetRepoSchema(PrSchema):
+    owner_player = dy.UInt8()
+    asset_type = dy.String()
+    bus = dy.UInt8()
+    power_expected = dy.Float64(min=0.0)
+    power_std = dy.Float64(min=0.0)
+    is_for_sale = dy.Bool()
+    minimum_acquisition_price = dy.Float64(min=0.0)
+    fixed_operating_cost = dy.Float64(min=0.0)
+    marginal_cost = dy.Float64(min=0.0)
+    bid_price = dy.Float64()
+    is_freezer = dy.Bool()
+    health = dy.UInt8()
+    is_active = dy.Bool()
+    birthday = dy.UInt8()
+    technology = dy.String()
+
+    @dy.rule()
+    def valid_asset_type(self) -> pl.Expr:
+        return pl.col("asset_type").is_in(["GENERATOR", "LOAD"])
+
+
+is_generator = pl.col("asset_type") == "GENERATOR"
+is_load = pl.col("asset_type") == "LOAD"
+is_active = pl.col("is_active")
+is_freezer = pl.col("is_freezer")
+
+
+class AssetPolarRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
+    @classmethod
+    def get_schema(cls) -> tuple[type[AssetRepoSchema], type[AssetInfo], type[AssetId]]:
+        return AssetRepoSchema, AssetInfo, AssetId
+
+    # READ
+    @property
+    def bus_ids(self) -> list[BusId]:
+        return [BusId(x) for x in self.df["id"].to_list()]
+
+    @property
+    def only_active(self) -> "AssetPolarRepo":
+        return self._filter(is_active)
+
+    @property
+    def only_inactive(self) -> "AssetPolarRepo":
+        return self._filter(~is_active)
+
+    @property
+    def only_freezers(self) -> "AssetPolarRepo":
+        return self._filter(is_freezer)
+
+    @property
+    def not_freezers(self) -> "AssetPolarRepo":
+        return self._filter(~is_freezer)
+
+    @property
+    def only_loads(self) -> "AssetPolarRepo":
+        return self._filter(is_load)
+
+    @property
+    def only_generators(self) -> "AssetPolarRepo":
+        return self._filter(is_generator)
+
+    def get_all_assets_at_bus(self, bus_id: BusId, only_active: bool = False) -> "AssetPolarRepo":
+        filters = [pl.col("bus") == bus_id]
+        if only_active:
+            filters.append(is_active)
+        return self._filter(filters)
+
+    def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> "AssetPolarRepo":
+        filters = [pl.col("owner_player") == int(player_id)]
+        if only_active:
+            filters.append(is_active)
+        return self._filter(filters)
+
+    def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
+        filters = [pl.col("owner_player") == int(player_id), is_freezer]
+        assets = self._filter(filters)
+        assert len(assets) == 1
+        return assets[0]
+
+    def get_remaining_ice_creams(self, player_id: PlayerId) -> int:
+        return self.get_freezer_for_player(player_id).health
+
+    def get_total_generation_capacity(self) -> float:
+        return self.df.filter(is_generator, is_active)["power_expected"].sum()
+
+    def get_total_consumption_capacity(self) -> float:
+        return self.df.filter(is_load, is_active)["power_expected"].sum()
+
+    # UPDATE
+    def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> "AssetPolarRepo":
+        return self.update_ikv(id=asset_id, key="owner_player", value=new_owner)
+
+    def update_bids(self, bids: MappingProxyType[AssetId, float]) -> "AssetPolarRepo":
+        df = self.df
+        bid_df = pl.DataFrame({"id": list(bids.keys()), "new_bid": list(bids.values())})
+        updated_df = df.join(bid_df, on="id", how="left").with_columns(pl.coalesce("new_bid", "bid").alias("bid")).drop("new_bid")
+        return self.update_frame(updated_df)
+
+    def migrate_asset(self, asset_id: AssetId, new_bus_id: BusId) -> "AssetPolarRepo":
+        return self.update_ikv(id=asset_id, key="bus", value=new_bus_id)
+
+    def _decrease_health(self, asset_id: AssetId) -> "AssetPolarRepo":
+        current_health: int = self.df.filter(pl.col("id") == int(asset_id))["health"].item()
+        if current_health > 1:
+            return self.update_ik_expr(id=asset_id, key="health", expr=pl.col("health") - 1)
+        else:
+            df = self.df
+            
+            df.loc[asset_id, "health"] = 0
+            df.loc[asset_id, "is_active"] = False
+            return self.update_frame(df)
+
+    def melt_ice_cream(self, asset_id: AssetId) -> "AssetRepo":
+        assert self.df.loc[asset_id, "is_freezer"], "Only freezer assets can melt ice cream"
+        return self._decrease_health(asset_id)
+
+    def wear_asset(self, asset_id: AssetId) -> "AssetRepo":
+        assert not self.df.loc[asset_id, "is_freezer"], "Only non-freezer assets can wear out"
+        return self._decrease_health(asset_id)
+
+    def batch_deactivate(self, asset_ids: list[AssetId]) -> "AssetRepo":
+        df = self.df
+        df.loc[asset_ids, "is_active"] = False
+        return self.update_frame(df)
+
+    def update_activations(self, activations: MappingProxyType[AssetId, bool]) -> "AssetRepo":
+        df = self.df
+        actives = [k for k, v in activations.items() if v]
+        inactives = [k for k, v in activations.items() if not v]
+        df.loc[actives, "is_active"] = True
+        df.loc[inactives, "is_active"] = False
+        return self.update_frame(df)
+
+    # DELETE
+    def delete_for_player(self, player_id: PlayerId) -> "AssetRepo":
+        return self.drop_items({"owner_player": player_id})
+
+
 class AssetRepo(LdcRepo[AssetInfo]):
     @classmethod
     def _get_dc_type(cls) -> type[AssetInfo]:
         return AssetInfo
 
     # GET
+    # READ
     @property
-    def asset_ids(self) -> list[AssetId]:
-        return [AssetId(x) for x in self.df.index.tolist()]
+    def bus_ids(self) -> list[BusId]:
+        return [BusId(x) for x in self.df["id"].to_list()]
 
     @cached_property
     def only_active(self) -> "AssetRepo":

@@ -1,5 +1,5 @@
 from src.models.assets import AssetInfo, AssetRepo
-from src.models.buses import Bus, BusRepo
+from src.models.buses import Bus, BusPolarRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
 from src.models.ids import GameId, PlayerId
@@ -30,7 +30,7 @@ class TestGameInitializer(BaseTest):
         self.assertEqual(n_playing, 1)  # Only one player should have the turn
 
         self.assertIsInstance(game_state.assets, AssetRepo)
-        self.assertIsInstance(game_state.buses, BusRepo)
+        self.assertIsInstance(game_state.buses, BusPolarRepo)
         self.assertIsInstance(game_state.transmission, TransmissionRepo)
 
         # check that settings are applied correctly
