@@ -5,7 +5,7 @@ from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
-from src.models.message import Ack, ActivationUpdateRequest, AssetWornMessage, BuyRequest, BuyResponse, IceCreamMeltedMessage, PlayerNotInTurn, PlayerToGameMessage, TransmissionWornMessage
+from src.models.message import Ack, ActivationUpdateRequest, AssetWornMessage, BuyRequest, BuyResponse, IceCreamMeltedMessage, FreezerMigrationRequest, PlayerNotInTurn, PlayerToGameMessage, TransmissionWornMessage
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
 from tests.base_test import BaseTest
@@ -119,7 +119,7 @@ class TestEngine(BaseTest):
 
     def test_operate_line_messages(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()
-        bus_repo = BusRepoMaker.make_quick(n_npc_buses=5)
+        bus_repo = BusRepoMaker.make_quick(n_buses=5)
         transmission_repo = TransmissionRepoMaker().make_quick(n=3, players=player_repo, buses=bus_repo)
 
         player = player_repo.human_players[0]
@@ -158,7 +158,7 @@ class TestEngine(BaseTest):
 
     def test_operate_asset_messages(self) -> None:
         player_repo = PlayerRepoMaker.make_quick()
-        bus_repo = BusRepoMaker.make_quick(n_npc_buses=5, players=player_repo)
+        bus_repo = BusRepoMaker.make_quick(n_buses=5, players=player_repo)
         asset_repo = AssetRepoMaker.make_quick(players=player_repo, bus_repo=bus_repo)
 
         player = player_repo.human_players[0]
@@ -189,11 +189,75 @@ class TestEngine(BaseTest):
         game_state = game_state.commit_pending_state()
         self.assertEqual(game_state.assets[my_generator.id].is_active, True)
 
+    def test_migrate_freezer(self):
+        game_maker = GameStateMaker()
+        player_repo = PlayerRepoMaker.make_quick(3)
+        buses = BusRepoMaker.make_quick(n_buses=0, players=player_repo)
+        # fill all buses' sockets
+        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=20*3-3-1)
+        # one player should be losing
+        losing_player = player_repo.human_players[0]
+        freezer_losing_player = assets.get_freezer_for_player(losing_player.id)
+        assets = assets.melt_ice_cream(freezer_losing_player.id)
+        # remake bus repo with a bus with free sockets
+        buses = BusRepoMaker.make_quick(n_buses=4, players=player_repo)
+
+        game_state = game_maker.add_player_repo(player_repo).add_bus_repo(buses).add_asset_repo(assets).make()
+
+        freezer_current_bus = freezer_losing_player.bus
+        other_asset = assets.get_all_for_player(losing_player.id).not_freezers.as_objs()[0]
+        other_player = player_repo.human_players[1]
+        freezer_other_player = assets.get_freezer_for_player(other_player.id)
+        bus_with_free_sockets = buses.bus_ids[-1]
+        full_bus = buses.bus_ids[0] if buses.bus_ids[0] != freezer_current_bus else buses.bus_ids[1]
+
+        request_non_losing_player = FreezerMigrationRequest(game_id=game_state.game_id, player_id=other_player.id, asset_id=freezer_other_player.id, bus=bus_with_free_sockets)
+        request_wrong_asset_type = FreezerMigrationRequest(game_id=game_state.game_id, player_id=losing_player.id, asset_id=other_asset.id, bus=bus_with_free_sockets)
+        request_wrong_freezer = FreezerMigrationRequest(game_id=game_state.game_id, player_id=losing_player.id, asset_id=freezer_other_player.id, bus=bus_with_free_sockets)
+        request_full_bus = FreezerMigrationRequest(game_id=game_state.game_id, player_id=losing_player.id, asset_id=freezer_losing_player.id, bus=full_bus)
+        request_migrate_to_current_bus = FreezerMigrationRequest(game_id=game_state.game_id, player_id=losing_player.id, asset_id=freezer_losing_player.id, bus=freezer_current_bus)
+        correct_request = FreezerMigrationRequest(game_id=game_state.game_id, player_id=losing_player.id, asset_id=freezer_losing_player.id, bus=bus_with_free_sockets)
+
+        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_non_losing_player)
+        self.assertFalse(responses[0].success)
+        self.assertIn('Only the losing player', responses[0].message)
+
+        game_state, responses = Engine.handle_freezer_migration_message(
+            game_state=game_state, msg=request_wrong_asset_type
+        )
+        self.assertFalse(responses[0].success)
+        self.assertIn("not a freezer", responses[0].message)
+
+        game_state, responses = Engine.handle_freezer_migration_message(
+            game_state=game_state, msg=request_wrong_freezer
+        )
+        self.assertFalse(responses[0].success)
+        self.assertIn("your own freezer", responses[0].message)
+
+        game_state, responses = Engine.handle_freezer_migration_message(
+            game_state=game_state, msg=request_full_bus
+        )
+        self.assertFalse(responses[0].success)
+        self.assertIn("does not have free sockets.", responses[0].message)
+
+        game_state, responses = Engine.handle_freezer_migration_message(
+            game_state=game_state, msg=request_migrate_to_current_bus
+        )
+        self.assertFalse(responses[0].success)
+        self.assertIn("already at the bus", responses[0].message)
+
+        game_state, responses = Engine.handle_freezer_migration_message(
+            game_state=game_state, msg=correct_request
+        )
+        self.assertTrue(responses[0].success, responses[0].message)
+        self.assertTrue("Successfully migrated freezer", responses[0].message)
+        self.assertEqual(game_state.assets[correct_request.asset_id].bus, correct_request.bus)
+
     def test_post_clearing_book_keeping(self):
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker.make_quick(3)
-        buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
+        buses = BusRepoMaker.make_quick(n_buses=3, players=player_repo)
         assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=5)
         transmission = TransmissionRepoMaker.make_quick(buses=buses, players=player_repo, n=5)
 

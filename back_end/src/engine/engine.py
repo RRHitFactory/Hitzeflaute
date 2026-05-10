@@ -17,6 +17,7 @@ from src.models.message import (
     ClearAuction,
     ConcludePhase,
     EndTurn,
+    FreezerMigrationRequest,
     Message,
     PlayerNotInTurn,
     PlayerToGameMessage,
@@ -50,11 +51,13 @@ class Engine:
             case UpdateBatchBidsRequest():
                 return cls.handle_update_batch_bid_message(game_state=game_state, msg=msg)
             case ActivationUpdateRequest():
-                return cls.handle_activation_update_message(game_state, msg)
+                return cls.handle_activation_update_message(game_state=game_state, msg=msg)
             case BuyRequest() if isinstance(msg.purchase_id, AssetId):
-                return cls.handle_buy_asset_message(game_state, msg)  # type: ignore
+                return cls.handle_buy_asset_message(game_state=game_state, msg=msg)  # type: ignore
             case BuyRequest() if isinstance(msg.purchase_id, TransmissionId):
-                return cls.handle_buy_transmission_message(game_state, msg)  # type: ignore
+                return cls.handle_buy_transmission_message(game_state=game_state, msg=msg)  # type: ignore
+            case FreezerMigrationRequest():
+                return cls.handle_freezer_migration_message(game_state=game_state, msg=msg)
             case EndTurn():
                 return cls.handle_end_turn_message(game_state=game_state, msg=msg)
             case _:
@@ -200,6 +203,33 @@ class Engine:
         return new_game_state, [response]
 
     @classmethod
+    def handle_freezer_migration_message(
+        cls,
+        game_state: GameState,
+        msg: FreezerMigrationRequest,
+    ) -> tuple[GameState, list[Message]]:
+        freezer_current_bus = game_state.assets[msg.asset_id].bus
+        is_freezer = game_state.assets[msg.asset_id].is_freezer
+        is_losing_player = Referee.get_losing_player(gs=game_state) == msg.player_id
+        bus_has_sockets = game_state.buses[msg.bus].max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
+        freezer_is_already_there = freezer_current_bus == msg.bus
+        is_asset_owner = game_state.assets[msg.asset_id].owner_player == msg.player_id
+        if not is_losing_player:
+            return game_state, [msg.make_response(success=False, message="Only the losing player can migrate their ice cream to the freezer.")]
+        if not is_freezer:
+            return game_state, [msg.make_response(success=False, message="The asset you are trying to move is not a freezer.")]
+        elif freezer_is_already_there:
+            return game_state, [msg.make_response(success=False, message="The freezer is already at the bus you are trying to move to.")]
+        elif not bus_has_sockets:
+            return game_state, [msg.make_response(success=False, message="The bus you are trying to move to does not have free sockets.")]
+        elif not is_asset_owner:
+            return game_state, [msg.make_response(success=False, message="You can only move your own freezer.")]
+        else:
+            new_assets = game_state.assets.migrate_asset(asset_id=msg.asset_id, new_bus_id=msg.bus)
+            new_game_state = game_state.update(new_assets)
+            return new_game_state, [msg.make_response(success=True, message=f"Successfully migrated freezer {msg.asset_id} from bus {freezer_current_bus} to bus {msg.bus}.")]
+
+    @classmethod
     def handle_end_turn_message(
         cls,
         game_state: GameState,
@@ -220,7 +250,7 @@ class Engine:
 
     @classmethod
     def _run_post_clearing_book_keeping(cls, game_state: GameState, market_result: MarketCouplingResult) -> tuple[GameState, list[Message]]:
-        game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(game_state=game_state, market_coupling_result=market_result)
+        game_state, msgs_auction_cashflows = cls._settle_player_cashflows(game_state=game_state, market_coupling_result=market_result)
         game_state, ice_cream_msgs = Referee.melt_ice_creams(game_state)
         game_state, transmission_msgs = Referee.wear_congested_transmission(game_state)
         game_state, asset_msgs = Referee.wear_non_freezer_assets(game_state)
@@ -232,7 +262,7 @@ class Engine:
         return game_state, msgs  # type: ignore
 
     @staticmethod
-    def _update_game_state_with_market_coupling_result(
+    def _settle_player_cashflows(
         game_state: GameState,
         market_coupling_result: MarketCouplingResult,
     ) -> tuple[GameState, list[AuctionClearedMessage]]:

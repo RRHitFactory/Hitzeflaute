@@ -57,6 +57,10 @@ class PlayerRepo(LdcRepo[Player]):
     def only_alive(self) -> Self:
         return self._filter({"still_alive": True})
 
+    @property
+    def only_human(self) -> Self:
+        return self._filter(condition= lambda players: players.id != PlayerId.get_npc())
+
     def get_player(self, player_id: PlayerId) -> Player:
         return self[player_id]
 

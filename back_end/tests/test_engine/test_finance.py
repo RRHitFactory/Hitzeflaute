@@ -15,7 +15,7 @@ class TestFinanceCalculator(BaseTest):
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker.make_quick(3)
-        buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
+        buses = BusRepoMaker.make_quick(n_buses=3, players=player_repo)
         asset_maker = AssetRepoMaker(players=player_repo, bus_repo=buses)
 
         for _ in range(6):
@@ -55,8 +55,9 @@ class TestFinanceCalculator(BaseTest):
 
         for transmission in transmission_repo:
             price_spread = bus_prices[transmission.bus2] - bus_prices[transmission.bus1]
-            total_cashflow = cashflow.filter(pl.col("transmission_id") == transmission.id, pl.col("cat") == "congestion")["cashflow"].sum()
-            self.assertAlmostEqual(total_cashflow, transmission_flows[transmission.id] * price_spread, places=1)
+            total_cashflow = cashflow.filter(pl.col("transmission_id") == transmission.id)["cashflow"].sum()
+            expected_cashflow = transmission_flows[transmission.id] * price_spread - transmission.fixed_operating_cost
+            self.assertAlmostEqual(total_cashflow, expected_cashflow, places=1)
 
     def test_validate_bid_based_on_expected_loads_cost(self):
         game_state, _ = self.create_game_state_and_market_coupling_result()

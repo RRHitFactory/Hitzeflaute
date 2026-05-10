@@ -132,6 +132,11 @@ class AssetRepo(LdcRepo[AssetInfo]):
         df.loc[asset_ids, "bid_price"] = prices
         return self.update_frame(df)
 
+    def migrate_asset(self, asset_id: AssetId, new_bus_id: BusId) -> "AssetRepo":
+        df = self.df
+        df.loc[asset_id, "bus"] = simplify_type(new_bus_id)
+        return self.update_frame(df)
+
     def _decrease_health(self, asset_id: AssetId) -> "AssetRepo":
         if self.df.loc[asset_id, "health"] > 1:  # type: ignore
             df = self.df
