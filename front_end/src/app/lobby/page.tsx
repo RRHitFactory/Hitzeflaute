@@ -22,10 +22,12 @@ function LobbyContent() {
   const { lobbyInfo, loading: infoLoading, error: infoError, refresh: refreshLobbyInfo } = useLobbyInfo(gameId);
 
   // WebSocket connection for real-time updates - only connect when player is ready
-  const wsPlayerId = playerId ? parseInt(playerId) : -1;
+  const parsedPlayerId = playerId ? parseInt(playerId) : -1;
+  const isHost = parsedPlayerId == 0;
+
   const { client: wsClient, connectionState, isConnected } = useLobbyWebSocket(
     isPlayerReady && gameId ? parseInt(gameId) : -1,
-    isPlayerReady ? wsPlayerId : -1,
+    isPlayerReady ? parsedPlayerId : -1,
     {
       onGameStarted: (newGameId: number) => {
         console.log("Game started! Redirecting to game page with gameId:", newGameId);
@@ -124,9 +126,6 @@ function LobbyContent() {
   const handleStartGame = async () => {
     try {
       const result = await startLobby(gameId);
-      const redirectId = result.game_id || gameId;
-      // Don't redirect immediately - wait for WebSocket broadcast
-      // The WebSocket will trigger the redirect for all players simultaneously
       console.log("Game started, waiting for WebSocket broadcast to all players...");
     } catch (err) {
       console.error("Failed to start game:", err);
@@ -136,7 +135,6 @@ function LobbyContent() {
 
   // Get players from lobby info
   const players = lobbyInfo?.players || [];
-  const isHost = lobbyInfo?.host_player_id === playerId;
   const canStart = isHost && (lobbyInfo?.player_count || 0) >= 2;
 
   // Show redirecting message when game is starting
@@ -208,7 +206,7 @@ function LobbyContent() {
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-gray-300 rounded-lg shadow-lg p-8 max-w-2xl w-full mx-auto">
           <h2 className="text-2xl font-bold text-black mb-6 text-center">
-            Lobby {gameId}
+            GameId: {gameId}
           </h2>
 
           {showStartingMessage && (
@@ -238,7 +236,7 @@ function LobbyContent() {
           )}
 
           {/* WebSocket Connection Status */}
-          {wsPlayerId !== -1 && (
+          {parsedPlayerId !== -1 && (
             <div className="mb-4 flex items-center justify-center gap-2">
               <div
                 className={`w-3 h-3 rounded-full ${

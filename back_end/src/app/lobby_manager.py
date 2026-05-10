@@ -1,6 +1,6 @@
 import threading
 
-from back_end.src.app.game_manager import GameManager
+from src.app.game_manager import GameManager
 from src.models.ids import GameId, PlayerId
 from src.models.server_models import Lobby, LobbyPlayer
 
@@ -22,11 +22,8 @@ class LobbyManager:
 
     def create_lobby(self) -> GameId:
         """Create a new lobby and return its game ID"""
-        player_id = self.get_next_player_id()
         game_id = self._game_manager.game_repo.reserve_game_id()
-
-        lobby = Lobby(game_id=game_id, host_player_id=player_id)
-
+        lobby = Lobby(game_id=game_id)
         self._lobbies[game_id] = lobby
         return game_id
 
@@ -36,7 +33,7 @@ class LobbyManager:
 
     def join_lobby(self, game_id: GameId, player_name: str) -> LobbyPlayer | None:
         """Join an existing lobby"""
-        player_id = self.get_next_player_id()
+        
         lobby = self.get_lobby(game_id)
         if not lobby:
             return None
@@ -44,7 +41,10 @@ class LobbyManager:
             return None
         if lobby.is_started:
             return None
+        if player_name.lower() in [p.name.lower() for p in lobby.players.values()]:
+            return None  # Player name already
 
+        player_id = self.get_next_player_id()
         # Store player name
         self._player_name_map[player_id] = player_name
 
@@ -79,8 +79,6 @@ class LobbyManager:
         lobby = self.get_lobby(game_id)
         if not lobby:
             return False
-        if len(lobby.players) < 2:
-            return False  # Need at least 2 players
 
         lobby.is_started = True
         return True

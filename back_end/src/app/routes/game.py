@@ -2,10 +2,10 @@ import json
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 
-from back_end.src.app.game_manager import GameManager
-from back_end.src.app.game_repo.base import BaseGameStateRepo
-from back_end.src.app.routes.logging import log_exception_with_traceback
-from back_end.src.app.ws_manager import WebSocketConnectionManager
+from src.app.game_manager import GameManager
+from src.app.game_repo.base import BaseGameStateRepo
+from src.app.routes.logging import log_exception_with_traceback
+from src.app.ws_manager import WebSocketConnectionManager
 from src.models.ids import GameId, PlayerId
 from src.models.message import (
     GameUpdate,

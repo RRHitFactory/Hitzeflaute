@@ -20,4 +20,4 @@ if __name__ == "__main__":
     print("WebSocket endpoint: ws://127.0.0.1:8000/ws/{game_id}/{player_id}")
     print("\nPress Ctrl+C to stop the server")
 
-    run_server(host="127.0.0.1", port=8000, reload=True)
+    run_server(host="0.0.0.0", port=8000, reload=True)

@@ -20,6 +20,24 @@ class TestGameAndLobbyManager(BaseTest):
         if self.scratch_dir.exists():
             shutil.rmtree(self.scratch_dir)
 
+    def test_check_first_player_is_host(self) -> None:
+        game_repo = FileGameStateRepo(cache_dir=test_dir / "scratch")
+        game_manager = GameManager(game_repo=game_repo, game_engine=Engine())
+        lobby_manager = LobbyManager(game_manager=game_manager)
+        game_id = lobby_manager.create_lobby()
+        first_player = lobby_manager.join_lobby(game_id=game_id, player_name="Sam")
+        assert first_player is not None
+        doubled_player = lobby_manager.join_lobby(game_id=game_id, player_name="sam")
+        assert doubled_player is None
+        second_player = lobby_manager.join_lobby(game_id=game_id, player_name="Cindy")
+        assert second_player is not None
+
+        lobby = lobby_manager.get_lobby(game_id=game_id)
+        assert lobby is not None
+        self.assertEqual(lobby.host_player_id, first_player.player_id)
+        self.assertNotEqual(first_player.player_id, second_player.player_id)
+
+
     def test_unique_game_ids_are_assigned(self) -> None:
         game_repo = FileGameStateRepo(cache_dir=test_dir / "scratch")
         game_manager = GameManager(game_repo=game_repo, game_engine=Engine())
@@ -28,11 +46,11 @@ class TestGameAndLobbyManager(BaseTest):
         game_id = game_manager.new_game(
             game_repo=game_repo, player_names=["Robbie", "Roman"]
         )
-        lobby_game_id = lobby_manager.create_lobby(host_name="Cindy")
+        lobby_game_id = lobby_manager.create_lobby()
         game_id_2 = game_manager.new_game(
             game_repo=game_repo, player_names=["Robbie", "Roman"]
         )
-        lobby_game_id_2 = lobby_manager.create_lobby(host_name="Cindy")
+        lobby_game_id_2 = lobby_manager.create_lobby()
         self.assertEqual(
             len(set([game_id, lobby_game_id, game_id_2, lobby_game_id_2])), 4
         )

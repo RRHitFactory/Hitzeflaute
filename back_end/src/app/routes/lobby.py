@@ -2,8 +2,8 @@ import json
 
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 
-from back_end.src.app.lobby_ws_manager import LobbyWebSocketConnectionManager
-from back_end.src.app.routes.logging import log_exception_with_traceback
+from src.app.lobby_ws_manager import LobbyWebSocketConnectionManager
+from src.app.routes.logging import log_exception_with_traceback
 from src.app.game_manager import GameManager
 from src.app.lobby_manager import LobbyManager
 from src.models.ids import GameId, PlayerId
@@ -145,6 +145,8 @@ def get_lobby_rest_router(
 
             return LobbyInfoResponse(**lobby.to_dict())
         except Exception as e:
+            if isinstance(e, HTTPException):
+                raise e
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"Failed to get lobby info: {str(e)}",

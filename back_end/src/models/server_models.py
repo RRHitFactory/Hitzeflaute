@@ -205,14 +205,15 @@ class LobbyPlayer:
 
 @dataclass
 class Lobby:
-    """Represents a game lobby"""
-
     game_id: GameId
-    host_player_id: PlayerId
     players: dict[PlayerId, LobbyPlayer] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     max_players: int = 5
     is_started: bool = False
+
+    @property
+    def host_player_id(self) -> PlayerId:
+        return PlayerId(0)
 
     def add_player(self, player_id: PlayerId, name: str) -> LobbyPlayer:
         """Add a player to the lobby"""
@@ -238,7 +239,6 @@ class Lobby:
         """Convert lobby to dictionary"""
         return {
             "game_id": int(self.game_id),
-            "host_player_id": int(self.host_player_id),
             "players": self.get_player_list(),
             "created_at": self.created_at.isoformat(),
             "max_players": self.max_players,

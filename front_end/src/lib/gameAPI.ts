@@ -5,9 +5,9 @@
 
 import React from "react";
 
-const API_BASE_URL = typeof window !== "undefined"
-  ? `http://${window.location.hostname}:8000/api`
-  : "http://localhost:8000/api";
+// Replace with your dev machine's local IP (e.g., "192.168.68.116")
+const BACKEND_HOST = typeof window !== "undefined" ? "192.168.68.116" : "localhost";
+const API_BASE_URL = `http://${BACKEND_HOST}:8000/api`;
 
 // Error types
 export class GameAPIError extends Error {
