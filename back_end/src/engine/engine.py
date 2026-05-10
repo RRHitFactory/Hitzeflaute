@@ -250,7 +250,7 @@ class Engine:
 
     @classmethod
     def _run_post_clearing_book_keeping(cls, game_state: GameState, market_result: MarketCouplingResult) -> tuple[GameState, list[Message]]:
-        game_state, msgs_auction_cashflows = cls._update_game_state_with_market_coupling_result(game_state=game_state, market_coupling_result=market_result)
+        game_state, msgs_auction_cashflows = cls._settle_player_cashflows(game_state=game_state, market_coupling_result=market_result)
         game_state, ice_cream_msgs = Referee.melt_ice_creams(game_state)
         game_state, transmission_msgs = Referee.wear_congested_transmission(game_state)
         game_state, asset_msgs = Referee.wear_non_freezer_assets(game_state)
@@ -262,7 +262,7 @@ class Engine:
         return game_state, msgs  # type: ignore
 
     @staticmethod
-    def _update_game_state_with_market_coupling_result(
+    def _settle_player_cashflows(
         game_state: GameState,
         market_coupling_result: MarketCouplingResult,
     ) -> tuple[GameState, list[AuctionClearedMessage]]:
