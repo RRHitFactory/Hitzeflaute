@@ -6,19 +6,22 @@ with WebSocket connections for real-time message communication.
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass, field
+from datetime import datetime
 from functools import cached_property
 from types import MappingProxyType
 
 from pydantic import BaseModel
 
-from dataclasses import dataclass, field
-from datetime import datetime
-
-from src.models.ids import GameId, PlayerId, TransmissionId
-
-
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
-from src.models.message import ActivationUpdateRequest, BuyRequest, EndTurn, GameToPlayerMessage, PlayerToGameMessage, UpdateBatchBidsRequest
+from src.models.message import (
+    ActivationUpdateRequest,
+    BuyRequest,
+    EndTurn,
+    GameToPlayerMessage,
+    PlayerToGameMessage,
+    UpdateBatchBidsRequest,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -65,17 +68,29 @@ class WebsocketMessage(BaseModel):
             ActivationUpdateRequest: self._to_activation_update_request,
             EndTurn: self._to_end_turn,
         }
-        name_func_mapping = {c.get_camel_case_name(): func for c, func in mapping.items()}
+        name_func_mapping = {
+            c.get_camel_case_name(): func for c, func in mapping.items()
+        }
         func = name_func_mapping.get(self.message_type)
         if func is None:
-            raise ValueError(f"Unknown message type: {self.message_type}. Valid names are {list(name_func_mapping.keys())}")
+            raise ValueError(
+                f"Unknown message type: {self.message_type}. Valid names are {list(name_func_mapping.keys())}"
+            )
         return func()
 
     def _to_batch_bid_request(self) -> UpdateBatchBidsRequest:
-        return UpdateBatchBidsRequest(game_id=self.game_id_obj, player_id=self.player_id_obj, bids=MappingProxyType({AssetId(int(k)): v for k, v in self.data["bids"].items()}))
+        return UpdateBatchBidsRequest(
+            game_id=self.game_id_obj,
+            player_id=self.player_id_obj,
+            bids=MappingProxyType(
+                {AssetId(int(k)): v for k, v in self.data["bids"].items()}
+            ),
+        )
 
     def _to_buy_request(self) -> BuyRequest[AssetId | TransmissionId]:
-        id_type = {"asset": AssetId, "transmission": TransmissionId}[self.data["purchase_type"]]
+        id_type = {"asset": AssetId, "transmission": TransmissionId}[
+            self.data["purchase_type"]
+        ]
         return BuyRequest(
             game_id=self.game_id_obj,
             player_id=self.player_id_obj,
@@ -86,8 +101,18 @@ class WebsocketMessage(BaseModel):
         return ActivationUpdateRequest(
             game_id=self.game_id_obj,
             player_id=self.player_id_obj,
-            asset_activation=MappingProxyType({AssetId(int(k)): bool(v) for k, v in self.data["asset_activation"].items()}),
-            line_activation=MappingProxyType({TransmissionId(int(k)): bool(v) for k, v in self.data["line_activation"].items()}),
+            asset_activation=MappingProxyType(
+                {
+                    AssetId(int(k)): bool(v)
+                    for k, v in self.data["asset_activation"].items()
+                }
+            ),
+            line_activation=MappingProxyType(
+                {
+                    TransmissionId(int(k)): bool(v)
+                    for k, v in self.data["line_activation"].items()
+                }
+            ),
         )
 
     def _to_end_turn(self) -> EndTurn:
@@ -98,15 +123,27 @@ class WebsocketMessage(BaseModel):
 
     @classmethod
     def from_py_message(cls, msg: GameToPlayerMessage) -> "WebsocketMessage":
-        return cls(game_id=msg.game_id, player_id=msg.player_id, message_type=msg.__class__.__name__, data=msg.to_simple_dict())
+        return cls(
+            game_id=msg.game_id,
+            player_id=msg.player_id,
+            message_type=msg.__class__.__name__,
+            data=msg.to_simple_dict(),
+        )
 
     @classmethod
     def from_string(cls, data: str) -> "WebsocketMessage":
         return cls.model_validate_json(data)
 
     @classmethod
-    def make_error(cls, game_id: GameId, player_id: PlayerId, error_message: str) -> "WebsocketMessage":
-        return cls(game_id=game_id.as_int(), player_id=player_id.as_int(), message_type="error", data={"err": error_message})
+    def make_error(
+        cls, game_id: GameId, player_id: PlayerId, error_message: str
+    ) -> "WebsocketMessage":
+        return cls(
+            game_id=game_id.as_int(),
+            player_id=player_id.as_int(),
+            message_type="error",
+            data={"err": error_message},
+        )
 
 
 # Lobby API models
@@ -115,8 +152,7 @@ class CreateLobbyRequest(BaseModel):
 
 
 class CreateLobbyResponse(BaseModel):
-    game_id: str
-    player_id: str
+    game_id: int
     message: str
 
 
@@ -125,13 +161,13 @@ class JoinLobbyRequest(BaseModel):
 
 
 class JoinLobbyResponse(BaseModel):
-    game_id: str
+    game_id: int
     player_id: str
     message: str
 
 
 class LobbyInfoResponse(BaseModel):
-    game_id: str
+    game_id: int
     host_player_id: str
     players: list[dict]
     created_at: str
@@ -148,6 +184,7 @@ class LobbyListResponse(BaseModel):
 """
 Lobby models for PowerFlowGame multiplayer lobby system
 """
+
 
 @dataclass
 class LobbyPlayer:
@@ -181,9 +218,7 @@ class Lobby:
     def add_player(self, player_id: PlayerId, name: str) -> LobbyPlayer:
         """Add a player to the lobby"""
         player = LobbyPlayer(
-            player_id=player_id,
-            name=name,
-            is_host=(player_id == self.host_player_id)
+            player_id=player_id, name=name, is_host=(player_id == self.host_player_id)
         )
         self.players[player_id] = player
         return player

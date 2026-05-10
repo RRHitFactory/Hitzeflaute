@@ -20,17 +20,15 @@ class LobbyManager:
             self._next_int_id += 1
         return player_id
 
-    def create_lobby(self, host_name: str) -> tuple[GameId, PlayerId]:
+    def create_lobby(self) -> GameId:
         """Create a new lobby and return its game ID"""
         player_id = self.get_next_player_id()
         game_id = self._game_manager.game_repo.reserve_game_id()
 
         lobby = Lobby(game_id=game_id, host_player_id=player_id)
-        lobby.add_player(player_id, host_name)
-        self._lobbies[game_id] = lobby
-        self._player_name_map[player_id] = host_name
 
-        return game_id, player_id
+        self._lobbies[game_id] = lobby
+        return game_id
 
     def get_lobby(self, game_id: GameId) -> Lobby | None:
         """Get a lobby by game ID"""

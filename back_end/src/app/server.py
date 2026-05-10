@@ -13,12 +13,12 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from back_end.src.app.lobby_manager import LobbyManager
+from back_end.src.app.lobby_ws_manager import LobbyWebSocketConnectionManager
 from back_end.src.app.ws_manager import WebSocketConnectionManager
 from src.app.game_manager import GameManager
 from src.app.game_repo.file_game_repo import FileGameStateRepo
-from src.app.routes.game import get_game_router
-from src.app.routes.lobby import get_lobby_router
-from src.app.routes.web_socket import get_ws_router
+from src.app.routes.game import get_game_rest_router, get_game_ws_router
+from src.app.routes.lobby import get_lobby_rest_router, get_lobby_ws_router
 from src.engine.engine import Engine
 
 # Initialize FastAPI app
@@ -49,16 +49,25 @@ game_manager.set_front_end(ws_manager)
 
 
 lobby_manager = LobbyManager(game_manager=game_manager)
+lobby_ws_manager = LobbyWebSocketConnectionManager()
 # REST API Endpoints
 
-lobby_router = get_lobby_router(game_manager=game_manager, lobby_manager=lobby_manager)
-ws_router = get_ws_router(ws_connection_manager=ws_manager, game_manager=game_manager)
-game_router = get_game_router(game_repo=game_repo)
+lobby_rest_router = get_lobby_rest_router(
+    game_manager=game_manager,
+    lobby_manager=lobby_manager,
+    lobby_ws_manager=lobby_ws_manager,
+)
+lobby_ws_router = get_lobby_ws_router(lobby_ws_manager=lobby_ws_manager)
+game_ws_router = get_game_ws_router(
+    ws_connection_manager=ws_manager, game_manager=game_manager
+)
+game_rest_router = get_game_rest_router(game_repo=game_repo)
 
 # Mount lobby routes
-app.include_router(lobby_router)
-app.include_router(ws_router)
-app.include_router(game_router)
+app.include_router(lobby_rest_router)
+app.include_router(lobby_ws_router)
+app.include_router(game_ws_router)
+app.include_router(game_rest_router)
 
 
 # Frontend static file serving
