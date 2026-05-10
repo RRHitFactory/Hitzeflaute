@@ -65,7 +65,7 @@ export class LobbyWebSocketClient {
   private connect(): void {
     const hostname = typeof window !== "undefined" ? window.location.hostname : "localhost";
     // Use the existing game WebSocket endpoint for lobby
-    const wsUrl = `ws://${hostname}:8000/ws/${this.gameId}/${this.playerId}`;
+    const wsUrl = `ws://${hostname}:8000/ws/lobby/${this.gameId}/${this.playerId}`;
     console.log(`[LobbyWS] Connecting to WebSocket: ${wsUrl}`);
 
     try {

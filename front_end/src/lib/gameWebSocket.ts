@@ -57,7 +57,7 @@ export class GameWebSocketClient {
   }
 
   private connect(): void {
-    const wsUrl = `ws://localhost:8000/ws/${this.gameId}/${this.playerId}`;
+    const wsUrl = `ws://localhost:8000/ws/games/${this.gameId}/${this.playerId}`;
     console.log(`Connecting to WebSocket: ${wsUrl}`);
 
     try {

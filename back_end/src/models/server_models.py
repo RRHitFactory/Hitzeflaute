@@ -168,7 +168,6 @@ class JoinLobbyResponse(BaseModel):
 
 class LobbyInfoResponse(BaseModel):
     game_id: int
-    host_player_id: str
     players: list[dict]
     created_at: str
     max_players: int
