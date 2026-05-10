@@ -5,7 +5,7 @@ from typing import TypeVar
 
 from src.models.assets import AssetId
 from src.models.game_state import GameState, Phase
-from src.models.ids import GameId, PlayerId
+from src.models.ids import BusId, GameId, PlayerId
 from src.models.transmission import TransmissionId
 from src.tools.serialization import SerializableDcSimple
 
@@ -158,6 +158,27 @@ class ActivationUpdateRequest(PlayerToGameMessage):
 
     line_activation: MappingProxyType[TransmissionId, bool]
     asset_activation: MappingProxyType[AssetId, bool]
+
+
+@dataclass(frozen=True, repr=False)
+class FreezerMigrationResponse(GameToPlayerMessage):
+    success: bool
+    asset_id: AssetId
+
+
+@dataclass(frozen=True, repr=False)
+class FreezerMigrationRequest(PlayerToGameMessage):
+    asset_id: AssetId
+    bus: BusId
+
+    def make_response(self, success: bool, message: str) -> FreezerMigrationResponse:
+        return FreezerMigrationResponse(
+            game_id=self.game_id,
+            player_id=self.player_id,
+            success=success,
+            asset_id=self.asset_id,
+            message=message,
+        )
 
 
 @dataclass(frozen=True, repr=False)

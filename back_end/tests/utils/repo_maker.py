@@ -51,8 +51,8 @@ class RepoMaker[T_LdcRepo: LdcRepo, T_LightDc: LightDc]:
 
 class BusRepoMaker(RepoMaker[BusRepo, Bus]):
     @classmethod
-    def make_quick(cls, n_npc_buses: int = 10, players: list[PlayerId] | PlayerRepo | None = None) -> BusRepo:
-        return cls(players=players).add_n_random(n_npc_buses).make()
+    def make_quick(cls, n_buses: int = 10, players: list[PlayerId] | PlayerRepo | None = None) -> BusRepo:
+        return cls(players=players).add_n_random(n_buses).make()
 
     def __init__(self, players: list[PlayerId] | PlayerRepo | None = None) -> None:
         super().__init__()

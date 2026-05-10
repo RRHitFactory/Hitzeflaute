@@ -15,7 +15,7 @@ class TestFinanceCalculator(BaseTest):
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker.make_quick(3)
-        buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
+        buses = BusRepoMaker.make_quick(n_buses=3, players=player_repo)
         asset_maker = AssetRepoMaker(players=player_repo, bus_repo=buses)
 
         for _ in range(6):
