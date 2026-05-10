@@ -119,7 +119,7 @@ class Referee:
         asset_repo = gs.assets
         freezers = asset_repo.only_freezers
         assets_dispatch: dict[AssetId, float] = gs.market_coupling_result.assets_dispatch.loc[0, :].to_dict()  # type: ignore
-        melted_ids = []
+        melted_ids: list[AssetId] = []
 
         for freezer in freezers:
             if freezer.health == 0:

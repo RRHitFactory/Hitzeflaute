@@ -5,7 +5,18 @@ from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
-from src.models.message import Ack, ActivationUpdateRequest, AssetWornMessage, BuyRequest, BuyResponse, IceCreamMeltedMessage, FreezerMigrationRequest, PlayerNotInTurn, PlayerToGameMessage, TransmissionWornMessage
+from src.models.message import (
+    Ack,
+    ActivationUpdateRequest,
+    AssetWornMessage,
+    BuyRequest,
+    BuyResponse,
+    FreezerMigrationRequest,
+    IceCreamMeltedMessage,
+    PlayerNotInTurn,
+    PlayerToGameMessage,
+    TransmissionWornMessage,
+)
 from src.models.player import Player
 from src.models.transmission import TransmissionInfo
 from tests.base_test import BaseTest
@@ -194,7 +205,7 @@ class TestEngine(BaseTest):
         player_repo = PlayerRepoMaker.make_quick(3)
         buses = BusRepoMaker.make_quick(n_buses=0, players=player_repo)
         # fill all buses' sockets
-        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=20*3-3-1)
+        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=20 * 3 - 3 - 1)
         # one player should be losing
         losing_player = player_repo.human_players[0]
         freezer_losing_player = assets.get_freezer_for_player(losing_player.id)
@@ -220,35 +231,25 @@ class TestEngine(BaseTest):
 
         game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_non_losing_player)
         self.assertFalse(responses[0].success)
-        self.assertIn('Only the losing player', responses[0].message)
+        self.assertIn("Only the losing player", responses[0].message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(
-            game_state=game_state, msg=request_wrong_asset_type
-        )
+        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_wrong_asset_type)
         self.assertFalse(responses[0].success)
         self.assertIn("not a freezer", responses[0].message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(
-            game_state=game_state, msg=request_wrong_freezer
-        )
+        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_wrong_freezer)
         self.assertFalse(responses[0].success)
         self.assertIn("your own freezer", responses[0].message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(
-            game_state=game_state, msg=request_full_bus
-        )
+        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_full_bus)
         self.assertFalse(responses[0].success)
         self.assertIn("does not have free sockets.", responses[0].message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(
-            game_state=game_state, msg=request_migrate_to_current_bus
-        )
+        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_migrate_to_current_bus)
         self.assertFalse(responses[0].success)
         self.assertIn("already at the bus", responses[0].message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(
-            game_state=game_state, msg=correct_request
-        )
+        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=correct_request)
         self.assertTrue(responses[0].success, responses[0].message)
         self.assertTrue("Successfully migrated freezer", responses[0].message)
         self.assertEqual(game_state.assets[correct_request.asset_id].bus, correct_request.bus)
