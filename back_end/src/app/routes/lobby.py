@@ -46,11 +46,11 @@ def get_lobby_ws_router(
                     error_msg = f"Invalid JSON from {player_id_true} in lobby {game_id_true}: {data}"
                     log_exception_with_traceback(error_msg, e)
 
-        except WebSocketDisconnect as e:
+        except WebSocketDisconnect:
             lobby_ws_manager.disconnect(game_id_true, player_id_true)
-            log_exception_with_traceback(
-                f"Player {player_id_true} disconnected from lobby {game_id_true}", e
-            )
+            # Normal disconnect when client navigates away - don't log as error
+            console_logger = print
+            console_logger(f"Player {player_id_true} disconnected from lobby {game_id_true}")
 
     return router
 

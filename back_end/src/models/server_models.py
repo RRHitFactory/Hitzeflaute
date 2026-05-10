@@ -68,29 +68,21 @@ class WebsocketMessage(BaseModel):
             ActivationUpdateRequest: self._to_activation_update_request,
             EndTurn: self._to_end_turn,
         }
-        name_func_mapping = {
-            c.get_camel_case_name(): func for c, func in mapping.items()
-        }
+        name_func_mapping = {c.get_camel_case_name(): func for c, func in mapping.items()}
         func = name_func_mapping.get(self.message_type)
         if func is None:
-            raise ValueError(
-                f"Unknown message type: {self.message_type}. Valid names are {list(name_func_mapping.keys())}"
-            )
+            raise ValueError(f"Unknown message type: {self.message_type}. Valid names are {list(name_func_mapping.keys())}")
         return func()
 
     def _to_batch_bid_request(self) -> UpdateBatchBidsRequest:
         return UpdateBatchBidsRequest(
             game_id=self.game_id_obj,
             player_id=self.player_id_obj,
-            bids=MappingProxyType(
-                {AssetId(int(k)): v for k, v in self.data["bids"].items()}
-            ),
+            bids=MappingProxyType({AssetId(int(k)): v for k, v in self.data["bids"].items()}),
         )
 
     def _to_buy_request(self) -> BuyRequest[AssetId | TransmissionId]:
-        id_type = {"asset": AssetId, "transmission": TransmissionId}[
-            self.data["purchase_type"]
-        ]
+        id_type = {"asset": AssetId, "transmission": TransmissionId}[self.data["purchase_type"]]
         return BuyRequest(
             game_id=self.game_id_obj,
             player_id=self.player_id_obj,
@@ -101,18 +93,8 @@ class WebsocketMessage(BaseModel):
         return ActivationUpdateRequest(
             game_id=self.game_id_obj,
             player_id=self.player_id_obj,
-            asset_activation=MappingProxyType(
-                {
-                    AssetId(int(k)): bool(v)
-                    for k, v in self.data["asset_activation"].items()
-                }
-            ),
-            line_activation=MappingProxyType(
-                {
-                    TransmissionId(int(k)): bool(v)
-                    for k, v in self.data["line_activation"].items()
-                }
-            ),
+            asset_activation=MappingProxyType({AssetId(int(k)): bool(v) for k, v in self.data["asset_activation"].items()}),
+            line_activation=MappingProxyType({TransmissionId(int(k)): bool(v) for k, v in self.data["line_activation"].items()}),
         )
 
     def _to_end_turn(self) -> EndTurn:
@@ -135,9 +117,7 @@ class WebsocketMessage(BaseModel):
         return cls.model_validate_json(data)
 
     @classmethod
-    def make_error(
-        cls, game_id: GameId, player_id: PlayerId, error_message: str
-    ) -> "WebsocketMessage":
+    def make_error(cls, game_id: GameId, player_id: PlayerId, error_message: str) -> "WebsocketMessage":
         return cls(
             game_id=game_id.as_int(),
             player_id=player_id.as_int(),
@@ -210,16 +190,17 @@ class Lobby:
     created_at: datetime = field(default_factory=datetime.now)
     max_players: int = 5
     is_started: bool = False
+    next_player_int_id: int = 0
 
     @property
     def host_player_id(self) -> PlayerId:
         return PlayerId(0)
 
-    def add_player(self, player_id: PlayerId, name: str) -> LobbyPlayer:
+    def add_player(self, name: str) -> LobbyPlayer:
         """Add a player to the lobby"""
-        player = LobbyPlayer(
-            player_id=player_id, name=name, is_host=(player_id == self.host_player_id)
-        )
+        player_id = PlayerId(self.next_player_int_id)
+        self.next_player_int_id += 1
+        player = LobbyPlayer(player_id=player_id, name=name, is_host=(player_id == self.host_player_id))
         self.players[player_id] = player
         return player
 

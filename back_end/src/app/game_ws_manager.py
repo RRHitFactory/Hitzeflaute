@@ -3,13 +3,11 @@ from fastapi import WebSocket
 from src.app.routes.logging import console_logger, log_exception_with_traceback
 from src.app.tools.reduce_message import reduce_message
 from src.models.ids import GameId, PlayerId
-from src.models.message import (
-    GameToPlayerMessage,
-)
+from src.models.message import GameToPlayerMessage
 from src.models.server_models import WebsocketMessage
 
 
-class WebSocketConnectionManager:
+class GameWebSocketConnectionManager:
     """Manages WebSocket connections for real-time communication"""
 
     def __init__(self) -> None:
@@ -27,26 +25,19 @@ class WebSocketConnectionManager:
         if game_id in self.active_connections:
             if player_id in self.active_connections[game_id]:
                 del self.active_connections[game_id][player_id]
-                console_logger.info(
-                    f"Player {player_id} disconnected from game {game_id}"
-                )
+                console_logger.info(f"Player {player_id} disconnected from game {game_id}")
             if not self.active_connections[game_id]:
                 del self.active_connections[game_id]
 
     async def send_to_one_player(self, message: WebsocketMessage) -> None:
         game_id = message.game_id_obj
         player_id = message.player_id_obj
-        if (
-            game_id in self.active_connections
-            and player_id in self.active_connections[game_id]
-        ):
+        if game_id in self.active_connections and player_id in self.active_connections[game_id]:
             websocket = self.active_connections[game_id][player_id]
             try:
                 await websocket.send_text(message.to_string())
             except Exception as e:
-                error_msg = (
-                    f"Error sending message to {player_id} in game {game_id}: {e}"
-                )
+                error_msg = f"Error sending message to {player_id} in game {game_id}: {e}"
                 log_exception_with_traceback(error_msg, e)
                 self.disconnect(game_id, player_id)
 

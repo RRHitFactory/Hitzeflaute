@@ -1,24 +1,12 @@
-import threading
-
 from src.app.game_manager import GameManager
 from src.models.ids import GameId, PlayerId
 from src.models.server_models import Lobby, LobbyPlayer
 
 
 class LobbyManager:
-    _lock = threading.Lock()
-
     def __init__(self, game_manager: GameManager) -> None:
         self._game_manager = game_manager
         self._lobbies: dict[GameId, Lobby] = {}
-        self._player_name_map: dict[PlayerId, str] = {}  # Store player names by ID
-        self._next_int_id = 0
-
-    def get_next_player_id(self) -> PlayerId:
-        with self._lock:
-            player_id = PlayerId(self._next_int_id)
-            self._next_int_id += 1
-        return player_id
 
     def create_lobby(self) -> GameId:
         """Create a new lobby and return its game ID"""
@@ -44,12 +32,7 @@ class LobbyManager:
         if player_name.lower() in [p.name.lower() for p in lobby.players.values()]:
             return None  # Player name already
 
-        player_id = self.get_next_player_id()
-        # Store player name
-        self._player_name_map[player_id] = player_name
-
-        # Add player to lobby
-        return lobby.add_player(player_id, player_name)
+        return lobby.add_player(player_name)
 
     def leave_lobby(self, game_id: GameId, player_id: PlayerId) -> bool:
         """Remove a player from a lobby"""
@@ -85,6 +68,4 @@ class LobbyManager:
 
     def list_lobbies(self) -> list[dict]:
         """List all active lobbies"""
-        return [
-            lobby.to_dict() for lobby in self._lobbies.values() if not lobby.is_started
-        ]
+        return [lobby.to_dict() for lobby in self._lobbies.values() if not lobby.is_started]

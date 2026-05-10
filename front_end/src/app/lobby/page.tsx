@@ -161,13 +161,12 @@ function LobbyContent() {
 
   const handleStartGame = async () => {
     try {
-      const result = await startLobby(gameId);
+      await startLobby(gameId);
       console.log(
         "Game started, waiting for WebSocket broadcast to all players...",
       );
     } catch (err) {
       console.error("Failed to start game:", err);
-      alert("Failed to start game. Need at least 2 players.");
     }
   };
 
