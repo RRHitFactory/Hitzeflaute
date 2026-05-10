@@ -19,7 +19,7 @@ class TestMarketCoupling(BaseTest):
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker().make_quick(2)
-        bus_repo = BusRepoMaker.make_quick(n_npc_buses=0, players=player_repo)
+        bus_repo = BusRepoMaker.make_quick(n_buses=0, players=player_repo)
         asset_maker = AssetRepoMaker(players=player_repo.human_player_ids, bus_repo=bus_repo)
 
         transmission_maker = TransmissionRepoMaker(players=player_repo.human_player_ids, buses=bus_repo)

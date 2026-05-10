@@ -22,7 +22,7 @@ class TestAssets(BaseTest):
 
     def test_query_bus_assets(self) -> None:
         player_ids = [PlayerId(1), PlayerId(2)]
-        bus_repo = BusRepoMaker.make_quick(n_npc_buses=10)
+        bus_repo = BusRepoMaker.make_quick(n_buses=10)
 
         buses = [BusId(1), BusId(2), BusId(2)]
         repo = AssetRepoMaker(players=player_ids, bus_repo=bus_repo).add_assets_to_buses(buses=buses).make()

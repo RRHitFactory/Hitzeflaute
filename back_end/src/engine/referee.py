@@ -222,6 +222,15 @@ class Referee:
         ]
 
     @staticmethod
+    def get_losing_player(gs: GameState) -> PlayerId:
+        """The losing player has the least remaining ice creams. Player money is used as a tie-breaker."""
+        players_df = gs.players.only_human.only_alive.df
+        players_df["remaining_ice_creams"] = players_df.apply(lambda row: gs.assets.get_remaining_ice_creams(row.name), axis=1)
+        players_df = players_df.sort_values(["remaining_ice_creams", "money"], ascending=True)
+        losing_player_id = players_df.index[0]
+        return losing_player_id
+
+    @staticmethod
     def check_game_over(gs: GameState) -> tuple[GameState, list[GameOverMessage]]:
         n_players_alive = len(gs.players.only_alive.human_players)
         if n_players_alive == 1:

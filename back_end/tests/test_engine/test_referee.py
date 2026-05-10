@@ -14,7 +14,7 @@ class TestReferee(BaseTest):
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker.make_quick(n=max(3, n_melted))
-        buses = BusRepoMaker.make_quick(n_npc_buses=3, players=player_repo)
+        buses = BusRepoMaker.make_quick(n_buses=3, players=player_repo)
         asset_maker = AssetRepoMaker(bus_repo=buses, players=player_repo)
         transmission_maker = TransmissionRepoMaker(players=player_repo, buses=buses)
 
