@@ -14,8 +14,9 @@ class TransmissionMaker:
     @classmethod
     def make_one(cls, transmission_id: TransmissionId, bus1: BusId, bus2: BusId, current_round: Round, technology_name: str | None = None, player_id: PlayerId = PlayerId.get_npc()) -> TransmissionInfo:
         """Create a load with properties based on the current round."""
-        available_techs = cls.get_available_technologies()
-        technology_name = random_choice(available_techs)
+        if technology_name is None:
+            available_techs = cls.get_available_technologies()
+            technology_name = random_choice(available_techs)
 
         tech_specs = cls._get_technology_spec(technology_name)
 
