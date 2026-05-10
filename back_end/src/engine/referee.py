@@ -227,7 +227,7 @@ class Referee:
         players_df = gs.players.only_human.only_alive.df
         players_df["remaining_ice_creams"] = players_df.apply(lambda row: gs.assets.get_remaining_ice_creams(row.name), axis=1)
         players_df = players_df.sort_values(["remaining_ice_creams", "money"], ascending=True)
-        losing_player_id = players_df.index[0]
+        losing_player_id = PlayerId(players_df.index[0])
         return losing_player_id
 
     @staticmethod
