@@ -1,26 +1,22 @@
 "use client";
 
-import { Asset, AssetType } from "@/types/game";
+import { Asset, AssetType, Player } from "@/types/game";
 import React from "react";
 
 interface BiddingTableProps {
   assets: Asset[];
-  currentPlayer: number;
-  playerMoney?: number;
+  currentPlayerObj: Player;
   pendingBids?: Record<number, number>;
   onBidChange?: (assetId: number, newBidPrice: number) => void;
   onInsufficientFundsChange?: (insufficient: boolean) => void;
-  isCurrentPlayersTurn?: boolean;
 }
 
 const BiddingTable: React.FC<BiddingTableProps> = ({
   assets,
-  currentPlayer,
-  playerMoney = 0,
+  currentPlayerObj,
   pendingBids = {},
   onBidChange,
-  onInsufficientFundsChange,
-  isCurrentPlayersTurn = true,
+  onInsufficientFundsChange
 }) => {
   // Format helper functions (defined first to avoid hoisting issues)
   const formatNumber = (value: number) => {
@@ -29,7 +25,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
 
   // Filter assets owned by current player
   const playerAssets = assets.filter(
-    (asset) => asset.owner_player === currentPlayer,
+    (asset) => asset.owner_player === currentPlayerObj.id,
   );
 
   // Calculate expected cashflow for an asset
@@ -57,7 +53,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
 
   // Clip player money to minimum of 0 for insufficient funds calculation
   // This allows players with negative money to still place bids
-  const availableFunds = Math.max(0, playerMoney);
+  const availableFunds = Math.max(0, currentPlayerObj.money);
   const insufficientFunds = totalCost > availableFunds;
 
   // Notify parent component about insufficient funds status
@@ -169,7 +165,6 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
                       value={currentBidPrice}
                       onChange={(e) => handleBidChange(asset.id, e)}
                       className="w-24 px-2 py-1 border rounded text-sm"
-                      disabled={!isCurrentPlayersTurn}
                     />
                   </td>
                   <td className="px-3 py-2 font-medium">

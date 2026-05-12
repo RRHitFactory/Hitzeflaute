@@ -5,6 +5,7 @@ import GridVisualization from "@/components/Game/GridVisualization";
 import GameControls from "@/components/UI/GameControls";
 import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
+import { usePlayerTurn } from "@/hooks/usePlayerTurn";
 import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
 import { GamePhase } from "@/types/game";
 import { useSearchParams } from "next/navigation";
@@ -12,11 +13,10 @@ import {
   Suspense,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
-  useMemo,
 } from "react";
-import { usePlayerTurn } from "@/hooks/usePlayerTurn";
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -26,6 +26,7 @@ function GameContent() {
   const [error, setError] = useState<string | null>(null);
   const hasConnectedRef = useRef(false);
   const hasSetPlayerRef = useRef(false);
+  const debug = (process.env.DEBUG || "") == "true"
 
   // Initialize gameId from URL param
   useEffect(() => {
@@ -318,21 +319,6 @@ function GameContent() {
       </header>
 
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Debug information */}
-        <div className="text-xs text-gray-500 bg-white p-2 rounded border mb-4 max-w-[400px]">
-          <div>
-            <span className="font-semibold">Cookie Player ID:</span>{" "}
-            {cookiePlayerId ?? "null"}
-          </div>
-          <div>
-            <span className="font-semibold">Current Player:</span>{" "}
-            {currentPlayerObj ? JSON.stringify(currentPlayerObj) : "null"}
-          </div>
-          <div>
-            <span className="font-semibold">Controls Enabled:</span>{" "}
-            {controlsEnabled.toString()}
-          </div>
-        </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
@@ -352,31 +338,10 @@ function GameContent() {
                 controlsEnabled={controlsEnabled}
               />
             </div>
+
           </div>
 
           <div className="space-y-6">
-            <GameControls
-              gameState={gameState}
-              gameId={gameId?.toString() || null}
-              currentPlayerObj={currentPlayerObj}
-              isConnected={isConnected}
-              onEndTurn={handleEndTurn}
-              hasInsufficientFunds={hasInsufficientFunds}
-              controlsEnabled={controlsEnabled}
-            />
-
-            {gameState.phase === GamePhase.BIDDING && (
-              <BiddingTable
-                assets={gameState.assets.data}
-                currentPlayer={currentPlayerObj?.id || DEFAULT_PLAYER}
-                playerMoney={currentPlayerObj?.money || 0}
-                pendingBids={pendingBids}
-                onBidChange={handleBidAsset}
-                onInsufficientFundsChange={setHasInsufficientFunds}
-                isCurrentPlayersTurn={controlsEnabled}
-              />
-            )}
-
             <div className="bg-gray-200 rounded-lg shadow-sm border p-4">
               <h3 className="text-lg font-bold mb-4 text-black">Players</h3>
               <PlayerTable
@@ -388,6 +353,26 @@ function GameContent() {
                 gameState={gameState}
               />
             </div>
+
+            <GameControls
+              gameState={gameState}
+              gameId={gameId?.toString() || null}
+              currentPlayerObj={currentPlayerObj}
+              isConnected={isConnected}
+              onEndTurn={handleEndTurn}
+              hasInsufficientFunds={hasInsufficientFunds}
+              controlsEnabled={controlsEnabled}
+            />
+
+            {gameState.phase === GamePhase.BIDDING && currentPlayerObj && controlsEnabled && (
+              <BiddingTable
+                assets={gameState.assets.data}
+                currentPlayerObj={currentPlayerObj}
+                pendingBids={pendingBids}
+                onBidChange={handleBidAsset}
+                onInsufficientFundsChange={setHasInsufficientFunds}
+              />
+            )}
           </div>
         </div>
       </main>

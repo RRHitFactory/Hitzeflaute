@@ -100,8 +100,9 @@ export function usePlayerTurn(
 
   // Enable controls when it's the current player's turn
   useEffect(() => {
+    if (!currentPlayerId) {return}
     setControlsEnabled(isCurrentPlayersTurn);
-  }, [isCurrentPlayersTurn]);
+  }, [currentPlayerId, isCurrentPlayersTurn]);
 
   return {
     cookiePlayerId: cookiePlayerId,
