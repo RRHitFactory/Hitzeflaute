@@ -134,20 +134,16 @@ class TestMarketCoupling(BaseTest):
 
         for mtu in market_result.transmission_flows.index:
             for transmission in game_state.transmission:
-                flow = market_result.transmission_flows.loc[mtu, transmission.id]
+                flow: float = market_result.transmission_flows.loc[mtu, transmission.id]  # type: ignore
                 if not transmission.is_active:
                     continue
-                elif np.isclose(abs(flow), abs(transmission.capacity)):
-                    self.assertGreaterEqual(
-                        abs(market_result.bus_prices.loc[mtu, transmission.bus1] - market_result.bus_prices.loc[mtu, transmission.bus2]),
-                        0,
-                    )
+
+                p1: float = market_result.bus_prices.loc[mtu, transmission.bus1]  # type: ignore
+                p2: float = market_result.bus_prices.loc[mtu, transmission.bus2]  # type: ignore
+                if np.isclose(abs(flow), abs(transmission.capacity)):
+                    self.assertGreaterEqual(p1 - p2, 0)
                 else:
-                    self.assertAlmostEqual(
-                        market_result.bus_prices.loc[mtu, transmission.bus1],
-                        market_result.bus_prices.loc[mtu, transmission.bus2],
-                        places=0,
-                    )
+                    self.assertAlmostEqual(p1, p2, places=0)
 
     def test_all_assets_and_transmission_appear_in_results(self) -> None:
         game_state = self.create_game_state()

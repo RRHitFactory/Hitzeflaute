@@ -63,7 +63,7 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
     loads = bus_assets.only_loads
 
     total_dispatch = coupling_result.assets_dispatch.sum()
-    dispatch_dict: dict[AssetId, float] = {AssetId(k): v for k, v in total_dispatch.to_dict().items()}
+    dispatch_dict: dict[AssetId, float] = {AssetId(k): v for k, v in total_dispatch.to_dict().items()}  # type: ignore
 
     def make_gen_row(asset_id: AssetId) -> dict[str, str | float]:
         asset = gens[asset_id]

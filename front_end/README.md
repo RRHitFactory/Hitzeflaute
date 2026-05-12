@@ -108,9 +108,47 @@ The application uses Tailwind CSS. Customize styles in:
 - Component files for component-specific styles
 - `tailwind.config.js` for theme customization
 
+## Backend Configuration
+
+The frontend connects to the Python backend using environment variables. Configure the backend connection by creating a `.env.local` file in the frontend directory:
+
+```bash
+# Copy the example and modify as needed
+cp .env.local.example .env.local
+```
+
+### Environment Variables
+
+Create a `.env.local` file with your backend configuration:
+
+```env
+# Backend API configuration
+NEXT_PUBLIC_BACKEND_HOST=your_backend_ip_or_hostname
+NEXT_PUBLIC_API_BASE_URL=http://${NEXT_PUBLIC_BACKEND_HOST}:8000/api
+```
+
+**Common configurations:**
+- **Local development**: `NEXT_PUBLIC_BACKEND_HOST=localhost`
+- **Local network testing**: `NEXT_PUBLIC_BACKEND_HOST=192.168.1.100` (use your machine's local IP)
+- **Production**: Use your server's domain or IP address
+
+The `.env.local` file is gitignored by default, so each developer can have their own configuration.
+
+### API Configuration File
+
+The `src/config/apiConfig.ts` file provides centralized access to the backend configuration:
+
+```typescript
+// src/config/apiConfig.ts
+export const BACKEND_HOST = process.env.NEXT_PUBLIC_BACKEND_HOST || "localhost";
+export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || `http://${BACKEND_HOST}:8000/api`;
+```
+
+Import and use these constants throughout your application for consistent API access.
+
 ## Integration with Backend
 
-Currently uses sample data. To integrate with your Python backend:
+To integrate with your Python backend:
 
 1. **REST API**: Replace sample data with API calls to your FastAPI/Flask server
 2. **WebSocket**: Add real-time updates for live game state changes
@@ -120,7 +158,7 @@ Example API integration:
 ```typescript
 // services/api.ts
 export async function fetchGameState(): Promise<GameState> {
-  const response = await fetch('/api/game-state')
+  const response = await fetch(`${API_BASE_URL}/game-state`)
   return response.json()
 }
 ```
