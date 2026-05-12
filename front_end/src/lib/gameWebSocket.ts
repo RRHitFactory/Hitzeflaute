@@ -25,7 +25,7 @@ interface GameWebSocketCallbacks {
 
 export class GameWebSocketClient {
   private gameId: number;
-  private playerId: number;  // may be -1 if shared socket
+  private socketPlayerId: number;  // may be -1 if shared socket
   private ws: WebSocket | null = null;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
@@ -45,7 +45,7 @@ export class GameWebSocketClient {
     onClose?: (event: CloseEvent) => void,
   ) {
     this.gameId = gameId;
-    this.playerId = playerId;
+    this.socketPlayerId = playerId;
 
     // Callbacks
     this.onMessage = onMessage || this.defaultOnMessage;
@@ -56,7 +56,7 @@ export class GameWebSocketClient {
   }
 
   private connect(): void {
-    const wsUrl = `ws://${BACKEND_HOST}:8000/ws/games/${this.gameId}/${this.playerId}`;
+    const wsUrl = `ws://${BACKEND_HOST}:8000/ws/games/${this.gameId}/${this.socketPlayerId}`;
     console.log(`Connecting to WebSocket: ${wsUrl}`);
 
     try {
@@ -64,7 +64,7 @@ export class GameWebSocketClient {
 
       this.ws.onopen = (event: Event) => {
         console.log("🟢 WebSocket connected successfully!");
-        console.log("Game ID:", this.gameId, "Player ID:", this.playerId);
+        console.log("Game ID:", this.gameId, "Player ID:", this.socketPlayerId);
         this.reconnectAttempts = 0;
         this.reconnectDelay = 1000;
 

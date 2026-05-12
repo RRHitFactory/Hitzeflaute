@@ -25,6 +25,7 @@ function GameContent() {
   const DEFAULT_PLAYER = 1;
   const [error, setError] = useState<string | null>(null);
   const hasConnectedRef = useRef(false);
+  const hasSetPlayerRef = useRef(false);
 
   // Initialize gameId from URL param
   useEffect(() => {
@@ -32,6 +33,9 @@ function GameContent() {
       setGameId(parseInt(gameIdParam));
     }
   }, [gameIdParam]);
+
+  // State for effective player ID - starts with NPC, switches to cookiePlayerId for online mode
+  const [websocketPlayerId, setWebSocketPlayerId] = useState<number>(-1);
 
   // Memoize callback functions to prevent infinite re-renders
   const handleMessage = useCallback((msg: WebSocketMessage) => {
@@ -70,14 +74,13 @@ function GameContent() {
     [handleMessage, handleError, handleClose],
   );
 
-  // Initialize WebSocket with default player first
-  const NPC = -1
+  // Initialize WebSocket with effective player ID
   const {
-    client: sharedWsClient,
+    client: wsClient,
     connectionState,
     gameState,
     isConnected,
-  } = useGameWebSocket(gameId || -1, NPC, callbacks);
+  } = useGameWebSocket(gameId || -1, websocketPlayerId, callbacks);
 
   // Use the new player turn hook to handle all player-related logic
   const {
@@ -88,6 +91,15 @@ function GameContent() {
     controlsEnabled,
     setControlsEnabled,
   } = usePlayerTurn(gameState, gameId);
+
+  // After getting the first gameState, check if it's online mode and switch to cookiePlayerId
+  useEffect(() => {
+    if (!gameState || hasSetPlayerRef.current) return;
+    if (!isHotseatMode && cookiePlayerId !== null) {
+      hasSetPlayerRef.current = true;
+      setWebSocketPlayerId(cookiePlayerId);
+    }
+  }, [gameState, isHotseatMode, cookiePlayerId]);
 
   // Track when we first connect successfully
   useEffect(() => {
@@ -114,23 +126,23 @@ function GameContent() {
   }, [gameState?.phase, currentPlayerId]);
 
   const handlePurchaseAsset = (assetId: number) => {
-    if (!sharedWsClient || !sharedWsClient.isConnected()) {
+    if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
       return;
     }
 
     console.log("Purchasing asset:", assetId);
-    sharedWsClient.buyAsset(assetId.toString(), currentPlayerId || DEFAULT_PLAYER);
+    wsClient.buyAsset(assetId.toString(), currentPlayerId || DEFAULT_PLAYER);
   };
 
   const handlePurchaseTransmissionLine = (lineId: number) => {
-    if (!sharedWsClient || !sharedWsClient.isConnected()) {
+    if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
       return;
     }
 
     console.log("Purchasing transmission line:", lineId);
-    sharedWsClient.buyTransmissionLine(
+    wsClient.buyTransmissionLine(
       lineId.toString(),
       currentPlayerId || DEFAULT_PLAYER,
     );
@@ -169,7 +181,7 @@ function GameContent() {
   };
 
   const handleEndTurn = () => {
-    if (!sharedWsClient || !sharedWsClient.isConnected()) {
+    if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
       return;
     }
@@ -185,7 +197,7 @@ function GameContent() {
 
       if (hasActivations) {
         console.log("Submitting activation updates:", pendingActivations);
-        sharedWsClient.activationUpdate(
+        wsClient.activationUpdate(
           {
             line_activation: pendingActivations.lines,
             asset_activation: pendingActivations.assets,
@@ -198,7 +210,7 @@ function GameContent() {
     if (gameState?.phase === 2) {
       if (Object.keys(pendingBids).length > 0) {
         console.log("Submitting pending bids:", pendingBids);
-        sharedWsClient.submitBatchBids(pendingBids, currentPlayerId);
+        wsClient.submitBatchBids(pendingBids, currentPlayerId);
       }
     }
 
@@ -206,7 +218,7 @@ function GameContent() {
     setPendingBids({});
 
     console.log("Ending turn");
-    sharedWsClient.endTurn(currentPlayerId);
+    wsClient.endTurn(currentPlayerId);
   };
 
   const handleBidAsset = (assetId: number, newBidPrice: number) => {
