@@ -117,7 +117,7 @@ class Engine:
         if new_phase == Phase.CONSTRUCTION:
             gs, building_msgs = GridExpansion.build_grid_elements_for_new_round(gs)
             round = Round(gs.game_round + 1)
-            msgs += building_msgs
+            msgs += building_msgs  # type: ignore
 
         if msg.new_phase.is_turn_based:
             players = players.start_first_player_turn()
