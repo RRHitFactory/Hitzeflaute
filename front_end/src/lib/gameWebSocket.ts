@@ -14,7 +14,7 @@ export interface WebSocketMessage {
   message_type: string;
   data: any;
   game_id: number;
-  player_id: number;
+  player_id?: number;
 }
 
 interface GameWebSocketCallbacks {
@@ -25,8 +25,7 @@ interface GameWebSocketCallbacks {
 
 export class GameWebSocketClient {
   private gameId: number;
-  private playerId: number;
-  private currentPlayerId: number;
+  private playerId: number;  // may be -1 if shared socket
   private ws: WebSocket | null = null;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
@@ -47,7 +46,6 @@ export class GameWebSocketClient {
   ) {
     this.gameId = gameId;
     this.playerId = playerId;
-    this.currentPlayerId = playerId;
 
     // Callbacks
     this.onMessage = onMessage || this.defaultOnMessage;
@@ -142,7 +140,7 @@ export class GameWebSocketClient {
       message_type: type,
       data: data,
       game_id: this.gameId,
-      player_id: playerId !== undefined ? playerId : this.currentPlayerId,
+      player_id: playerId,
     };
 
     console.log("=== Sending WebSocket Message ===");
@@ -237,10 +235,6 @@ export class GameWebSocketClient {
     }
   }
 
-  public setCurrentPlayerId(playerId: number): void {
-    this.currentPlayerId = playerId;
-  }
-
   // Default callback implementations
   private defaultOnMessage(msg: WebSocketMessage): void {
     console.log("Received message:", msg);
@@ -291,14 +285,13 @@ export class GameWebSocketClient {
 // React hook for easier integration
 export function useGameWebSocket(
   gameId: number,
-  playerId: number,
+  playerId: number, // this may be -1 if it is a shared socket
   callbacks: GameWebSocketCallbacks = {},
 ) {
   const [client, setClient] = useState<GameWebSocketClient | null>(null);
   const [connectionState, setConnectionState] =
     useState<string>("DISCONNECTED");
   const [gameState, setGameState] = useState<GameState | null>(null);
-  const [messages, setMessages] = useState<WebSocketMessage[]>([]);
 
   // Use a ref to store the latest callbacks without causing re-renders
   const callbacksRef = useRef(callbacks);
@@ -331,19 +324,6 @@ export function useGameWebSocket(
           // Validate the structure
           const gameStateData: GameState = msg.data.game_state;
           console.log("Current phase: " + gameStateData.phase);
-
-          // Check players for is_having_turn
-          if (gameStateData?.players?.data) {
-            console.log("Players details:");
-            gameStateData.players.data.forEach((player: any, index: number) => {
-              console.log(`  Player ${index}:`, {
-                id: player.id,
-                name: player.name,
-                is_having_turn: player.is_having_turn,
-                money: player.money,
-              });
-            });
-          }
           setGameState(gameStateData);
         } else {
           console.log("=== UNKNOWN MESSAGE TYPE ===");
@@ -382,7 +362,6 @@ export function useGameWebSocket(
     client,
     connectionState,
     gameState,
-    messages,
     isConnected: client?.isConnected() || false,
   };
 }

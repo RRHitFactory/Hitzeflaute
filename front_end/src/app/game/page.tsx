@@ -76,7 +76,7 @@ function GameContent() {
     connectionState,
     gameState,
     isConnected,
-  } = useGameWebSocket(gameId || -1, DEFAULT_PLAYER, callbacks);
+  } = useGameWebSocket(gameId || -1, -1, callbacks);
 
   // Use the new player turn hook to handle all player-related logic
   const {
