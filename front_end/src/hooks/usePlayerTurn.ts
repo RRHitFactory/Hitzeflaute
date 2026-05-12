@@ -52,13 +52,21 @@ export function usePlayerTurn(
     return playersArray.filter((p: Player) => p.is_having_turn);
   }, [pageReady, gameState]);
 
-  const firstActivePlayerId: number | null = useMemo(() => {
+  const activePlayerIds: number[] = useMemo(() => {
     // For hotseat, take the first active player from the list
     if (activePlayers.length === 0) {
+      return [];
+    }
+    return activePlayers.map((p) => p.id);
+  }, [activePlayers]);
+
+  const firstActivePlayerId: number | null = useMemo(() => {
+    // For hotseat, take the first active player from the list
+    if (activePlayerIds.length === 0) {
       return null;
     }
-    return activePlayers[0].id;
-  }, [activePlayers]);
+    return activePlayerIds[0];
+  }, [activePlayerIds]);
 
   /**
    * Get the player who is currently in control of the browser
@@ -92,11 +100,19 @@ export function usePlayerTurn(
     if (isHotSeatMode) {
       return true;
     }
-    if (currentPlayerId == firstActivePlayerId) {
-      return true;
+    // Otherwise it is online multiplayer
+    if (phaseIsOneByOne) {
+      return currentPlayerId == firstActivePlayerId;
+    } else {
+      return activePlayerIds.includes(currentPlayerId);
     }
-    return false;
-  }, [currentPlayerId, isHotSeatMode, firstActivePlayerId]);
+  }, [
+    currentPlayerId,
+    isHotSeatMode,
+    firstActivePlayerId,
+    activePlayerIds,
+    phaseIsOneByOne,
+  ]);
 
   // Enable controls when it's the current player's turn
   useEffect(() => {
