@@ -10,7 +10,7 @@ interface GameControlsProps {
   isConnected: boolean;
   onEndTurn: () => void;
   hasInsufficientFunds?: boolean;
-  controlsEnabled: boolean
+  controlsEnabled: boolean;
 }
 
 const GameControls: React.FC<GameControlsProps> = ({
@@ -20,7 +20,7 @@ const GameControls: React.FC<GameControlsProps> = ({
   isConnected,
   onEndTurn,
   hasInsufficientFunds = false,
-  controlsEnabled
+  controlsEnabled,
 }) => {
   // Show loading animation during DA ahead auction phase
   if (gameState.phase === GamePhase.DA_AUCTION) {
@@ -34,7 +34,9 @@ const GameControls: React.FC<GameControlsProps> = ({
     );
   }
 
-  if (!controlsEnabled) {return}
+  if (!controlsEnabled) {
+    return;
+  }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6">
@@ -57,7 +59,7 @@ const GameControls: React.FC<GameControlsProps> = ({
           onClick={onEndTurn}
           disabled={
             !isConnected ||
-            !controlsEnabled||
+            !controlsEnabled ||
             (hasInsufficientFunds && gameState.phase == GamePhase.BIDDING)
           }
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"

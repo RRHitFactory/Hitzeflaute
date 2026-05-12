@@ -1,7 +1,7 @@
 from dataclasses import dataclass, fields, replace
 from enum import IntEnum
 from functools import cached_property, lru_cache
-from typing import Literal, Self
+from typing import Self
 
 from src.models.assets import AssetInfo, AssetRepo
 from src.models.buses import BusFullException, BusRepo

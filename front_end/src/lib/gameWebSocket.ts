@@ -169,37 +169,56 @@ export class GameWebSocketClient {
 
   // Specific game action methods
   public buyAsset(assetId: string, playerId: number): void {
-    this.send("buy_request", {
-      purchase_id: assetId,
-      purchase_type: "asset",
-    }, playerId);
+    this.send(
+      "buy_request",
+      {
+        purchase_id: assetId,
+        purchase_type: "asset",
+      },
+      playerId,
+    );
   }
 
   public buyTransmissionLine(lineId: string, playerId: number): void {
-    this.send("buy_request", {
-      purchase_id: lineId,
-      purchase_type: "transmission",
-    }, playerId);
+    this.send(
+      "buy_request",
+      {
+        purchase_id: lineId,
+        purchase_type: "transmission",
+      },
+      playerId,
+    );
   }
 
   public updateBid(assetId: string, bidPrice: number, playerId: number): void {
-    this.send("update_bid_request", {
-      asset_id: assetId,
-      bid_price: bidPrice,
-    }, playerId);
+    this.send(
+      "update_bid_request",
+      {
+        asset_id: assetId,
+        bid_price: bidPrice,
+      },
+      playerId,
+    );
   }
 
   public submitBatchBids(bids: Record<number, number>, playerId: number): void {
     console.log("Submitting batch bids:", bids);
-    this.send("update_batch_bids_request", {
-      bids: bids,
-    }, playerId);
+    this.send(
+      "update_batch_bids_request",
+      {
+        bids: bids,
+      },
+      playerId,
+    );
   }
 
-  public activationUpdate(activationUpdates: {
-    line_activation?: Record<number, boolean>;
-    asset_activation?: Record<number, boolean>;
-  }, playerId: number): void {
+  public activationUpdate(
+    activationUpdates: {
+      line_activation?: Record<number, boolean>;
+      asset_activation?: Record<number, boolean>;
+    },
+    playerId: number,
+  ): void {
     this.send("activation_update_request", activationUpdates, playerId);
   }
 

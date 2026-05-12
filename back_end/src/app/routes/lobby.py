@@ -166,13 +166,14 @@ def get_lobby_rest_router(
 
     @router.post("/start/{game_id}")
     async def start_lobby(
-        game_id: str,
+        game_id: int,
     ):
         """Start a lobby (host only) - requires game_id in request body or query"""
         try:
             # For now, skip host check since we don't have player_id from cookies
             # In a full implementation, you'd need to pass player_id in the request
-            lobby = lobby_manager.get_lobby(GameId(int(game_id)))
+            game_id_obj = GameId(game_id)
+            lobby = lobby_manager.get_lobby(game_id_obj)
 
             if not lobby:
                 raise HTTPException(
@@ -181,7 +182,7 @@ def get_lobby_rest_router(
                 )
 
             # Start the lobby
-            success = lobby_manager.start_lobby(GameId(int(game_id)))
+            success = lobby_manager.start_lobby(game_id_obj)
             if not success:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -191,7 +192,7 @@ def get_lobby_rest_router(
             # Create the actual game from lobby
             player_names = lobby.get_player_names()
             game_id_obj = game_manager.new_game(
-                game_repo=game_manager.game_repo, player_names=player_names, turn_type="online"
+                game_repo=game_manager.game_repo, player_names=player_names, turn_type="online", game_id=game_id_obj
             )
 
             # Broadcast to all lobby members that game has started

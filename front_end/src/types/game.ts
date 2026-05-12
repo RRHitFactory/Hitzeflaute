@@ -124,7 +124,7 @@ export const GAME_PHASE_INFO: Record<GamePhaseValue, PhaseInfo> = {
     displayName: "Construction",
     color: "bg-blue-200 text-black border border-blue-400",
     description: "Build and purchase assets and transmission lines",
-    one_by_one: true
+    one_by_one: true,
   },
   [GamePhase.SNEAKY_TRICKS]: {
     id: GamePhase.SNEAKY_TRICKS,
@@ -132,7 +132,7 @@ export const GAME_PHASE_INFO: Record<GamePhaseValue, PhaseInfo> = {
     displayName: "Sneaky Tricks",
     color: "bg-purple-200 text-black border border-purple-400",
     description: "Execute special actions and strategic moves",
-    one_by_one: false
+    one_by_one: false,
   },
   [GamePhase.BIDDING]: {
     id: GamePhase.BIDDING,
@@ -140,7 +140,7 @@ export const GAME_PHASE_INFO: Record<GamePhaseValue, PhaseInfo> = {
     displayName: "Bidding",
     color: "bg-yellow-200 text-black border border-yellow-400",
     description: "Submit bids for the electricity market",
-    one_by_one: false
+    one_by_one: false,
   },
   [GamePhase.DA_AUCTION]: {
     id: GamePhase.DA_AUCTION,
@@ -148,7 +148,7 @@ export const GAME_PHASE_INFO: Record<GamePhaseValue, PhaseInfo> = {
     displayName: "Day-Ahead Auction",
     color: "bg-green-200 text-black border border-green-400",
     description: "Market clearing and results",
-    one_by_one: false
+    one_by_one: false,
   },
 };
 

@@ -35,7 +35,7 @@ interface AssetProps {
   isActive?: boolean;
   onActivate?: (assetId: number) => void;
   onDeactivate?: (assetId: number) => void;
-  controlsEnabled: boolean
+  controlsEnabled: boolean;
 }
 
 const technologyMap: { [key: string]: React.ElementType } = {
@@ -66,7 +66,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   isActive,
   onActivate,
   onDeactivate,
-  controlsEnabled
+  controlsEnabled,
 }) => {
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
@@ -84,7 +84,9 @@ const AssetComponent: React.FC<AssetProps> = ({
   const isLoad = asset.asset_type === AssetType.LOAD;
   // Freezers cannot be disabled
   const isFreezer = asset.is_freezer;
-  const playerHasNegativeMoney = currentPlayerObj ? currentPlayerObj.money < 0 : false;
+  const playerHasNegativeMoney = currentPlayerObj
+    ? currentPlayerObj.money < 0
+    : false;
   const isForcedInactive = isLoad && !isFreezer && playerHasNegativeMoney;
 
   // Determine if the asset can be toggled (not forced inactive, and not a freezer)
@@ -325,8 +327,12 @@ const AssetComponent: React.FC<AssetProps> = ({
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
             strokeWidth="2"
-            style={{ cursor: canAfford && controlsEnabled ? "pointer" : "not-allowed" }}
-            onClick={canAfford && controlsEnabled ? handlePurchaseClick : undefined}
+            style={{
+              cursor: canAfford && controlsEnabled ? "pointer" : "not-allowed",
+            }}
+            onClick={
+              canAfford && controlsEnabled ? handlePurchaseClick : undefined
+            }
             onMouseEnter={handlePurchaseButtonHover}
             onMouseLeave={onLeave}
           />
@@ -345,7 +351,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       )}
 
       {/* Activation control for owned assets in sneaky tricks phase */}
-      {currentPlayerObj && asset.owner_player === currentPlayerObj.id &&
+      {currentPlayerObj &&
+        asset.owner_player === currentPlayerObj.id &&
         isSneakyTricks &&
         viewMode === "normal" &&
         canToggle && (

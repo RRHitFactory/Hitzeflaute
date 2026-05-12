@@ -33,7 +33,7 @@ interface GridVisualizationProps {
     lines?: Record<number, boolean>;
     assets?: Record<number, boolean>;
   };
-  controlsEnabled: boolean
+  controlsEnabled: boolean;
 }
 
 const GridVisualization: React.FC<GridVisualizationProps> = ({
@@ -46,7 +46,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   onDeactivateAsset,
   currentPlayerObj,
   pendingActivations = {},
-  controlsEnabled
+  controlsEnabled,
 }) => {
   const [hoveredElement, setHoveredElement] = useState<HoverableElement | null>(
     null,
@@ -329,7 +329,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Check if asset is purchasable
   const isAssetPurchasable = (asset: any) => {
-    if (!controlsEnabled) {return false}
+    if (!controlsEnabled) {
+      return false;
+    }
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
       asset.owner_player === NPC_PLAYER_ID &&
@@ -340,7 +342,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Check if transmission line is purchasable
   const isLinePurchasable = (line: any) => {
-    if (!controlsEnabled) {return false}
+    if (!controlsEnabled) {
+      return false;
+    }
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
       line.owner_player === NPC_PLAYER_ID &&
@@ -469,7 +473,8 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
           // Check if player owns this line and we're in sneaky tricks phase
           const isOwnedByCurrentPlayer =
-            currentPlayerObj !== undefined && line.owner_player === currentPlayerObj.id;
+            currentPlayerObj !== undefined &&
+            line.owner_player === currentPlayerObj.id;
           const isSneakyTricks = gameState.phase === GamePhase.SNEAKY_TRICKS;
 
           // Get pending activation state if available, otherwise use game state
