@@ -83,6 +83,7 @@ function GameContent() {
 
   // Use the new player turn hook to handle all player-related logic
   const {
+    cookiePlayerId,
     currentPlayerId,
     currentPlayerObj,
     isHotseatMode,
@@ -300,6 +301,14 @@ function GameContent() {
       </header>
 
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Debug: Show currentPlayerObj */}
+        {currentPlayerObj && (
+          <div className="text-xs text-gray-500 bg-white p-1 rounded border mb-4 max-w-[400px] truncate">
+            {JSON.stringify(currentPlayerObj)}<br></br>
+            "Controls enabled:" {controlsEnabled.toString()}<br></br>
+            "Cookie player:" {cookiePlayerId?.toString()}
+          </div>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2">
             <div className="bg-gray-200 rounded-lg shadow-sm border p-6">

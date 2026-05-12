@@ -1,3 +1,4 @@
+import threading
 from typing import Protocol, runtime_checkable
 
 from src.app.game_repo.base import BaseGameStateRepo
@@ -23,6 +24,8 @@ class FrontEndMessageHandler(Protocol):
 
 
 class GameManager:
+    _lock = threading.Lock()
+
     def __init__(self, game_repo: BaseGameStateRepo, game_engine: Engine, front_end: FrontEndMessageHandler) -> None:
         assert isinstance(game_repo, BaseGameStateRepo)
         assert isinstance(front_end, FrontEndMessageHandler)
@@ -36,14 +39,12 @@ class GameManager:
 
     async def handle_player_message(self, game_id: GameId, msg: PlayerToGameMessage) -> None:
         # TODO Make this atomic
-        game_state = self.game_repo.read(game_id)
-        updated_game_state = await self._handle_message(game_id=game_id, game_state=game_state, msg=msg)
-        self.game_repo.update(updated_game_state)
+        with self._lock:
+            game_state = self.game_repo.read(game_id)
+            updated_game_state = await self._handle_message(game_id=game_id, game_state=game_state, msg=msg)
+            self.game_repo.update(updated_game_state)
 
     async def _handle_message(self, game_id: GameId, game_state: GameState, msg: ToGameMessage) -> GameState:
-        print(f"Handling message: {msg}")
-        print(msg)
-
         gs, messages = self.game_engine.handle_message(game_state=game_state, msg=msg)
 
         msgs_to_players = [e for e in messages if isinstance(e, GameToPlayerMessage)]

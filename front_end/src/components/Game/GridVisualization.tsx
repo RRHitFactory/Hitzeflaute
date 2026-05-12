@@ -329,6 +329,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Check if asset is purchasable
   const isAssetPurchasable = (asset: any) => {
+    if (!controlsEnabled) {return false}
     return (
       gameState.phase === GamePhase.CONSTRUCTION &&
       asset.owner_player === NPC_PLAYER_ID &&

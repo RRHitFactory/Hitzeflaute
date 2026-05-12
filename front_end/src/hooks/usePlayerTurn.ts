@@ -77,14 +77,29 @@ export function usePlayerTurn(
 
   // Enable controls when it's the current player's turn
   useEffect(() => {
-    if (currentPlayerObj && currentPlayerObj.is_having_turn) {
-      setControlsEnabled(true);
+    if (!currentPlayerObj) {setControlsEnabled(false)}
+
+    const isOnline = !isHotSeatMode;
+    if (isOnline) {
+      console.log("Is online");
+      if (cookiePlayerId == currentPlayerObj?.id) {
+        console.log("True");
+        setControlsEnabled(true);
+      } else {
+        console.log("False");
+        setControlsEnabled(false);
+      }
     } else {
-      setControlsEnabled(false);
+      if (currentPlayerObj && currentPlayerObj.is_having_turn) {
+        setControlsEnabled(true);
+      } else {
+        setControlsEnabled(false);
+      }
     }
   }, [currentPlayerObj, gameState?.phase]);
 
   return {
+    cookiePlayerId: cookiePlayerId,
     currentPlayerId: currentPlayerId,
     currentPlayerObj: currentPlayerObj,
     isHotseatMode: isHotSeatMode,
