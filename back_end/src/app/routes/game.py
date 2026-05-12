@@ -47,7 +47,9 @@ def get_game_ws_router(ws_connection_manager: GameWebSocketConnectionManager, ga
                 data = await websocket.receive_text()
 
                 try:
+                    print(data)
                     message = WebsocketMessage.from_string(data)
+                    print(message)
                     await handle_websocket_message(message)
                 except json.JSONDecodeError as e:
                     err = f"Invalid JSON received from {player_id_true} in game {game_id_true}: {data}"

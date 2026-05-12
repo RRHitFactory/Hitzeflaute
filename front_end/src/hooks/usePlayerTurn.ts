@@ -1,11 +1,10 @@
 import { GameState, getPhaseInfo, Player } from "@/types/game";
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 export function usePlayerTurn(
   gameState: GameState | null,
   gameId: number | null,
 ) {
-  const defaultPlayerId = 1;
   // State to track if controls are enabled
   const [controlsEnabled, setControlsEnabled] = useState(false);
 
@@ -41,28 +40,37 @@ export function usePlayerTurn(
     return null;
   }, [gameId, pageReady]);
 
-  /**
-   * Get the player who is currently in control of the browser
-   */
-  const currentPlayerId: number | null = useMemo(() => {
+  const activePlayers: Player[] = useMemo(() => {
     if (!(pageReady && gameState)) {
-      return defaultPlayerId;
+      return [];
     }
-
-    // For online multiplayer, the player stored in the cookie is always in control
-    if (!phaseIsOneByOne) {
-      return cookiePlayerId;
-    }
-
-    // For hotseat we take the first player with is_having_turn = true
     const playersArray = Array.isArray(gameState.players)
       ? gameState.players
       : gameState.players?.data || [];
 
     // Find the player with is_having_turn flag
-    const activePlayer = playersArray.find((p: any) => p.is_having_turn);
-    return activePlayer ? activePlayer.id : null;
-  }, [gameState, pageReady, phaseIsOneByOne, cookiePlayerId]);
+    return playersArray.filter((p: Player) => p.is_having_turn);
+  }, [pageReady, gameState]);
+
+  const firstActivePlayerId: number | null = useMemo(() => {
+    // For hotseat, take the first active player from the list
+    if (activePlayers.length === 0) {
+      return null;
+    }
+    return activePlayers[0].id;
+  }, [activePlayers]);
+
+  /**
+   * Get the player who is currently in control of the browser
+   */
+  const currentPlayerId: number | null = useMemo(() => {
+    // For online multiplayer, the player stored in the cookie is always in control
+    const isOnline = !isHotSeatMode;
+    if (isOnline) {
+      return cookiePlayerId;
+    }
+    return firstActivePlayerId;
+  }, [isHotSeatMode, cookiePlayerId, firstActivePlayerId]);
 
   /**
    * Get the current player object from game state
@@ -77,27 +85,23 @@ export function usePlayerTurn(
     return playersArray.find((p: any) => p.id === currentPlayerId) || undefined;
   }, [gameState, currentPlayerId]);
 
+  const isCurrentPlayersTurn: boolean = useMemo(() => {
+    if (!currentPlayerId) {
+      return false;
+    }
+    if (isHotSeatMode) {
+      return true;
+    }
+    if (currentPlayerId == firstActivePlayerId) {
+      return true;
+    }
+    return false;
+  }, [currentPlayerId, isHotSeatMode, firstActivePlayerId]);
+
   // Enable controls when it's the current player's turn
   useEffect(() => {
-    if (!currentPlayerObj) {
-      setControlsEnabled(false);
-    }
-
-    if (isHotSeatMode) {
-      if (currentPlayerObj) {
-        setControlsEnabled(true);
-      } else {
-        setControlsEnabled(false);
-      }
-    } else {
-      // online
-      if (cookiePlayerId == currentPlayerObj?.id) {
-        setControlsEnabled(true);
-      } else {
-        setControlsEnabled(false);
-      }
-    }
-  }, [currentPlayerObj, cookiePlayerId, isHotSeatMode]);
+    setControlsEnabled(isCurrentPlayersTurn);
+  }, [isCurrentPlayersTurn]);
 
   return {
     cookiePlayerId: cookiePlayerId,

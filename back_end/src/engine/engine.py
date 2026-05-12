@@ -119,7 +119,7 @@ class Engine:
             round = Round(gs.game_round + 1)
             msgs += building_msgs  # type: ignore
 
-        if msg.new_phase.is_turn_based:
+        if game_state.is_hotseat or msg.new_phase.is_one_by_one:
             players = players.start_first_player_turn()
         else:
             players = players.start_all_turns()
@@ -240,7 +240,7 @@ class Engine:
         msg: EndTurn,
     ) -> tuple[GameState, list[ConcludePhase]]:
         players = game_state.players
-        if game_state.phase.is_turn_based:
+        if game_state.is_hotseat or game_state.phase.is_one_by_one:
             players = players.cycle_turn()
         else:
             players = players.end_turn(player_id=msg.player_id)

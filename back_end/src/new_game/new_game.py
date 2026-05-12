@@ -178,7 +178,7 @@ class GameInitializer:
         new_game = GameState(
             game_id=game_id, game_settings=self.settings, phase=Phase(0), players=player_repo, buses=bus_repo, assets=assets_repo, transmission=transmission_repo, market_coupling_result=None
         )
-        if Phase(0).is_turn_based:
+        if new_game.is_hotseat or Phase(0).is_one_by_one:
             new_game = new_game.update(new_game.players.start_first_player_turn())
         else:
             new_game = new_game.update(new_game.players.start_all_turns())

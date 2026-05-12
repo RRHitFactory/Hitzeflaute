@@ -29,8 +29,8 @@ class Phase(IntEnum):
         return str(self)
 
     @property
-    def is_turn_based(self) -> bool:
-        return True
+    def is_one_by_one(self) -> bool:
+        return self is Phase.CONSTRUCTION
 
     @property
     def nice_name(self) -> str:
@@ -65,6 +65,10 @@ class GameState:
     @cached_property
     def current_players(self) -> list[PlayerId]:
         return self.players.get_currently_playing().player_ids
+
+    @cached_property
+    def is_hotseat(self) -> bool:
+        return self.game_settings.turn_type == "hotseat"
 
     def commit_pending_state(self) -> Self:
         assets = self.assets

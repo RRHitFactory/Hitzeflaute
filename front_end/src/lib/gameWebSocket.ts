@@ -14,7 +14,7 @@ export interface WebSocketMessage {
   message_type: string;
   data: any;
   game_id: number;
-  player_id?: number;
+  player_id: number;
 }
 
 interface GameWebSocketCallbacks {
@@ -25,7 +25,7 @@ interface GameWebSocketCallbacks {
 
 export class GameWebSocketClient {
   private gameId: number;
-  private socketPlayerId: number;  // may be -1 if shared socket
+  private socketPlayerId: number; // may be -1 if shared socket
   private ws: WebSocket | null = null;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
@@ -70,7 +70,7 @@ export class GameWebSocketClient {
 
         // Request initial game state
         console.log("📋 Requesting initial game state after connection...");
-        this.requestGameState();
+        this.requestGameState(-1);
 
         // Send any queued messages
         console.log("📤 Processing queued messages:", this.messageQueue.length);
@@ -78,7 +78,7 @@ export class GameWebSocketClient {
           const message = this.messageQueue.shift();
           if (message) {
             console.log("📤 Sending queued message:", message.message_type);
-            this.send(message.message_type, message.data);
+            this.send(message.message_type, message.data, message.player_id);
           }
         }
         console.log("✅ WebSocket initialization complete");
@@ -135,7 +135,7 @@ export class GameWebSocketClient {
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000); // Max 30 seconds
   }
 
-  public send(type: string, data: any, playerId?: number): void {
+  public send(type: string, data: any, playerId: number): void {
     const message: WebSocketMessage = {
       message_type: type,
       data: data,
@@ -224,7 +224,7 @@ export class GameWebSocketClient {
     this.send("end_turn", {}, playerId);
   }
 
-  public requestGameState(playerId?: number): void {
+  public requestGameState(playerId: number): void {
     console.log("🎯 Requesting initial game state...");
     this.send("get_game_state", {}, playerId);
   }
