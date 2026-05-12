@@ -1,5 +1,6 @@
 # Project stuff
 back_end/src/game_cache/*.json
+back_end/src/game_cache/*.txt
 back_end/src/game_cache/*.html
 back_end/tests/bad_states/*.json
 run_vibe*
