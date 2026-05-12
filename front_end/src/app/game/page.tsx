@@ -71,12 +71,13 @@ function GameContent() {
   );
 
   // Initialize WebSocket with default player first
+  const NPC = -1
   const {
-    client: wsClient,
+    client: sharedWsClient,
     connectionState,
     gameState,
     isConnected,
-  } = useGameWebSocket(gameId || -1, -1, callbacks);
+  } = useGameWebSocket(gameId || -1, NPC, callbacks);
 
   // Use the new player turn hook to handle all player-related logic
   const {
@@ -113,23 +114,23 @@ function GameContent() {
   }, [gameState?.phase, currentPlayerId]);
 
   const handlePurchaseAsset = (assetId: number) => {
-    if (!wsClient || !wsClient.isConnected()) {
+    if (!sharedWsClient || !sharedWsClient.isConnected()) {
       setError("Not connected to server");
       return;
     }
 
     console.log("Purchasing asset:", assetId);
-    wsClient.buyAsset(assetId.toString(), currentPlayerId || DEFAULT_PLAYER);
+    sharedWsClient.buyAsset(assetId.toString(), currentPlayerId || DEFAULT_PLAYER);
   };
 
   const handlePurchaseTransmissionLine = (lineId: number) => {
-    if (!wsClient || !wsClient.isConnected()) {
+    if (!sharedWsClient || !sharedWsClient.isConnected()) {
       setError("Not connected to server");
       return;
     }
 
     console.log("Purchasing transmission line:", lineId);
-    wsClient.buyTransmissionLine(
+    sharedWsClient.buyTransmissionLine(
       lineId.toString(),
       currentPlayerId || DEFAULT_PLAYER,
     );
@@ -168,7 +169,7 @@ function GameContent() {
   };
 
   const handleEndTurn = () => {
-    if (!wsClient || !wsClient.isConnected()) {
+    if (!sharedWsClient || !sharedWsClient.isConnected()) {
       setError("Not connected to server");
       return;
     }
@@ -184,7 +185,7 @@ function GameContent() {
 
       if (hasActivations) {
         console.log("Submitting activation updates:", pendingActivations);
-        wsClient.activationUpdate(
+        sharedWsClient.activationUpdate(
           {
             line_activation: pendingActivations.lines,
             asset_activation: pendingActivations.assets,
@@ -197,7 +198,7 @@ function GameContent() {
     if (gameState?.phase === 2) {
       if (Object.keys(pendingBids).length > 0) {
         console.log("Submitting pending bids:", pendingBids);
-        wsClient.submitBatchBids(pendingBids, currentPlayerId);
+        sharedWsClient.submitBatchBids(pendingBids, currentPlayerId);
       }
     }
 
@@ -205,7 +206,7 @@ function GameContent() {
     setPendingBids({});
 
     console.log("Ending turn");
-    wsClient.endTurn(currentPlayerId);
+    sharedWsClient.endTurn(currentPlayerId);
   };
 
   const handleBidAsset = (assetId: number, newBidPrice: number) => {
