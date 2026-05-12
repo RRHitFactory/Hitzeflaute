@@ -79,24 +79,20 @@ export function usePlayerTurn(
   useEffect(() => {
     if (!currentPlayerObj) {setControlsEnabled(false)}
 
-    const isOnline = !isHotSeatMode;
-    if (isOnline) {
-      console.log("Is online");
-      if (cookiePlayerId == currentPlayerObj?.id) {
-        console.log("True");
+    if (isHotSeatMode) {
+      if (currentPlayerObj) {
         setControlsEnabled(true);
       } else {
-        console.log("False");
         setControlsEnabled(false);
       }
-    } else {
-      if (currentPlayerObj && currentPlayerObj.is_having_turn) {
+    } else {  // online
+      if (cookiePlayerId == currentPlayerObj?.id) {
         setControlsEnabled(true);
       } else {
         setControlsEnabled(false);
       }
     }
-  }, [currentPlayerObj, gameState?.phase]);
+  }, [currentPlayerObj, cookiePlayerId, isHotSeatMode]);
 
   return {
     cookiePlayerId: cookiePlayerId,

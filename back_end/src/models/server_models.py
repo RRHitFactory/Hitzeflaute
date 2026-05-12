@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 # Pydantic models for API requests/responses
 class CreateGameRequest(BaseModel):
+    game_id: int
     player_names: list[str]
 
 
