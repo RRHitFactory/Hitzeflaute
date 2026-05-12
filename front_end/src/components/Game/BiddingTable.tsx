@@ -16,7 +16,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
   currentPlayerObj,
   pendingBids = {},
   onBidChange,
-  onInsufficientFundsChange
+  onInsufficientFundsChange,
 }) => {
   // Format helper functions (defined first to avoid hoisting issues)
   const formatNumber = (value: number) => {

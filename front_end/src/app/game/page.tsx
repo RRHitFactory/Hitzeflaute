@@ -26,7 +26,7 @@ function GameContent() {
   const [error, setError] = useState<string | null>(null);
   const hasConnectedRef = useRef(false);
   const hasSetPlayerRef = useRef(false);
-  const debug = (process.env.DEBUG || "") == "true"
+  const debug = (process.env.DEBUG || "") == "true";
 
   // Initialize gameId from URL param
   useEffect(() => {
@@ -338,7 +338,6 @@ function GameContent() {
                 controlsEnabled={controlsEnabled}
               />
             </div>
-
           </div>
 
           <div className="space-y-6">
@@ -364,15 +363,17 @@ function GameContent() {
               controlsEnabled={controlsEnabled}
             />
 
-            {gameState.phase === GamePhase.BIDDING && currentPlayerObj && controlsEnabled && (
-              <BiddingTable
-                assets={gameState.assets.data}
-                currentPlayerObj={currentPlayerObj}
-                pendingBids={pendingBids}
-                onBidChange={handleBidAsset}
-                onInsufficientFundsChange={setHasInsufficientFunds}
-              />
-            )}
+            {gameState.phase === GamePhase.BIDDING &&
+              currentPlayerObj &&
+              controlsEnabled && (
+                <BiddingTable
+                  assets={gameState.assets.data}
+                  currentPlayerObj={currentPlayerObj}
+                  pendingBids={pendingBids}
+                  onBidChange={handleBidAsset}
+                  onInsufficientFundsChange={setHasInsufficientFunds}
+                />
+              )}
           </div>
         </div>
       </main>

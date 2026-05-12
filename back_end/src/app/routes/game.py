@@ -34,9 +34,9 @@ def get_game_ws_router(ws_connection_manager: GameWebSocketConnectionManager, ga
             game_state = game_repo.read(GameId(int(game_id)))
 
             game_update = GameUpdate(game_id=game_id_true, game_state=game_state)
-            data = reduce_message(game_update).to_simple_dict()
+            msg_dict = reduce_message(game_update).to_simple_dict()
 
-            message = WebsocketMessage(game_id=game_id_true, player_id=player_id_true, message_type=GameUpdate.__name__, data=data)
+            message = WebsocketMessage(game_id=game_id_true, player_id=player_id_true, message_type=GameUpdate.__name__, data=msg_dict)
             await websocket.send_text(message.to_string())
         except Exception as e:
             log_exception_with_traceback(f"Error sending initial game state: {e}", e)
@@ -44,15 +44,13 @@ def get_game_ws_router(ws_connection_manager: GameWebSocketConnectionManager, ga
         try:
             while True:
                 # Receive message from client
-                data = await websocket.receive_text()
+                ws_string = await websocket.receive_text()
 
                 try:
-                    print(data)
-                    message = WebsocketMessage.from_string(data)
-                    print(message)
+                    message = WebsocketMessage.from_string(ws_string)
                     await handle_websocket_message(message)
                 except json.JSONDecodeError as e:
-                    err = f"Invalid JSON received from {player_id_true} in game {game_id_true}: {data}"
+                    err = f"Invalid JSON received from {player_id_true} in game {game_id_true}: {ws_string}"
                     log_exception_with_traceback(f"Error handling invalid JSON: {err}", e)
                     err_msg = WebsocketMessage.make_error(
                         game_id=game_id_true,

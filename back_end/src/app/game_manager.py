@@ -53,7 +53,7 @@ class GameManager:
         if len(msgs_to_players):
             print(f"Sending msgs to player: {[m for m in msgs_to_players]}")
             await self.front_end.handle_player_messages(msgs=msgs_to_players)
-        
+
         await self.front_end.broadcast_to_players(game_id=game_id, message=GameUpdate(game_id=game_id, game_state=gs))
 
         if not len(msgs_to_self):
