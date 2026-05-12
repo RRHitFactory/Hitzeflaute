@@ -65,8 +65,9 @@ class GameManager:
         return await self._handle_message(game_id=game_id, game_state=gs, msg=msg_to_self)
 
     @classmethod
-    def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str]) -> GameId:
-        game_id = game_repo.reserve_game_id()
+    def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str], game_id: GameId | None = None) -> GameId:
+        if game_id is None:
+            game_id = game_repo.reserve_game_id()
         settings = GameSettings()
         game_initializer = GameInitializer(settings=settings)
         new_game_state = game_initializer.create_new_game(game_id=game_id, player_names=player_names)

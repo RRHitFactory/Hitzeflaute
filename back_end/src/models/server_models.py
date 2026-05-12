@@ -164,21 +164,23 @@ class LobbyListResponse(BaseModel):
 Lobby models for PowerFlowGame multiplayer lobby system
 """
 
+LobbyHostId = PlayerId(1)
+
 
 @dataclass
 class LobbyPlayer:
-    """Represents a player in a lobby"""
-
     player_id: PlayerId
     name: str
-    is_host: bool = False
     joined_at: datetime = field(default_factory=datetime.now)
+
+    @property
+    def is_host(self) -> bool:
+        return self.player_id == LobbyHostId
 
     def to_dict(self) -> dict:
         return {
             "player_id": int(self.player_id),
             "name": self.name,
-            "is_host": self.is_host,
             "joined_at": self.joined_at.isoformat(),
         }
 
@@ -190,17 +192,17 @@ class Lobby:
     created_at: datetime = field(default_factory=datetime.now)
     max_players: int = 5
     is_started: bool = False
-    next_player_int_id: int = 0
+    next_player_int_id: int = 1
 
     @property
     def host_player_id(self) -> PlayerId:
-        return PlayerId(0)
+        return PlayerId(1)
 
     def add_player(self, name: str) -> LobbyPlayer:
         """Add a player to the lobby"""
         player_id = PlayerId(self.next_player_int_id)
         self.next_player_int_id += 1
-        player = LobbyPlayer(player_id=player_id, name=name, is_host=(player_id == self.host_player_id))
+        player = LobbyPlayer(player_id=player_id, name=name)
         self.players[player_id] = player
         return player
 

@@ -35,7 +35,7 @@ function LobbyContent() {
 
   // WebSocket connection for real-time updates - only connect when player is ready
   const parsedPlayerId = playerId ? parseInt(playerId) : -1;
-  const isHost = parsedPlayerId == 0;
+  const isHost = parsedPlayerId == 1;
 
   const {
     client: wsClient,
