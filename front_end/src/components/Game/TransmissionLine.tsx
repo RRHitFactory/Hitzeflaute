@@ -17,19 +17,18 @@ interface TransmissionLineProps {
   onLeave: () => void;
   isPurchasable?: boolean;
   onPurchase?: (lineId: number) => void;
-  playerMoney?: number;
   viewMode?: "normal" | "market";
   onClick?: (lineId: number, event: React.MouseEvent) => void;
   maxFlow?: number;
   actualFlow?: number;
   showFlowAnimation?: boolean;
-  currentPlayer?: number;
+  currentPlayerObj?: Player;
   isOwnedByCurrentPlayer?: boolean;
   isSneakyTricks?: boolean;
   isActive?: boolean;
   onActivate?: (lineId: number) => void;
   onDeactivate?: (lineId: number) => void;
-  isCurrentPlayersTurn?: boolean;
+  controlsEnabled: boolean
 }
 
 const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
@@ -40,19 +39,17 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   onLeave,
   isPurchasable = false,
   onPurchase,
-  playerMoney = 0,
   viewMode = "normal",
   onClick,
   maxFlow = 1,
   actualFlow = 0,
   showFlowAnimation = false,
-  currentPlayer,
-  isOwnedByCurrentPlayer = false,
+  currentPlayerObj,
   isSneakyTricks = false,
   isActive,
   onActivate,
   onDeactivate,
-  isCurrentPlayersTurn = true,
+  controlsEnabled
 }) => {
   const fromBus = buses.find((b) => b.id === line.bus1);
   const toBus = buses.find((b) => b.id === line.bus2);
@@ -224,6 +221,9 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const perpX2 = curveMidX - perpVector.x * 8;
   const perpY2 = curveMidY - perpVector.y * 8;
 
+  const isOwnedByCurrentPlayer = owner.id == currentPlayerObj?.id
+  const playerMoney: number = !currentPlayerObj ? 0 : currentPlayerObj.money
+
   // Check if player can afford this line
   const canAfford =
     !isPurchasable ||
@@ -309,8 +309,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
             strokeWidth="2"
-            style={{ cursor: canAfford && isCurrentPlayersTurn ? "pointer" : "not-allowed" }}
-            onClick={canAfford && isCurrentPlayersTurn ? handlePurchaseClick : undefined}
+            style={{ cursor: canAfford && controlsEnabled ? "pointer" : "not-allowed" }}
+            onClick={canAfford && controlsEnabled ? handlePurchaseClick : undefined}
             onMouseEnter={(e) => {
               e.stopPropagation();
               onHover(
@@ -352,9 +352,9 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
             fill={displayActive ? "#22c55e" : "#9ca3af"}
             stroke="white"
             strokeWidth="2"
-            style={{ cursor: isCurrentPlayersTurn ? "pointer" : "not-allowed" }}
+            style={{ cursor: controlsEnabled  ? "pointer" : "not-allowed" }}
             onClick={
-              isCurrentPlayersTurn ? (displayActive ? handleDeactivateClick : handleActivateClick) : undefined
+              controlsEnabled ? (displayActive ? handleDeactivateClick : handleActivateClick) : undefined
             }
             onMouseEnter={handleActivationHover}
             onMouseLeave={onLeave}

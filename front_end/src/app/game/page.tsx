@@ -6,15 +6,17 @@ import GameControls from "@/components/UI/GameControls";
 import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
 import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
-import { GamePhase, getPhaseInfo } from "@/types/game";
+import { GamePhase } from "@/types/game";
 import { useSearchParams } from "next/navigation";
-import React, {
+import {
   Suspense,
   useCallback,
   useEffect,
   useRef,
   useState,
+  useMemo
 } from "react";
+import { usePlayerTurn } from "@/hooks/usePlayerTurn";
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -22,7 +24,7 @@ function GameContent() {
   const [gameId, setGameId] = useState<number | null>(null);
   const DEFAULT_PLAYER = 1;
   const [error, setError] = useState<string | null>(null);
-  const [isEndingTurn, setIsEndingTurn] = useState(false);
+  const [controlsEnabled, setControlsEnabled] = useState(false);
   const hasConnectedRef = useRef(false);
 
   // Initialize gameId from URL param
@@ -42,15 +44,14 @@ function GameContent() {
         console.error(msg.data);
         setError(msg.data || "Unknown server error");
       } else if (msg.message_type === "GameUpdate") {
-        if (isEndingTurn) {
-          console.log("Game state updated, resetting isEndingTurn");
-          setIsEndingTurn(false);
+        if (!controlsEnabled) {
+          setControlsEnabled(true);
         }
       }
 
       console.log("=== End WebSocket Message Processing ===");
     },
-    [isEndingTurn],
+    [controlsEnabled],
   );
 
   const handleError = useCallback((error: any) => {
@@ -66,7 +67,7 @@ function GameContent() {
     hasConnectedRef.current = false;
   }, []);
 
-  const callbacks = React.useMemo(
+  const callbacks = useMemo(
     () => ({
       onMessage: handleMessage,
       onError: handleError,
@@ -82,20 +83,6 @@ function GameContent() {
     isConnected,
   } = useGameWebSocket(gameId || -1, DEFAULT_PLAYER, callbacks);
 
-  const isHotSeat = React.useMemo(() => {
-    if (!gameState) {return false}
-    return (gameState.game_settings.turn_type == "hotseat")
-  }, [gameState?.game_settings.turn_type]);
-
-  const phaseIsOneByOne = React.useMemo(() => {
-    if (!gameState) {return true}
-    if (gameState.game_settings.turn_type == "hotseat") {
-      return true
-    } else {
-      return getPhaseInfo(gameState.phase).one_by_one
-    }
-  }, [gameState?.phase]);
-
   // Track when we first connect successfully
   useEffect(() => {
     if (connectionState === "CONNECTED" && !hasConnectedRef.current) {
@@ -103,46 +90,14 @@ function GameContent() {
     }
   }, [connectionState]);
 
-  // Get the current player's ID from localStorage
-  const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
+  // Use the new player turn hook to handle all player-related logic
+  const {
+    currentPlayerId,
+    currentPlayerObj,
+    isHotseatMode
+  } = usePlayerTurn(gameState, gameId);
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && gameId) {
-      const storedPlayerId = localStorage.getItem(`lobby_playerId_${gameId}`);
-      if (storedPlayerId) {
-        setLocalPlayerId(parseInt(storedPlayerId));
-      }
-    }
-  }, [gameId]);
-
-  const currentPlayer: number = React.useMemo(() => {
-    if (!gameState) return DEFAULT_PLAYER;
-
-    const playersArray = Array.isArray(gameState.players)
-      ? gameState.players
-      : gameState.players?.data || [];
-
-    const activePlayer = playersArray.find((p: any) => p.is_having_turn);
-    return activePlayer ? activePlayer.id : DEFAULT_PLAYER;
-  }, [gameState]);
-
-  const currentPlayerObj = React.useMemo(() => {
-    if (!gameState) return null;
-
-    const playersArray = Array.isArray(gameState.players)
-      ? gameState.players
-      : gameState.players?.data || [];
-
-    return playersArray.find((p: any) => p.id === currentPlayer);
-  }, [gameState, currentPlayer]);
-
-  const currentPlayerName = React.useMemo(() => {
-    return currentPlayerObj ? currentPlayerObj.name : `Player ${currentPlayer}`;
-  }, [currentPlayerObj, currentPlayer]);
-
-  const currentPlayerTrigram = React.useMemo(() => {
-    return currentPlayerObj ? currentPlayerObj.trigram : `P${currentPlayer}`;
-  }, [currentPlayerObj, currentPlayer]);
+  // Extract player info from the local player object
 
   const [pendingActivations, setPendingActivations] = useState<{
     lines: Record<number, boolean>;
@@ -157,19 +112,10 @@ function GameContent() {
   useEffect(() => {
     setPendingActivations({ lines: {}, assets: {} });
     setPendingBids({});
-  }, [gameState?.phase, currentPlayer]);
+  }, [gameState?.phase, currentPlayerId]);
 
-  const isCurrentPlayersTurn: boolean = React.useMemo(() => {
-    if (phaseIsOneByOne){return true}
-    return false
-  }, [phaseIsOneByOne, currentPlayer]);
 
   const handlePurchaseAsset = (assetId: number) => {
-    if (!isCurrentPlayersTurn) {
-      setError("It's not your turn!");
-      return;
-    }
-    
     if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
       return;
@@ -180,11 +126,6 @@ function GameContent() {
   };
 
   const handlePurchaseTransmissionLine = (lineId: number) => {
-    if (!isCurrentPlayersTurn) {
-      setError("It's not your turn!");
-      return;
-    }
-    
     if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
       return;
@@ -227,13 +168,8 @@ function GameContent() {
   };
 
   const handleEndTurn = () => {
-    if (!isCurrentPlayersTurn) {
-      setError("It's not your turn!");
-      return;
-    }
-    
-    if (!wsClient || !wsClient.isConnected() || isEndingTurn) {
-      if (!isEndingTurn) setError("Not connected to server");
+    if (!wsClient || !wsClient.isConnected()) {
+      setError("Not connected to server");
       return;
     }
 
@@ -262,7 +198,7 @@ function GameContent() {
     setPendingBids({});
 
     console.log("Ending turn");
-    setIsEndingTurn(true);
+    setControlsEnabled(false);
     wsClient.endTurn();
   };
 
@@ -377,9 +313,9 @@ function GameContent() {
                 onDeactivateLine={handleDeactivateLine}
                 onActivateAsset={handleActivateAsset}
                 onDeactivateAsset={handleDeactivateAsset}
-                currentPlayer={currentPlayer}
+                currentPlayerObj={currentPlayerObj}
                 pendingActivations={pendingActivations}
-                isCurrentPlayersTurn={isCurrentPlayersTurn}
+                controlsEnabled={controlsEnabled}
               />
             </div>
           </div>
@@ -388,25 +324,21 @@ function GameContent() {
             <GameControls
               gameState={gameState}
               gameId={gameId?.toString() || null}
-              currentPlayerName={currentPlayerName}
-              currentPlayerTrigram={currentPlayerTrigram}
-              currentPlayerColor={currentPlayerObj?.color}
+              currentPlayerObj={currentPlayerObj}
               isConnected={isConnected}
               onEndTurn={handleEndTurn}
               hasInsufficientFunds={hasInsufficientFunds}
-              isEndingTurn={isEndingTurn}
-              isCurrentPlayersTurn={isCurrentPlayersTurn}
+              controlsEnabled={controlsEnabled}
             />
 
             {gameState.phase === GamePhase.BIDDING && (
               <BiddingTable
                 assets={gameState.assets.data}
-                currentPlayer={currentPlayer}
-                playerMoney={currentPlayerObj?.money || 0}
+                currentPlayerObj={currentPlayerObj}
+                playerMoney={localPlayer?.money || 0}
                 pendingBids={pendingBids}
                 onBidChange={handleBidAsset}
                 onInsufficientFundsChange={setHasInsufficientFunds}
-                isCurrentPlayersTurn={isCurrentPlayersTurn}
               />
             )}
 
