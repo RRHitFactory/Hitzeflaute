@@ -62,8 +62,8 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
     gens = bus_assets.only_generators
     loads = bus_assets.only_loads
 
-    total_dispatch = coupling_result.assets_dispatch.sum()
-    dispatch_dict: dict[AssetId, float] = {AssetId(k): v for k, v in total_dispatch.to_dict().items()}  # type: ignore
+    total_dispatch_dict: dict[int, float] = coupling_result.assets_dispatch.sum().to_dict()  # type: ignore
+    dispatch_dict: dict[AssetId, float] = {AssetId(k): v for k, v in total_dispatch_dict.items()}
 
     def make_gen_row(asset_id: AssetId) -> dict[str, str | float]:
         asset = gens[asset_id]
@@ -82,7 +82,6 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
             "marginal_price": asset.marginal_cost,
             "bid_price": asset.bid_price,
         }
-
 
     load_df = pd.DataFrame([make_load_row(asset_id) for asset_id in loads.asset_ids])
 

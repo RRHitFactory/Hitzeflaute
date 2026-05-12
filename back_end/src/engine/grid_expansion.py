@@ -3,7 +3,6 @@ from src.models.game_state import GameState
 from src.models.ids import AssetId
 from src.models.message import (
     AssetBuiltMessage,
-    TransmissionBuiltMessage,
 )
 from src.new_game.generators.generator_maker import GeneratorMaker
 from src.new_game.loads.load_maker import LoadMaker
@@ -12,7 +11,7 @@ from src.tools.random_choice import sample_boolean
 
 class GridExpansion:
     @classmethod
-    def build_grid_elements_for_new_round(cls, game_state: GameState) -> tuple[GameState, list[AssetBuiltMessage | TransmissionBuiltMessage]]:
+    def build_grid_elements_for_new_round(cls, game_state: GameState) -> tuple[GameState, list[AssetBuiltMessage]]:
         gs, build_asset_msgs, new_asset_ids = cls.try_build_asset(game_state)
         # TODO Build tranmission and buses too
 
@@ -23,7 +22,7 @@ class GridExpansion:
 
         all_msgs = build_asset_msgs
 
-        return gs, all_msgs  # type: ignore
+        return gs, all_msgs
 
     @classmethod
     def try_build_asset(cls, game_state: GameState, **kwargs) -> tuple[GameState, list[AssetBuiltMessage], list[AssetId]]:
