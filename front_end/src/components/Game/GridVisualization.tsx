@@ -348,12 +348,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     );
   };
 
-  // Get current player money
-  const getCurrentPlayerMoney = () => {
-    if( !currentPlayerObj) return 0;
-    return currentPlayerObj?.money || 0;
-  };
-
   // Handle purchase confirmation for assets
   const handleAssetPurchaseRequest = (assetId: number) => {
     const asset = getAssetsArray().find((a) => a.id === assetId);
@@ -505,6 +499,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               isActive={isLineActive}
               onActivate={handleActivateLineWrapper}
               onDeactivate={handleDeactivateLineWrapper}
+              controlsEnabled={controlsEnabled}
             />
           );
         })}
@@ -533,9 +528,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
             const isPurchasable = isAssetPurchasable(asset);
 
             // Check if player owns this asset and we're in sneaky tricks phase
-            const isOwnedByCurrentPlayer =
-              currentPlayerObj !== undefined &&
-              asset.owner_player === currentPlayerObj.id;
             const isSneakyTricks = gameState.phase === GamePhase.SNEAKY_TRICKS;
 
             // Get pending activation state if available, otherwise use game state
@@ -548,9 +540,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               owner.color;
             }
 
-            // Check if player has negative money
-            const playerHasNegativeMoney = getCurrentPlayerMoney() < 0;
-
             return (
               <AssetComponent
                 key={asset.id}
@@ -562,16 +551,13 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 onLeave={handleMouseLeave}
                 isPurchasable={isPurchasable}
                 onPurchase={handleAssetPurchaseRequest}
-                playerMoney={getCurrentPlayerMoney()}
-                currentPlayer={currentPlayer}
+                currentPlayerObj={currentPlayerObj}
                 viewMode={viewMode}
-                isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
                 isSneakyTricks={isSneakyTricks}
                 isActive={isAssetActive}
                 onActivate={handleActivateAssetWrapper}
                 onDeactivate={handleDeactivateAssetWrapper}
-                playerHasNegativeMoney={playerHasNegativeMoney}
-                isCurrentPlayersTurn={isCurrentPlayersTurn}
+                controlsEnabled={controlsEnabled}
               />
             );
           }),

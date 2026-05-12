@@ -1,12 +1,13 @@
 import { GameState, getPhaseInfo, Player } from "@/types/game";
-import { useMemo } from "react";
-
+import { useMemo, useState, useEffect } from "react";
 
 export function usePlayerTurn(
   gameState: GameState | null, 
   gameId: number | null
 ) {
   const defaultPlayerId = 1
+  // State to track if controls are enabled
+  const [controlsEnabled, setControlsEnabled] = useState(false);
 
   const pageReady = useMemo(() => {
     return typeof window !== "undefined" && gameId
@@ -72,9 +73,22 @@ export function usePlayerTurn(
     return playersArray.find((p: any) => p.id === currentPlayerId) || undefined;
   }, [gameState, currentPlayerId]);
 
+
+
+  // Enable controls when it's the current player's turn
+  useEffect(() => {
+    if (currentPlayerObj && currentPlayerObj.is_having_turn) {
+      setControlsEnabled(true);
+    } else {
+      setControlsEnabled(false);
+    }
+  }, [currentPlayerObj?.is_having_turn, gameState?.phase]);
+
   return {
     currentPlayerId: currentPlayerId,
     currentPlayerObj: currentPlayerObj,
     isHotseatMode: isHotSeatMode,
+    controlsEnabled: controlsEnabled,
+    setControlsEnabled: setControlsEnabled
   };
 }

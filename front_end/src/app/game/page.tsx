@@ -24,7 +24,6 @@ function GameContent() {
   const [gameId, setGameId] = useState<number | null>(null);
   const DEFAULT_PLAYER = 1;
   const [error, setError] = useState<string | null>(null);
-  const [controlsEnabled, setControlsEnabled] = useState(false);
   const hasConnectedRef = useRef(false);
 
   // Initialize gameId from URL param
@@ -44,14 +43,12 @@ function GameContent() {
         console.error(msg.data);
         setError(msg.data || "Unknown server error");
       } else if (msg.message_type === "GameUpdate") {
-        if (!controlsEnabled) {
-          setControlsEnabled(true);
-        }
+        // Controls are now managed by the usePlayerTurn hook based on currentPlayerObj.is_having_turn
       }
 
       console.log("=== End WebSocket Message Processing ===");
     },
-    [controlsEnabled],
+    [],
   );
 
   const handleError = useCallback((error: any) => {
@@ -94,7 +91,9 @@ function GameContent() {
   const {
     currentPlayerId,
     currentPlayerObj,
-    isHotseatMode
+    isHotseatMode,
+    controlsEnabled,
+    setControlsEnabled
   } = usePlayerTurn(gameState, gameId);
 
   // Extract player info from the local player object
@@ -172,6 +171,7 @@ function GameContent() {
       setError("Not connected to server");
       return;
     }
+    setControlsEnabled(false)
 
     if (gameState?.phase === 1) {
       const hasActivations =
@@ -198,7 +198,6 @@ function GameContent() {
     setPendingBids({});
 
     console.log("Ending turn");
-    setControlsEnabled(false);
     wsClient.endTurn();
   };
 
@@ -334,11 +333,12 @@ function GameContent() {
             {gameState.phase === GamePhase.BIDDING && (
               <BiddingTable
                 assets={gameState.assets.data}
-                currentPlayerObj={currentPlayerObj}
-                playerMoney={localPlayer?.money || 0}
+                currentPlayer={currentPlayerObj?.id || DEFAULT_PLAYER}
+                playerMoney={currentPlayerObj?.money || 0}
                 pendingBids={pendingBids}
                 onBidChange={handleBidAsset}
                 onInsufficientFundsChange={setHasInsufficientFunds}
+                isCurrentPlayersTurn={controlsEnabled}
               />
             )}
 
