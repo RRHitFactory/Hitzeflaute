@@ -73,19 +73,13 @@ function GameContent() {
     [handleMessage, handleError, handleClose],
   );
 
+  // Initialize WebSocket with default player first
   const {
     client: wsClient,
     connectionState,
     gameState,
     isConnected,
   } = useGameWebSocket(gameId || -1, DEFAULT_PLAYER, callbacks);
-
-  // Track when we first connect successfully
-  useEffect(() => {
-    if (connectionState === "CONNECTED" && !hasConnectedRef.current) {
-      hasConnectedRef.current = true;
-    }
-  }, [connectionState]);
 
   // Use the new player turn hook to handle all player-related logic
   const {
@@ -95,6 +89,13 @@ function GameContent() {
     controlsEnabled,
     setControlsEnabled
   } = usePlayerTurn(gameState, gameId);
+
+  // Track when we first connect successfully
+  useEffect(() => {
+    if (connectionState === "CONNECTED" && !hasConnectedRef.current) {
+      hasConnectedRef.current = true;
+    }
+  }, [connectionState]);
 
   // Extract player info from the local player object
 
@@ -121,7 +122,7 @@ function GameContent() {
     }
 
     console.log("Purchasing asset:", assetId);
-    wsClient.buyAsset(assetId.toString());
+    wsClient.buyAsset(assetId.toString(), currentPlayerId || DEFAULT_PLAYER);
   };
 
   const handlePurchaseTransmissionLine = (lineId: number) => {
@@ -131,7 +132,7 @@ function GameContent() {
     }
 
     console.log("Purchasing transmission line:", lineId);
-    wsClient.buyTransmissionLine(lineId.toString());
+    wsClient.buyTransmissionLine(lineId.toString(), currentPlayerId || DEFAULT_PLAYER);
   };
 
   const handleActivateLine = (lineId: number) => {
@@ -171,6 +172,7 @@ function GameContent() {
       setError("Not connected to server");
       return;
     }
+    if (!currentPlayerId) {return}
     setControlsEnabled(false)
 
     if (gameState?.phase === 1) {
@@ -183,14 +185,14 @@ function GameContent() {
         wsClient.activationUpdate({
           line_activation: pendingActivations.lines,
           asset_activation: pendingActivations.assets,
-        });
+        }, currentPlayerId);
       }
     }
 
     if (gameState?.phase === 2) {
       if (Object.keys(pendingBids).length > 0) {
         console.log("Submitting pending bids:", pendingBids);
-        wsClient.submitBatchBids(pendingBids);
+        wsClient.submitBatchBids(pendingBids, currentPlayerId);
       }
     }
 
@@ -198,7 +200,7 @@ function GameContent() {
     setPendingBids({});
 
     console.log("Ending turn");
-    wsClient.endTurn();
+    wsClient.endTurn(currentPlayerId);
   };
 
   const handleBidAsset = (assetId: number, newBidPrice: number) => {

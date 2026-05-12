@@ -137,16 +137,17 @@ export class GameWebSocketClient {
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000); // Max 30 seconds
   }
 
-  public send(type: string, data: any): void {
+  public send(type: string, data: any, playerId?: number): void {
     const message: WebSocketMessage = {
       message_type: type,
       data: data,
       game_id: this.gameId,
-      player_id: this.currentPlayerId,
+      player_id: playerId !== undefined ? playerId : this.currentPlayerId,
     };
 
     console.log("=== Sending WebSocket Message ===");
     console.log("Message type:", type);
+    console.log("Player ID:", message.player_id);
     console.log("WebSocket ready state:", this.ws?.readyState);
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -167,48 +168,48 @@ export class GameWebSocketClient {
   }
 
   // Specific game action methods
-  public buyAsset(assetId: string): void {
+  public buyAsset(assetId: string, playerId: number): void {
     this.send("buy_request", {
       purchase_id: assetId,
       purchase_type: "asset",
-    });
+    }, playerId);
   }
 
-  public buyTransmissionLine(lineId: string): void {
+  public buyTransmissionLine(lineId: string, playerId: number): void {
     this.send("buy_request", {
       purchase_id: lineId,
       purchase_type: "transmission",
-    });
+    }, playerId);
   }
 
-  public updateBid(assetId: string, bidPrice: number): void {
+  public updateBid(assetId: string, bidPrice: number, playerId: number): void {
     this.send("update_bid_request", {
       asset_id: assetId,
       bid_price: bidPrice,
-    });
+    }, playerId);
   }
 
-  public submitBatchBids(bids: Record<number, number>): void {
+  public submitBatchBids(bids: Record<number, number>, playerId: number): void {
     console.log("Submitting batch bids:", bids);
     this.send("update_batch_bids_request", {
       bids: bids,
-    });
+    }, playerId);
   }
 
   public activationUpdate(activationUpdates: {
     line_activation?: Record<number, boolean>;
     asset_activation?: Record<number, boolean>;
-  }): void {
-    this.send("activation_update_request", activationUpdates);
+  }, playerId: number): void {
+    this.send("activation_update_request", activationUpdates, playerId);
   }
 
-  public endTurn(): void {
-    this.send("end_turn", {});
+  public endTurn(playerId: number): void {
+    this.send("end_turn", {}, playerId);
   }
 
-  public requestGameState(): void {
+  public requestGameState(playerId?: number): void {
     console.log("🎯 Requesting initial game state...");
-    this.send("get_game_state", {});
+    this.send("get_game_state", {}, playerId);
   }
 
   public disconnect(): void {

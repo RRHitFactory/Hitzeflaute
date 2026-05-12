@@ -11,16 +11,16 @@ export function usePlayerTurn(
 
   const pageReady = useMemo(() => {
     return typeof window !== "undefined" && gameId
-  }, [gameId, gameState, window]);
+  }, [gameId]);
 
   const isHotSeatMode: boolean = useMemo(() => {
     if (!pageReady) return true; // Default to hotseat if we don't know
-    if (!gameState) return true;
+    if (!gameState?.game_settings) return true;
     return gameState.game_settings.turn_type == "hotseat"
-  }, [gameState?.game_settings]);
+  }, [gameState?.game_settings, pageReady]);
 
   const phaseIsOneByOne = useMemo(() => {
-    if (pageReady && gameState) {
+    if (pageReady && gameState?.phase) {
       if (isHotSeatMode) {
         return true
       } else {
@@ -39,7 +39,7 @@ export function usePlayerTurn(
       }
     }
     return null
-  }, [gameId, isHotSeatMode]);
+  }, [gameId, pageReady]);
 
   /**
    * Get the player who is currently in control of the browser
@@ -58,7 +58,7 @@ export function usePlayerTurn(
     // Find the player with is_having_turn flag
     const activePlayer = playersArray.find((p: any) => p.is_having_turn);
     return activePlayer ? activePlayer.id : null;
-  }, [gameState]);
+  }, [gameState, pageReady, phaseIsOneByOne, cookiePlayerId]);
 
   /**
    * Get the current player object from game state
@@ -82,7 +82,7 @@ export function usePlayerTurn(
     } else {
       setControlsEnabled(false);
     }
-  }, [currentPlayerObj?.is_having_turn, gameState?.phase]);
+  }, [currentPlayerObj, gameState?.phase]);
 
   return {
     currentPlayerId: currentPlayerId,
