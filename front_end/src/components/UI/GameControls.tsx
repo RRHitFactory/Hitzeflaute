@@ -13,6 +13,7 @@ interface GameControlsProps {
   onEndTurn: () => void;
   hasInsufficientFunds?: boolean;
   isEndingTurn?: boolean;
+  isCurrentPlayersTurn?: boolean;
 }
 
 const GameControls: React.FC<GameControlsProps> = ({
@@ -25,6 +26,7 @@ const GameControls: React.FC<GameControlsProps> = ({
   onEndTurn,
   hasInsufficientFunds = false,
   isEndingTurn = false,
+  isCurrentPlayersTurn = true,
 }) => {
   // Show loading animation during DA ahead auction phase
   if (gameState.phase === GamePhase.DA_AUCTION) {
@@ -61,12 +63,13 @@ const GameControls: React.FC<GameControlsProps> = ({
           onClick={onEndTurn}
           disabled={
             !isConnected ||
+            !isCurrentPlayersTurn ||
             (hasInsufficientFunds && gameState.phase == GamePhase.BIDDING) ||
             isEndingTurn
           }
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
         >
-          {isEndingTurn ? "Ending Turn..." : "End Turn"}
+          {isEndingTurn ? "Ending Turn..." : isCurrentPlayersTurn ? "End Turn" : "Waiting for Turn"}
         </button>
         <div className="text-sm text-gray-600">
           <p>Game ID: {gameId}</p>

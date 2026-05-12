@@ -6,6 +6,7 @@ from src.app.game_manager import GameManager
 from src.app.game_repo.base import BaseGameStateRepo
 from src.app.game_ws_manager import GameWebSocketConnectionManager
 from src.app.routes.logging import log_exception_with_traceback
+from src.app.tools.reduce_message import reduce_message
 from src.models.ids import GameId, PlayerId
 from src.models.message import GameUpdate
 from src.models.server_models import (
@@ -31,14 +32,11 @@ def get_game_ws_router(ws_connection_manager: GameWebSocketConnectionManager, ga
         # Send initial game state
         try:
             game_state = game_repo.read(GameId(int(game_id)))
-            message = WebsocketMessage.from_py_message(
-                GameUpdate(
-                    game_id=game_id_true,
-                    player_id=player_id_true,
-                    game_state=game_state,
-                    message="",
-                )
-            )
+
+            game_update = GameUpdate(game_id=game_id_true, game_state=game_state)
+            data = reduce_message(game_update).to_simple_dict()
+
+            message = WebsocketMessage(game_id=game_id_true, player_id=player_id_true, message_type=GameUpdate.__name__, data=data)
             await websocket.send_text(message.to_string())
         except Exception as e:
             log_exception_with_traceback(f"Error sending initial game state: {e}", e)
@@ -82,8 +80,7 @@ def get_game_ws_router(ws_connection_manager: GameWebSocketConnectionManager, ga
 
         try:
             if message.message_type == "get_game_state":
-                # Shortcut for requesting the game state
-                await game_manager.update_players(game_id=message.game_id_obj, players=[message.player_id_obj])
+                await game_manager.update_players(game_id=message.game_id_obj)
             else:
                 await game_manager.handle_player_message(game_id=message.game_id_obj, msg=message.to_py_message())
 

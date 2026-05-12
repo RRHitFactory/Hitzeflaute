@@ -5,12 +5,16 @@ from src.app.game_repo.file_game_repo import FileGameStateRepo
 from src.app.lobby_manager import LobbyManager
 from src.directories import test_dir
 from src.engine.engine import Engine
-from src.models.message import GameToPlayerMessage
+from src.models.ids import GameId
+from src.models.message import GameToPlayerMessage, GameUpdate
 from tests.base_test import BaseTest
 
 
 class DummyFrontEndMessageHandler:
     async def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None:
+        return None
+
+    async def broadcast_to_players(self, game_id: GameId, message: GameUpdate) -> None:
         return None
 
 

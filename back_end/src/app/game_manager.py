@@ -19,6 +19,7 @@ from src.new_game.new_game import GameInitializer
 class FrontEndMessageHandler(Protocol):
     # A generic stub for the front end implementation
     async def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None: ...
+    async def broadcast_to_players(self, game_id: GameId, message: GameUpdate) -> None: ...
 
 
 class GameManager:
@@ -29,10 +30,9 @@ class GameManager:
         self.game_engine = game_engine
         self.front_end = front_end
 
-    async def update_players(self, game_id: GameId, players: list[PlayerId]) -> None:
+    async def update_players(self, game_id: GameId) -> None:
         game_state = self.game_repo.read(game_id)
-        game_update_messages = [GameUpdate(game_id=game_id, player_id=p, game_state=game_state, message="") for p in players]
-        await self.front_end.handle_player_messages(msgs=game_update_messages)  # type: ignore
+        await self.front_end.broadcast_to_players(game_id=game_id, message=GameUpdate(game_id=game_id, game_state=game_state))
 
     async def handle_player_message(self, game_id: GameId, msg: PlayerToGameMessage) -> None:
         # TODO Make this atomic
@@ -49,12 +49,9 @@ class GameManager:
         msgs_to_players = [e for e in messages if isinstance(e, GameToPlayerMessage)]
         msgs_to_self = [e for e in messages if isinstance(e, InternalMessage)]
 
-        ids = gs.players.human_player_ids
-        game_update_messages = [GameUpdate(game_id=game_id, player_id=p, game_state=gs, message="") for p in ids]
-
-        to_player_msgs = msgs_to_players + game_update_messages
-        print(f"Sending msgs to player: {[m for m in to_player_msgs]}")
-        await self.front_end.handle_player_messages(msgs=to_player_msgs)
+        print(f"Sending msgs to player: {[m for m in msgs_to_players]}")
+        await self.front_end.handle_player_messages(msgs=msgs_to_players)
+        await self.front_end.broadcast_to_players(game_id=game_id, message=GameUpdate(game_id=game_id, game_state=gs))
 
         if not len(msgs_to_self):
             return gs

@@ -8,7 +8,7 @@ from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
 from src.models.game_settings import GameSettings
-from src.models.game_state import GameState, Phase
+from src.models.game_state import GameState, Phase, TurnType
 from src.models.geometry import Point, Shape
 from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.player import Player, PlayerRepo
@@ -163,6 +163,7 @@ class GameInitializer:
         game_id: GameId,
         player_names: list[str],
         player_colors: list[Color] | None = None,
+        turn_type: TurnType = "hotseat"
     ) -> GameState:
         """
         Create a new game state with the given game ID and settings.
@@ -189,6 +190,7 @@ class GameInitializer:
             assets=assets_repo,
             transmission=transmission_repo,
             market_coupling_result=None,
+            turn_type=turn_type
         )
         if Phase(0).is_turn_based:
             new_game = new_game.update(new_game.players.start_first_player_turn())

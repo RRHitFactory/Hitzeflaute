@@ -3,7 +3,7 @@ from fastapi import WebSocket
 from src.app.routes.logging import console_logger, log_exception_with_traceback
 from src.app.tools.reduce_message import reduce_message
 from src.models.ids import GameId, PlayerId
-from src.models.message import GameToPlayerMessage
+from src.models.message import GameToPlayerMessage, GameUpdate
 from src.models.server_models import WebsocketMessage
 
 
@@ -53,3 +53,21 @@ class GameWebSocketConnectionManager:
             except Exception as e:
                 error_msg = f"Error handling message {msg}: {e}"
                 log_exception_with_traceback(error_msg, e)
+
+    async def broadcast_to_players(self, game_id: GameId, message: GameUpdate) -> None:
+        """Broadcast a message to all players in a lobby"""
+        if game_id not in self.active_connections:
+            console_logger.info(f"No active connections for game {game_id}")
+            return
+
+        data = reduce_message(message).to_simple_dict()
+
+        for player_id, websocket in list(self.active_connections[game_id].items()):
+            try:
+                ws_message = WebsocketMessage(game_id=game_id, player_id=player_id, message_type=message.__class__.__name__, data=data)
+                await websocket.send_text(ws_message.to_string())
+                console_logger.info(f"Broadcast to player {player_id} in lobby {game_id}")
+            except Exception as e:
+                error_msg = f"Error broadcasting to {player_id} in lobby {game_id}: {e}"
+                log_exception_with_traceback(error_msg, e)
+                self.disconnect(game_id, player_id)

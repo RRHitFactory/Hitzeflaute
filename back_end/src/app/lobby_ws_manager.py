@@ -43,15 +43,13 @@ class LobbyWebSocketConnectionManager:
                 log_exception_with_traceback(error_msg, e)
                 self.disconnect(game_id, player_id)
 
-    async def broadcast_to_lobby(self, game_id: GameId, message: str, exclude_player_id: PlayerId | None = None) -> None:
+    async def broadcast_to_lobby(self, game_id: GameId, message: str) -> None:
         """Broadcast a message to all players in a lobby"""
         if game_id not in self.active_connections:
             console_logger.info(f"No active connections for lobby {game_id}")
             return
 
         for player_id, websocket in list(self.active_connections[game_id].items()):
-            if exclude_player_id and player_id == exclude_player_id:
-                continue
             try:
                 await websocket.send_text(message)
                 console_logger.info(f"Broadcast to player {player_id} in lobby {game_id}")

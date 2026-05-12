@@ -29,6 +29,7 @@ interface TransmissionLineProps {
   isActive?: boolean;
   onActivate?: (lineId: number) => void;
   onDeactivate?: (lineId: number) => void;
+  isCurrentPlayersTurn?: boolean;
 }
 
 const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
@@ -51,6 +52,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   isActive,
   onActivate,
   onDeactivate,
+  isCurrentPlayersTurn = true,
 }) => {
   const fromBus = buses.find((b) => b.id === line.bus1);
   const toBus = buses.find((b) => b.id === line.bus2);
@@ -307,8 +309,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
             strokeWidth="2"
-            style={{ cursor: canAfford ? "pointer" : "not-allowed" }}
-            onClick={canAfford ? handlePurchaseClick : undefined}
+            style={{ cursor: canAfford && isCurrentPlayersTurn ? "pointer" : "not-allowed" }}
+            onClick={canAfford && isCurrentPlayersTurn ? handlePurchaseClick : undefined}
             onMouseEnter={(e) => {
               e.stopPropagation();
               onHover(
@@ -350,9 +352,9 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
             fill={displayActive ? "#22c55e" : "#9ca3af"}
             stroke="white"
             strokeWidth="2"
-            style={{ cursor: "pointer" }}
+            style={{ cursor: isCurrentPlayersTurn ? "pointer" : "not-allowed" }}
             onClick={
-              displayActive ? handleDeactivateClick : handleActivateClick
+              isCurrentPlayersTurn ? (displayActive ? handleDeactivateClick : handleActivateClick) : undefined
             }
             onMouseEnter={handleActivationHover}
             onMouseLeave={onLeave}

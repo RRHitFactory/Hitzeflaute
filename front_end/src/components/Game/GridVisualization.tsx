@@ -32,6 +32,7 @@ interface GridVisualizationProps {
     lines?: Record<number, boolean>;
     assets?: Record<number, boolean>;
   };
+  isCurrentPlayersTurn?: boolean;
 }
 
 const GridVisualization: React.FC<GridVisualizationProps> = ({
@@ -44,6 +45,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   onDeactivateAsset,
   currentPlayer,
   pendingActivations = {},
+  isCurrentPlayersTurn = true,
 }) => {
   const [hoveredElement, setHoveredElement] = useState<HoverableElement | null>(
     null,
@@ -505,6 +507,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               isActive={isLineActive}
               onActivate={handleActivateLineWrapper}
               onDeactivate={handleDeactivateLineWrapper}
+              isCurrentPlayersTurn={isCurrentPlayersTurn}
             />
           );
         })}
@@ -571,6 +574,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 onActivate={handleActivateAssetWrapper}
                 onDeactivate={handleDeactivateAssetWrapper}
                 playerHasNegativeMoney={playerHasNegativeMoney}
+                isCurrentPlayersTurn={isCurrentPlayersTurn}
               />
             );
           }),

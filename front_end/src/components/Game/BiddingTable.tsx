@@ -10,6 +10,7 @@ interface BiddingTableProps {
   pendingBids?: Record<number, number>;
   onBidChange?: (assetId: number, newBidPrice: number) => void;
   onInsufficientFundsChange?: (insufficient: boolean) => void;
+  isCurrentPlayersTurn?: boolean;
 }
 
 const BiddingTable: React.FC<BiddingTableProps> = ({
@@ -19,6 +20,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
   pendingBids = {},
   onBidChange,
   onInsufficientFundsChange,
+  isCurrentPlayersTurn = true,
 }) => {
   // Format helper functions (defined first to avoid hoisting issues)
   const formatNumber = (value: number) => {
@@ -167,6 +169,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
                       value={currentBidPrice}
                       onChange={(e) => handleBidChange(asset.id, e)}
                       className="w-24 px-2 py-1 border rounded text-sm"
+                      disabled={!isCurrentPlayersTurn}
                     />
                   </td>
                   <td className="px-3 py-2 font-medium">

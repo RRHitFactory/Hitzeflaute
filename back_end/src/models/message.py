@@ -21,9 +21,9 @@ class Message(ABC, SerializableDcSimple):
         return str(self)
 
 
-
 @dataclass(frozen=True, repr=False)
-class InternalMessage(Message, ABC): ... # A message from the game to itself
+class InternalMessage(Message, ABC): ...  # A message from the game to itself
+
 
 @dataclass(frozen=True, repr=False)
 class PlayerToGameMessage(Message, ABC):
@@ -48,6 +48,11 @@ class PlayerToGameMessage(Message, ABC):
 
     def __repr__(self) -> str:
         return str(self)
+
+
+@dataclass(frozen=True, repr=False)
+class GameUpdate(Message):
+    game_state: GameState
 
 
 @dataclass(frozen=True, repr=False)
@@ -78,11 +83,6 @@ class ConcludePhase(InternalMessage):
 
 @dataclass(frozen=True, repr=False)
 class ClearAuction(InternalMessage): ...
-
-
-@dataclass(frozen=True, repr=False)
-class GameUpdate(GameToPlayerMessage):
-    game_state: GameState
 
 
 @dataclass(frozen=True, repr=False)

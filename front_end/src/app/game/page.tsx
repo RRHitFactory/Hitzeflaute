@@ -89,6 +89,18 @@ function GameContent() {
     }
   }, [connectionState]);
 
+  // Get the current player's ID from localStorage
+  const [localPlayerId, setLocalPlayerId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && gameId) {
+      const storedPlayerId = localStorage.getItem(`lobby_playerId_${gameId}`);
+      if (storedPlayerId) {
+        setLocalPlayerId(parseInt(storedPlayerId));
+      }
+    }
+  }, [gameId]);
+
   const currentPlayer = React.useMemo(() => {
     if (!gameState) return DEFAULT_PLAYER;
 
@@ -133,7 +145,14 @@ function GameContent() {
     setPendingBids({});
   }, [gameState?.phase, currentPlayer]);
 
+  const isCurrentPlayersTurn = localPlayerId === currentPlayer;
+
   const handlePurchaseAsset = (assetId: number) => {
+    if (!isCurrentPlayersTurn) {
+      setError("It's not your turn!");
+      return;
+    }
+    
     if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
       return;
@@ -144,6 +163,11 @@ function GameContent() {
   };
 
   const handlePurchaseTransmissionLine = (lineId: number) => {
+    if (!isCurrentPlayersTurn) {
+      setError("It's not your turn!");
+      return;
+    }
+    
     if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
       return;
@@ -186,6 +210,11 @@ function GameContent() {
   };
 
   const handleEndTurn = () => {
+    if (!isCurrentPlayersTurn) {
+      setError("It's not your turn!");
+      return;
+    }
+    
     if (!wsClient || !wsClient.isConnected() || isEndingTurn) {
       if (!isEndingTurn) setError("Not connected to server");
       return;
@@ -333,6 +362,7 @@ function GameContent() {
                 onDeactivateAsset={handleDeactivateAsset}
                 currentPlayer={currentPlayer}
                 pendingActivations={pendingActivations}
+                isCurrentPlayersTurn={isCurrentPlayersTurn}
               />
             </div>
           </div>
@@ -348,6 +378,7 @@ function GameContent() {
               onEndTurn={handleEndTurn}
               hasInsufficientFunds={hasInsufficientFunds}
               isEndingTurn={isEndingTurn}
+              isCurrentPlayersTurn={isCurrentPlayersTurn}
             />
 
             {gameState.phase === GamePhase.BIDDING && (
@@ -358,6 +389,7 @@ function GameContent() {
                 pendingBids={pendingBids}
                 onBidChange={handleBidAsset}
                 onInsufficientFundsChange={setHasInsufficientFunds}
+                isCurrentPlayersTurn={isCurrentPlayersTurn}
               />
             )}
 

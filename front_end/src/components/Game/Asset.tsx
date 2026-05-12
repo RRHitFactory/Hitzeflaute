@@ -38,6 +38,7 @@ interface AssetProps {
   onActivate?: (assetId: number) => void;
   onDeactivate?: (assetId: number) => void;
   playerHasNegativeMoney?: boolean;
+  isCurrentPlayersTurn?: boolean;
 }
 
 const technologyMap: { [key: string]: React.ElementType } = {
@@ -71,6 +72,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   onActivate,
   onDeactivate,
   playerHasNegativeMoney = false,
+  isCurrentPlayersTurn = true,
 }) => {
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
@@ -327,8 +329,8 @@ const AssetComponent: React.FC<AssetProps> = ({
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
             strokeWidth="2"
-            style={{ cursor: canAfford ? "pointer" : "not-allowed" }}
-            onClick={canAfford ? handlePurchaseClick : undefined}
+            style={{ cursor: canAfford && isCurrentPlayersTurn ? "pointer" : "not-allowed" }}
+            onClick={canAfford && isCurrentPlayersTurn ? handlePurchaseClick : undefined}
             onMouseEnter={handlePurchaseButtonHover}
             onMouseLeave={onLeave}
           />
@@ -359,13 +361,13 @@ const AssetComponent: React.FC<AssetProps> = ({
               fill={displayActive ? "#22c55e" : "#9ca3af"}
               stroke="white"
               strokeWidth="2"
-              style={{ cursor: "pointer" }}
+              style={{ cursor: isCurrentPlayersTurn ? "pointer" : "not-allowed" }}
               onClick={
-                isForcedInactive
-                  ? undefined
-                  : displayActive
+                isCurrentPlayersTurn && !isForcedInactive
+                  ? displayActive
                     ? handleDeactivateClick
                     : handleActivateClick
+                  : undefined
               }
               onMouseEnter={handleActivationHover}
               onMouseLeave={onLeave}
