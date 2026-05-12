@@ -2,9 +2,9 @@ from typing import Protocol, runtime_checkable
 
 from src.app.game_repo.base import BaseGameStateRepo
 from src.engine.engine import Engine
-from src.models.game_settings import GameSettings
+from src.models.game_settings import GameSettings, TurnType
 from src.models.game_state import GameState
-from src.models.ids import GameId, PlayerId
+from src.models.ids import GameId
 from src.models.message import (
     GameToPlayerMessage,
     GameUpdate,
@@ -62,10 +62,10 @@ class GameManager:
         return await self._handle_message(game_id=game_id, game_state=gs, msg=msg_to_self)
 
     @classmethod
-    def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str], game_id: GameId | None = None) -> GameId:
+    def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str], turn_type: TurnType, game_id: GameId | None = None) -> GameId:
         if game_id is None:
             game_id = game_repo.reserve_game_id()
-        settings = GameSettings()
+        settings = GameSettings(turn_type=turn_type)
         game_initializer = GameInitializer(settings=settings)
         new_game_state = game_initializer.create_new_game(game_id=game_id, player_names=player_names)
         game_repo.create(game=new_game_state)

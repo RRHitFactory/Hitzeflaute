@@ -191,7 +191,7 @@ def get_lobby_rest_router(
             # Create the actual game from lobby
             player_names = lobby.get_player_names()
             game_id_obj = game_manager.new_game(
-                game_repo=game_manager.game_repo, player_names=player_names
+                game_repo=game_manager.game_repo, player_names=player_names, turn_type="online"
             )
 
             # Broadcast to all lobby members that game has started

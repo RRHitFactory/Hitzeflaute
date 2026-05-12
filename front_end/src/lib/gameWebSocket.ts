@@ -147,8 +147,6 @@ export class GameWebSocketClient {
 
     console.log("=== Sending WebSocket Message ===");
     console.log("Message type:", type);
-    console.log("Message data:", JSON.stringify(data, null, 2));
-    console.log("Full message:", JSON.stringify(message, null, 2));
     console.log("WebSocket ready state:", this.ws?.readyState);
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -279,7 +277,7 @@ export function useGameWebSocket(
   const [client, setClient] = useState<GameWebSocketClient | null>(null);
   const [connectionState, setConnectionState] =
     useState<string>("DISCONNECTED");
-  const [gameState, setGameState] = useState<any>(null);
+  const [gameState, setGameState] = useState<GameState | null>(null);
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
 
   // Use a ref to store the latest callbacks without causing re-renders

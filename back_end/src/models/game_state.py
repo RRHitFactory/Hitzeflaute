@@ -43,8 +43,6 @@ class Phase(IntEnum):
 
 type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
 
-type TurnType = Literal["hotseat", "online"]
-
 
 @dataclass(frozen=True)
 class GameState:
@@ -58,7 +56,6 @@ class GameState:
     market_coupling_result: MarketCouplingResult | None
     market_summary: MarketCouplingSummary | None = None
     game_round: Round = Round(1)
-    turn_type: TurnType = "hotseat"
     pending_state: PendingState = PendingState()  # A record of actions that cannot be made public yet
 
     def __post_init__(self) -> None:
@@ -144,7 +141,6 @@ class GameState:
             "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
             "market_summary": (self.market_summary.to_simple_dict() if self.market_summary else None),
             "game_round": self.game_round,
-            "turn_type": self.turn_type,
             "pending_state": self.pending_state.to_simple_dict(),
         }
 
@@ -169,6 +165,5 @@ class GameState:
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
             market_summary=(MarketCouplingSummary.from_simple_dict(simple_dict["market_summary"]) if simple_dict.get("market_summary") else None),
             game_round=Round(simple_dict["game_round"]),
-            turn_type=simple_dict["turn_type"],
             pending_state=PendingState.from_simple_dict(simple_dict["pending_state"]),
         )

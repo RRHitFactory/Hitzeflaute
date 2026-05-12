@@ -7,8 +7,8 @@ import numpy as np
 from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
-from src.models.game_settings import GameSettings
-from src.models.game_state import GameState, Phase, TurnType
+from src.models.game_settings import GameSettings, TurnType
+from src.models.game_state import GameState, Phase
 from src.models.geometry import Point, Shape
 from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.player import Player, PlayerRepo
@@ -158,13 +158,7 @@ class GameInitializer:
         """
         self.settings = settings
 
-    def create_new_game(
-        self,
-        game_id: GameId,
-        player_names: list[str],
-        player_colors: list[Color] | None = None,
-        turn_type: TurnType = "hotseat"
-    ) -> GameState:
+    def create_new_game(self, game_id: GameId, player_names: list[str], player_colors: list[Color] | None = None, turn_type: TurnType = "hotseat") -> GameState:
         """
         Create a new game state with the given game ID and settings.
         :param game_id: Unique identifier for the game.
@@ -182,15 +176,7 @@ class GameInitializer:
         transmission_repo = self._create_transmission_repo(player_repo=player_repo, bus_repo=bus_repo)
 
         new_game = GameState(
-            game_id=game_id,
-            game_settings=self.settings,
-            phase=Phase(0),
-            players=player_repo,
-            buses=bus_repo,
-            assets=assets_repo,
-            transmission=transmission_repo,
-            market_coupling_result=None,
-            turn_type=turn_type
+            game_id=game_id, game_settings=self.settings, phase=Phase(0), players=player_repo, buses=bus_repo, assets=assets_repo, transmission=transmission_repo, market_coupling_result=None
         )
         if Phase(0).is_turn_based:
             new_game = new_game.update(new_game.players.start_first_player_turn())
@@ -322,7 +308,7 @@ class GameInitializer:
             socket_manager.use_socket(bus1)
             socket_manager.use_socket(bus2)
 
-            line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round= Round(0))
+            line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round=Round(0))
             lines.append(line)
 
         return TransmissionRepo(lines)

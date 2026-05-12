@@ -51,8 +51,8 @@ class TestGameAndLobbyManager(BaseTest):
         game_manager = self.game_manager
         lobby_manager = LobbyManager(game_manager=game_manager)
 
-        game_id = game_manager.new_game(game_repo=game_repo, player_names=["Robbie", "Roman"])
+        game_id = game_manager.new_game(game_repo=game_repo, player_names=["Robbie", "Roman"], turn_type="hotseat")
         lobby_game_id = lobby_manager.create_lobby()
-        game_id_2 = game_manager.new_game(game_repo=game_repo, player_names=["Robbie", "Roman"])
+        game_id_2 = game_manager.new_game(game_repo=game_repo, player_names=["Robbie", "Roman"], turn_type="hotseat")
         lobby_game_id_2 = lobby_manager.create_lobby()
         self.assertEqual(len(set([game_id, lobby_game_id, game_id_2, lobby_game_id_2])), 4)

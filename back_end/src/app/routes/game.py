@@ -111,7 +111,7 @@ def get_game_rest_router(game_repo: BaseGameStateRepo) -> APIRouter:
                     detail="At least one player name is required",
                 )
 
-            game_id = GameManager.new_game(game_repo, request.player_names)
+            game_id = GameManager.new_game(game_repo, request.player_names, turn_type="hotseat")
 
             return CreateGameResponse(
                 game_id=str(game_id),

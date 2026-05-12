@@ -6,7 +6,7 @@ import GameControls from "@/components/UI/GameControls";
 import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
 import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
-import { GamePhase } from "@/types/game";
+import { GamePhase, getPhaseInfo } from "@/types/game";
 import { useSearchParams } from "next/navigation";
 import React, {
   Suspense,
@@ -82,6 +82,20 @@ function GameContent() {
     isConnected,
   } = useGameWebSocket(gameId || -1, DEFAULT_PLAYER, callbacks);
 
+  const isHotSeat = React.useMemo(() => {
+    if (!gameState) {return false}
+    return (gameState.game_settings.turn_type == "hotseat")
+  }, [gameState?.game_settings.turn_type]);
+
+  const phaseIsOneByOne = React.useMemo(() => {
+    if (!gameState) {return true}
+    if (gameState.game_settings.turn_type == "hotseat") {
+      return true
+    } else {
+      return getPhaseInfo(gameState.phase).one_by_one
+    }
+  }, [gameState?.phase]);
+
   // Track when we first connect successfully
   useEffect(() => {
     if (connectionState === "CONNECTED" && !hasConnectedRef.current) {
@@ -101,7 +115,7 @@ function GameContent() {
     }
   }, [gameId]);
 
-  const currentPlayer = React.useMemo(() => {
+  const currentPlayer: number = React.useMemo(() => {
     if (!gameState) return DEFAULT_PLAYER;
 
     const playersArray = Array.isArray(gameState.players)
@@ -145,7 +159,10 @@ function GameContent() {
     setPendingBids({});
   }, [gameState?.phase, currentPlayer]);
 
-  const isCurrentPlayersTurn = localPlayerId === currentPlayer;
+  const isCurrentPlayersTurn: boolean = React.useMemo(() => {
+    if (phaseIsOneByOne){return true}
+    return false
+  }, [phaseIsOneByOne, currentPlayer]);
 
   const handlePurchaseAsset = (assetId: number) => {
     if (!isCurrentPlayersTurn) {
