@@ -72,7 +72,7 @@ const GameControls: React.FC<GameControlsProps> = ({
       {/* Current Player Info - Centered */}
       {currentPlayer && (
         <div className="flex justify-left items-center gap-3 pt-2 pb-4">
-          <PlayerTri player={currentPlayer} big={true}/>
+          <PlayerTri player={currentPlayer} big={true} />
         </div>
       )}
       <div className="space-y-4">

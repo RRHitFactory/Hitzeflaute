@@ -9,7 +9,13 @@ import {
   NPC_PLAYER_ID,
   Player,
 } from "@/types/game";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
 import ViewToggle from "../UI/ViewToggle";
 import AssetComponent from "./Asset";
@@ -54,8 +60,10 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   useEffect(() => {
     if (scrollContainerRef.current) {
       const container = scrollContainerRef.current;
-      container.scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
-      container.scrollTop = (container.scrollHeight - container.clientHeight) / 2;
+      container.scrollLeft =
+        (container.scrollWidth - container.clientWidth) / 2;
+      container.scrollTop =
+        (container.scrollHeight - container.clientHeight) / 2;
     }
   }, []);
   const [hoveredElement, setHoveredElement] = useState<HoverableElement | null>(
@@ -445,7 +453,10 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     : 0;
 
   return (
-    <div className="relative w-full h-[700px] bg-gray-50 rounded-lg border overflow-auto" ref={scrollContainerRef}>
+    <div
+      className="relative w-full h-[700px] bg-gray-50 rounded-lg border overflow-auto"
+      ref={scrollContainerRef}
+    >
       {/* View Toggle in top left corner */}
       <div className="absolute top-2 left-2 z-10">
         <ViewToggle
@@ -463,122 +474,126 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
           className="grid-container"
           onMouseLeave={handleMouseLeave}
         >
-        {/* Transmission Lines */}
-        {getTransmissionArray().map((line) => {
-          const owner = getPlayerById(line.owner_player);
-          if (!owner) return null;
-          const isPurchasable = isLinePurchasable(line);
-
-          // Get actual power flow from market summary using parseDataFrame
-          const lineResult = gameState.market_summary?.line_results?.[line.id];
-          let linePower = 0;
-          if (lineResult) {
-            try {
-              const parsedDict = parseDataFrameToDict(lineResult);
-              linePower = parsedDict?.raw_flow ?? 0;
-            } catch (error) {
-              console.warn(`Error parsing line ${line.id} data:`, error);
-            }
-          }
-
-          // Check if player owns this line and we're in sneaky tricks phase
-          const isOwnedByCurrentPlayer =
-            currentPlayer !== undefined &&
-            line.owner_player === currentPlayer.id;
-          const isSneakyTricks = gameState.phase === GamePhase.SNEAKY_TRICKS;
-
-          // Get pending activation state if available, otherwise use game state
-          const pendingLineActive = pendingActivations.lines?.[line.id];
-          const isLineActive =
-            pendingLineActive !== undefined ? pendingLineActive : line.is_open;
-
-          return (
-            <TransmissionLineComponent
-              key={line.id}
-              line={line}
-              buses={busesWithDisplayCoords}
-              owner={owner}
-              onHover={handleElementHover}
-              onLeave={handleMouseLeave}
-              isPurchasable={isPurchasable}
-              onPurchase={handleLinePurchaseRequest}
-              viewMode={viewMode}
-              onClick={
-                viewMode === "market" ? handleLineClickForMarket : undefined
-              }
-              maxFlow={maxFlow}
-              actualFlow={linePower}
-              showFlowAnimation={true}
-              currentPlayer={currentPlayer}
-              isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
-              isSneakyTricks={isSneakyTricks}
-              isActive={isLineActive}
-              onActivate={handleActivateLineWrapper}
-              onDeactivate={handleDeactivateLineWrapper}
-              controlsEnabled={controlsEnabled}
-            />
-          );
-        })}
-
-        {/* Buses */}
-        {busesWithDisplayCoords.map((bus) => {
-          return (
-            <BusComponent
-              key={bus.id}
-              bus={bus}
-              onHover={handleElementHover}
-              onLeave={handleMouseLeave}
-              onClickProp={
-                viewMode === "market" ? handleBusClickForMarket : undefined
-              }
-              viewMode={viewMode}
-            />
-          );
-        })}
-
-        {/* Assets */}
-        {busesWithDisplayCoords.map((bus) =>
-          getAssetsForBus(bus.id).map(({ asset, position }) => {
-            const owner = getPlayerById(asset.owner_player);
+          {/* Transmission Lines */}
+          {getTransmissionArray().map((line) => {
+            const owner = getPlayerById(line.owner_player);
             if (!owner) return null;
-            const isPurchasable = isAssetPurchasable(asset);
+            const isPurchasable = isLinePurchasable(line);
 
-            // Check if player owns this asset and we're in sneaky tricks phase
+            // Get actual power flow from market summary using parseDataFrame
+            const lineResult =
+              gameState.market_summary?.line_results?.[line.id];
+            let linePower = 0;
+            if (lineResult) {
+              try {
+                const parsedDict = parseDataFrameToDict(lineResult);
+                linePower = parsedDict?.raw_flow ?? 0;
+              } catch (error) {
+                console.warn(`Error parsing line ${line.id} data:`, error);
+              }
+            }
+
+            // Check if player owns this line and we're in sneaky tricks phase
+            const isOwnedByCurrentPlayer =
+              currentPlayer !== undefined &&
+              line.owner_player === currentPlayer.id;
             const isSneakyTricks = gameState.phase === GamePhase.SNEAKY_TRICKS;
 
             // Get pending activation state if available, otherwise use game state
-            const pendingAssetActive = pendingActivations.assets?.[asset.id];
-            const isAssetActive =
-              pendingAssetActive !== undefined
-                ? pendingAssetActive
-                : asset.is_active;
-            {
-              owner.color;
-            }
+            const pendingLineActive = pendingActivations.lines?.[line.id];
+            const isLineActive =
+              pendingLineActive !== undefined
+                ? pendingLineActive
+                : line.is_open;
 
             return (
-              <AssetComponent
-                key={asset.id}
-                asset={asset}
-                bus={bus}
+              <TransmissionLineComponent
+                key={line.id}
+                line={line}
+                buses={busesWithDisplayCoords}
                 owner={owner}
-                position={position}
                 onHover={handleElementHover}
                 onLeave={handleMouseLeave}
                 isPurchasable={isPurchasable}
-                onPurchase={handleAssetPurchaseRequest}
-                currentPlayer={currentPlayer}
+                onPurchase={handleLinePurchaseRequest}
                 viewMode={viewMode}
+                onClick={
+                  viewMode === "market" ? handleLineClickForMarket : undefined
+                }
+                maxFlow={maxFlow}
+                actualFlow={linePower}
+                showFlowAnimation={true}
+                currentPlayer={currentPlayer}
+                isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
                 isSneakyTricks={isSneakyTricks}
-                isActive={isAssetActive}
-                onActivate={handleActivateAssetWrapper}
-                onDeactivate={handleDeactivateAssetWrapper}
+                isActive={isLineActive}
+                onActivate={handleActivateLineWrapper}
+                onDeactivate={handleDeactivateLineWrapper}
                 controlsEnabled={controlsEnabled}
               />
             );
-          }),
-        )}
-      </svg>
+          })}
+
+          {/* Buses */}
+          {busesWithDisplayCoords.map((bus) => {
+            return (
+              <BusComponent
+                key={bus.id}
+                bus={bus}
+                onHover={handleElementHover}
+                onLeave={handleMouseLeave}
+                onClickProp={
+                  viewMode === "market" ? handleBusClickForMarket : undefined
+                }
+                viewMode={viewMode}
+              />
+            );
+          })}
+
+          {/* Assets */}
+          {busesWithDisplayCoords.map((bus) =>
+            getAssetsForBus(bus.id).map(({ asset, position }) => {
+              const owner = getPlayerById(asset.owner_player);
+              if (!owner) return null;
+              const isPurchasable = isAssetPurchasable(asset);
+
+              // Check if player owns this asset and we're in sneaky tricks phase
+              const isSneakyTricks =
+                gameState.phase === GamePhase.SNEAKY_TRICKS;
+
+              // Get pending activation state if available, otherwise use game state
+              const pendingAssetActive = pendingActivations.assets?.[asset.id];
+              const isAssetActive =
+                pendingAssetActive !== undefined
+                  ? pendingAssetActive
+                  : asset.is_active;
+              {
+                owner.color;
+              }
+
+              return (
+                <AssetComponent
+                  key={asset.id}
+                  asset={asset}
+                  bus={bus}
+                  owner={owner}
+                  position={position}
+                  onHover={handleElementHover}
+                  onLeave={handleMouseLeave}
+                  isPurchasable={isPurchasable}
+                  onPurchase={handleAssetPurchaseRequest}
+                  currentPlayer={currentPlayer}
+                  viewMode={viewMode}
+                  isSneakyTricks={isSneakyTricks}
+                  isActive={isAssetActive}
+                  onActivate={handleActivateAssetWrapper}
+                  onDeactivate={handleDeactivateAssetWrapper}
+                  controlsEnabled={controlsEnabled}
+                />
+              );
+            }),
+          )}
+        </svg>
       </div>
 
       {/* Info Panel or Market Results Table */}

@@ -288,18 +288,18 @@ function GameContent() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Grid Visualization - spans 2 columns on desktop, appears second on mobile */}
           <div className="lg:col-span-2 order-2 lg:order-none">
-              <GridVisualization
-                gameState={gameState}
-                onPurchaseAsset={handlePurchaseAsset}
-                onPurchaseTransmissionLine={handlePurchaseTransmissionLine}
-                onActivateLine={handleActivateLine}
-                onDeactivateLine={handleDeactivateLine}
-                onActivateAsset={handleActivateAsset}
-                onDeactivateAsset={handleDeactivateAsset}
-                currentPlayer={currentPlayer}
-                pendingActivations={pendingActivations}
-                controlsEnabled={controlsEnabled}
-              />
+            <GridVisualization
+              gameState={gameState}
+              onPurchaseAsset={handlePurchaseAsset}
+              onPurchaseTransmissionLine={handlePurchaseTransmissionLine}
+              onActivateLine={handleActivateLine}
+              onDeactivateLine={handleDeactivateLine}
+              onActivateAsset={handleActivateAsset}
+              onDeactivateAsset={handleDeactivateAsset}
+              currentPlayer={currentPlayer}
+              pendingActivations={pendingActivations}
+              controlsEnabled={controlsEnabled}
+            />
           </div>
 
           {/* Right sidebar - appears first on mobile, stays on right on desktop */}
