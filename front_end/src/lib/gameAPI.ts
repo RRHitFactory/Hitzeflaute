@@ -6,7 +6,7 @@
 import React from "react";
 
 // Import centralized API configuration
-import { BACKEND_HOST, API_BASE_URL } from "@/config/apiConfig";
+import { API_BASE_URL } from "@/config/apiConfig";
 
 // Error types
 export class GameAPIError extends Error {

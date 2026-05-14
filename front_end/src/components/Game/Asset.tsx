@@ -29,15 +29,13 @@ interface AssetProps {
   onLeave: () => void;
   isPurchasable?: boolean;
   onPurchase?: (assetId: number) => void;
-  playerMoney?: number;
-  currentPlayer?: number;
+  currentPlayer?: Player;
   viewMode?: "normal" | "market";
-  isOwnedByCurrentPlayer?: boolean;
   isSneakyTricks?: boolean;
   isActive?: boolean;
   onActivate?: (assetId: number) => void;
   onDeactivate?: (assetId: number) => void;
-  playerHasNegativeMoney?: boolean;
+  controlsEnabled: boolean;
 }
 
 const technologyMap: { [key: string]: React.ElementType } = {
@@ -62,15 +60,13 @@ const AssetComponent: React.FC<AssetProps> = ({
   onLeave,
   isPurchasable = false,
   onPurchase,
-  playerMoney = 0,
   currentPlayer,
   viewMode = "normal",
-  isOwnedByCurrentPlayer = false,
   isSneakyTricks = false,
   isActive,
   onActivate,
   onDeactivate,
-  playerHasNegativeMoney = false,
+  controlsEnabled,
 }) => {
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
   const formatPrice = (price: number) => `$${price.toFixed(2)}/MWh`;
@@ -88,6 +84,9 @@ const AssetComponent: React.FC<AssetProps> = ({
   const isLoad = asset.asset_type === AssetType.LOAD;
   // Freezers cannot be disabled
   const isFreezer = asset.is_freezer;
+  const playerHasNegativeMoney = currentPlayer
+    ? currentPlayer.money < 0
+    : false;
   const isForcedInactive = isLoad && !isFreezer && playerHasNegativeMoney;
 
   // Determine if the asset can be toggled (not forced inactive, and not a freezer)
@@ -102,7 +101,7 @@ const AssetComponent: React.FC<AssetProps> = ({
     };
 
     // Show current bid price if asset is owned by current player
-    if (currentPlayer && asset.owner_player === currentPlayer) {
+    if (currentPlayer && asset.owner_player === currentPlayer.id) {
       data["Current Bid"] = formatPrice(asset.bid_price);
     }
 
@@ -237,6 +236,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   const PropComponent = technologyMap[asset.technology];
 
   // Check if player can afford this asset
+  const playerMoney = currentPlayer?.money || 0;
   const canAfford =
     !isPurchasable ||
     (onPurchase && asset.minimum_acquisition_price <= playerMoney);
@@ -327,8 +327,12 @@ const AssetComponent: React.FC<AssetProps> = ({
             fill={canAfford ? "#22c55e" : "#9ca3af"}
             stroke="white"
             strokeWidth="2"
-            style={{ cursor: canAfford ? "pointer" : "not-allowed" }}
-            onClick={canAfford ? handlePurchaseClick : undefined}
+            style={{
+              cursor: canAfford && controlsEnabled ? "pointer" : "not-allowed",
+            }}
+            onClick={
+              canAfford && controlsEnabled ? handlePurchaseClick : undefined
+            }
             onMouseEnter={handlePurchaseButtonHover}
             onMouseLeave={onLeave}
           />
@@ -347,7 +351,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       )}
 
       {/* Activation control for owned assets in sneaky tricks phase */}
-      {isOwnedByCurrentPlayer &&
+      {currentPlayer &&
+        asset.owner_player === currentPlayer.id &&
         isSneakyTricks &&
         viewMode === "normal" &&
         canToggle && (
@@ -359,13 +364,13 @@ const AssetComponent: React.FC<AssetProps> = ({
               fill={displayActive ? "#22c55e" : "#9ca3af"}
               stroke="white"
               strokeWidth="2"
-              style={{ cursor: "pointer" }}
+              style={{ cursor: controlsEnabled ? "pointer" : "not-allowed" }}
               onClick={
-                isForcedInactive
-                  ? undefined
-                  : displayActive
+                controlsEnabled && !isForcedInactive
+                  ? displayActive
                     ? handleDeactivateClick
                     : handleActivateClick
+                  : undefined
               }
               onMouseEnter={handleActivationHover}
               onMouseLeave={onLeave}

@@ -25,8 +25,7 @@ interface GameWebSocketCallbacks {
 
 export class GameWebSocketClient {
   private gameId: number;
-  private playerId: number;
-  private currentPlayerId: number;
+  private socketPlayerId: number; // may be -1 if shared socket
   private ws: WebSocket | null = null;
   private reconnectAttempts: number = 0;
   private maxReconnectAttempts: number = 5;
@@ -46,8 +45,7 @@ export class GameWebSocketClient {
     onClose?: (event: CloseEvent) => void,
   ) {
     this.gameId = gameId;
-    this.playerId = playerId;
-    this.currentPlayerId = playerId;
+    this.socketPlayerId = playerId;
 
     // Callbacks
     this.onMessage = onMessage || this.defaultOnMessage;
@@ -58,7 +56,7 @@ export class GameWebSocketClient {
   }
 
   private connect(): void {
-    const wsUrl = `ws://${BACKEND_HOST}:8000/ws/games/${this.gameId}/${this.playerId}`;
+    const wsUrl = `ws://${BACKEND_HOST}:8000/ws/games/${this.gameId}/${this.socketPlayerId}`;
     console.log(`Connecting to WebSocket: ${wsUrl}`);
 
     try {
@@ -66,13 +64,13 @@ export class GameWebSocketClient {
 
       this.ws.onopen = (event: Event) => {
         console.log("🟢 WebSocket connected successfully!");
-        console.log("Game ID:", this.gameId, "Player ID:", this.playerId);
+        console.log("Game ID:", this.gameId, "Player ID:", this.socketPlayerId);
         this.reconnectAttempts = 0;
         this.reconnectDelay = 1000;
 
         // Request initial game state
         console.log("📋 Requesting initial game state after connection...");
-        this.requestGameState();
+        this.requestGameState(-1);
 
         // Send any queued messages
         console.log("📤 Processing queued messages:", this.messageQueue.length);
@@ -80,7 +78,7 @@ export class GameWebSocketClient {
           const message = this.messageQueue.shift();
           if (message) {
             console.log("📤 Sending queued message:", message.message_type);
-            this.send(message.message_type, message.data);
+            this.send(message.message_type, message.data, message.player_id);
           }
         }
         console.log("✅ WebSocket initialization complete");
@@ -137,18 +135,17 @@ export class GameWebSocketClient {
     this.reconnectDelay = Math.min(this.reconnectDelay * 2, 30000); // Max 30 seconds
   }
 
-  public send(type: string, data: any): void {
+  public send(type: string, data: any, playerId: number): void {
     const message: WebSocketMessage = {
       message_type: type,
       data: data,
       game_id: this.gameId,
-      player_id: this.currentPlayerId,
+      player_id: playerId,
     };
 
     console.log("=== Sending WebSocket Message ===");
     console.log("Message type:", type);
-    console.log("Message data:", JSON.stringify(data, null, 2));
-    console.log("Full message:", JSON.stringify(message, null, 2));
+    console.log("Player ID:", message.player_id);
     console.log("WebSocket ready state:", this.ws?.readyState);
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -169,58 +166,73 @@ export class GameWebSocketClient {
   }
 
   // Specific game action methods
-  public buyAsset(assetId: string): void {
-    this.send("buy_request", {
-      purchase_id: assetId,
-      purchase_type: "asset",
-    });
+  public buyAsset(assetId: string, playerId: number): void {
+    this.send(
+      "buy_request",
+      {
+        purchase_id: assetId,
+        purchase_type: "asset",
+      },
+      playerId,
+    );
   }
 
-  public buyTransmissionLine(lineId: string): void {
-    this.send("buy_request", {
-      purchase_id: lineId,
-      purchase_type: "transmission",
-    });
+  public buyTransmissionLine(lineId: string, playerId: number): void {
+    this.send(
+      "buy_request",
+      {
+        purchase_id: lineId,
+        purchase_type: "transmission",
+      },
+      playerId,
+    );
   }
 
-  public updateBid(assetId: string, bidPrice: number): void {
-    this.send("update_bid_request", {
-      asset_id: assetId,
-      bid_price: bidPrice,
-    });
+  public updateBid(assetId: string, bidPrice: number, playerId: number): void {
+    this.send(
+      "update_bid_request",
+      {
+        asset_id: assetId,
+        bid_price: bidPrice,
+      },
+      playerId,
+    );
   }
 
-  public submitBatchBids(bids: Record<number, number>): void {
+  public submitBatchBids(bids: Record<number, number>, playerId: number): void {
     console.log("Submitting batch bids:", bids);
-    this.send("update_batch_bids_request", {
-      bids: bids,
-    });
+    this.send(
+      "update_batch_bids_request",
+      {
+        bids: bids,
+      },
+      playerId,
+    );
   }
 
-  public activationUpdate(activationUpdates: {
-    line_activation?: Record<number, boolean>;
-    asset_activation?: Record<number, boolean>;
-  }): void {
-    this.send("activation_update_request", activationUpdates);
+  public activationUpdate(
+    activationUpdates: {
+      line_activation?: Record<number, boolean>;
+      asset_activation?: Record<number, boolean>;
+    },
+    playerId: number,
+  ): void {
+    this.send("activation_update_request", activationUpdates, playerId);
   }
 
-  public endTurn(): void {
-    this.send("end_turn", {});
+  public endTurn(playerId: number): void {
+    this.send("end_turn", {}, playerId);
   }
 
-  public requestGameState(): void {
+  public requestGameState(playerId: number): void {
     console.log("🎯 Requesting initial game state...");
-    this.send("get_game_state", {});
+    this.send("get_game_state", {}, playerId);
   }
 
   public disconnect(): void {
     if (this.ws) {
       this.ws.close();
     }
-  }
-
-  public setCurrentPlayerId(playerId: number): void {
-    this.currentPlayerId = playerId;
   }
 
   // Default callback implementations
@@ -273,14 +285,13 @@ export class GameWebSocketClient {
 // React hook for easier integration
 export function useGameWebSocket(
   gameId: number,
-  playerId: number,
+  playerId: number, // this may be -1 if it is a shared socket
   callbacks: GameWebSocketCallbacks = {},
 ) {
   const [client, setClient] = useState<GameWebSocketClient | null>(null);
   const [connectionState, setConnectionState] =
     useState<string>("DISCONNECTED");
-  const [gameState, setGameState] = useState<any>(null);
-  const [messages, setMessages] = useState<WebSocketMessage[]>([]);
+  const [gameState, setGameState] = useState<GameState | null>(null);
 
   // Use a ref to store the latest callbacks without causing re-renders
   const callbacksRef = useRef(callbacks);
@@ -313,19 +324,6 @@ export function useGameWebSocket(
           // Validate the structure
           const gameStateData: GameState = msg.data.game_state;
           console.log("Current phase: " + gameStateData.phase);
-
-          // Check players for is_having_turn
-          if (gameStateData?.players?.data) {
-            console.log("Players details:");
-            gameStateData.players.data.forEach((player: any, index: number) => {
-              console.log(`  Player ${index}:`, {
-                id: player.id,
-                name: player.name,
-                is_having_turn: player.is_having_turn,
-                money: player.money,
-              });
-            });
-          }
           setGameState(gameStateData);
         } else {
           console.log("=== UNKNOWN MESSAGE TYPE ===");
@@ -364,7 +362,6 @@ export function useGameWebSocket(
     client,
     connectionState,
     gameState,
-    messages,
     isConnected: client?.isConnected() || false,
   };
 }

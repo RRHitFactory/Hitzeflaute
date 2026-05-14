@@ -2,16 +2,21 @@
 
 import BiddingTable from "@/components/Game/BiddingTable";
 import GridVisualization from "@/components/Game/GridVisualization";
+import Header from "@/components/Game/Header";
 import GameControls from "@/components/UI/GameControls";
-import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
-import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
-import { GamePhase } from "@/types/game";
+import { usePlayerTurn } from "@/hooks/usePlayerTurn";
+import GameWebSocketClient, {
+  useGameWebSocket,
+  type WebSocketMessage,
+} from "@/lib/gameWebSocket";
+import { GamePhase, Player } from "@/types/game";
 import { useSearchParams } from "next/navigation";
-import React, {
+import {
   Suspense,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -20,10 +25,9 @@ function GameContent() {
   const searchParams = useSearchParams();
   const gameIdParam = searchParams.get("gameId");
   const [gameId, setGameId] = useState<number | null>(null);
-  const DEFAULT_PLAYER = 1;
   const [error, setError] = useState<string | null>(null);
-  const [isEndingTurn, setIsEndingTurn] = useState(false);
   const hasConnectedRef = useRef(false);
+  const hasSetPlayerRef = useRef(false);
 
   // Initialize gameId from URL param
   useEffect(() => {
@@ -32,26 +36,23 @@ function GameContent() {
     }
   }, [gameIdParam]);
 
+  // State for effective player ID - starts with NPC, switches to cookiePlayerId for online mode
+  const [websocketPlayerId, setWebSocketPlayerId] = useState<number>(-1);
+
   // Memoize callback functions to prevent infinite re-renders
-  const handleMessage = useCallback(
-    (msg: WebSocketMessage) => {
-      console.log("=== WebSocket Message Received ===");
+  const handleMessage = useCallback((msg: WebSocketMessage) => {
+    console.log("=== WebSocket Message Received ===");
 
-      if (msg.message_type === "error") {
-        console.error("=== SERVER ERROR ===");
-        console.error(msg.data);
-        setError(msg.data || "Unknown server error");
-      } else if (msg.message_type === "GameUpdate") {
-        if (isEndingTurn) {
-          console.log("Game state updated, resetting isEndingTurn");
-          setIsEndingTurn(false);
-        }
-      }
+    if (msg.message_type === "error") {
+      console.error("=== SERVER ERROR ===");
+      console.error(msg.data);
+      setError(msg.data || "Unknown server error");
+    } else if (msg.message_type === "GameUpdate") {
+      // Controls are now managed by the usePlayerTurn hook based on currentPlayer.is_having_turn
+    }
 
-      console.log("=== End WebSocket Message Processing ===");
-    },
-    [isEndingTurn],
-  );
+    console.log("=== End WebSocket Message Processing ===");
+  }, []);
 
   const handleError = useCallback((error: any) => {
     console.error("WebSocket error:", error);
@@ -66,7 +67,7 @@ function GameContent() {
     hasConnectedRef.current = false;
   }, []);
 
-  const callbacks = React.useMemo(
+  const callbacks = useMemo(
     () => ({
       onMessage: handleMessage,
       onError: handleError,
@@ -75,12 +76,32 @@ function GameContent() {
     [handleMessage, handleError, handleClose],
   );
 
+  // Initialize WebSocket with effective player ID
   const {
     client: wsClient,
     connectionState,
     gameState,
     isConnected,
-  } = useGameWebSocket(gameId || -1, DEFAULT_PLAYER, callbacks);
+  } = useGameWebSocket(gameId || -1, websocketPlayerId, callbacks);
+
+  // Use the new player turn hook to handle all player-related logic
+  const {
+    cookiePlayerId,
+    currentPlayer,
+    waitingForPlayers,
+    isHotseatMode,
+    controlsEnabled,
+    setControlsEnabled,
+  } = usePlayerTurn(gameState, gameId);
+
+  // After getting the first gameState, check if it's online mode and switch to cookiePlayerId
+  useEffect(() => {
+    if (!gameState || hasSetPlayerRef.current) return;
+    if (!isHotseatMode && cookiePlayerId !== null) {
+      hasSetPlayerRef.current = true;
+      setWebSocketPlayerId(cookiePlayerId);
+    }
+  }, [gameState, isHotseatMode, cookiePlayerId]);
 
   // Track when we first connect successfully
   useEffect(() => {
@@ -89,34 +110,7 @@ function GameContent() {
     }
   }, [connectionState]);
 
-  const currentPlayer = React.useMemo(() => {
-    if (!gameState) return DEFAULT_PLAYER;
-
-    const playersArray = Array.isArray(gameState.players)
-      ? gameState.players
-      : gameState.players?.data || [];
-
-    const activePlayer = playersArray.find((p: any) => p.is_having_turn);
-    return activePlayer ? activePlayer.id : DEFAULT_PLAYER;
-  }, [gameState]);
-
-  const currentPlayerObj = React.useMemo(() => {
-    if (!gameState) return null;
-
-    const playersArray = Array.isArray(gameState.players)
-      ? gameState.players
-      : gameState.players?.data || [];
-
-    return playersArray.find((p: any) => p.id === currentPlayer);
-  }, [gameState, currentPlayer]);
-
-  const currentPlayerName = React.useMemo(() => {
-    return currentPlayerObj ? currentPlayerObj.name : `Player ${currentPlayer}`;
-  }, [currentPlayerObj, currentPlayer]);
-
-  const currentPlayerTrigram = React.useMemo(() => {
-    return currentPlayerObj ? currentPlayerObj.trigram : `P${currentPlayer}`;
-  }, [currentPlayerObj, currentPlayer]);
+  // Extract player info from the local player object
 
   const [pendingActivations, setPendingActivations] = useState<{
     lines: Record<number, boolean>;
@@ -127,30 +121,45 @@ function GameContent() {
   // State to track insufficient funds status from BiddingTable
   const [hasInsufficientFunds, setHasInsufficientFunds] = useState(false);
 
+  const getWsAndCurrentPlayer = ():
+    | { ws: GameWebSocketClient; player: Player }
+    | undefined => {
+    if (!wsClient || !wsClient.isConnected()) {
+      setError("Not connected to server");
+      return;
+    }
+    if (!currentPlayer) {
+      setError("No curent player");
+      return;
+    }
+    return { ws: wsClient, player: currentPlayer };
+  };
+
   // Reset pending activations when current player or phase changes
   useEffect(() => {
     setPendingActivations({ lines: {}, assets: {} });
     setPendingBids({});
-  }, [gameState?.phase, currentPlayer]);
+  }, [gameState?.phase, currentPlayer?.id]);
 
   const handlePurchaseAsset = (assetId: number) => {
-    if (!wsClient || !wsClient.isConnected()) {
-      setError("Not connected to server");
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer();
+    if (!wsAndCurrentPlayer) {
       return;
     }
-
+    const { ws, player } = wsAndCurrentPlayer;
     console.log("Purchasing asset:", assetId);
-    wsClient.buyAsset(assetId.toString());
+    ws.buyAsset(assetId.toString(), player.id);
   };
 
   const handlePurchaseTransmissionLine = (lineId: number) => {
-    if (!wsClient || !wsClient.isConnected()) {
-      setError("Not connected to server");
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer();
+    if (!wsAndCurrentPlayer) {
       return;
     }
+    const { ws, player } = wsAndCurrentPlayer;
 
     console.log("Purchasing transmission line:", lineId);
-    wsClient.buyTransmissionLine(lineId.toString());
+    ws.buyTransmissionLine(lineId.toString(), player.id);
   };
 
   const handleActivateLine = (lineId: number) => {
@@ -186,10 +195,13 @@ function GameContent() {
   };
 
   const handleEndTurn = () => {
-    if (!wsClient || !wsClient.isConnected() || isEndingTurn) {
-      if (!isEndingTurn) setError("Not connected to server");
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer();
+    if (!wsAndCurrentPlayer) {
       return;
     }
+    const { ws, player } = wsAndCurrentPlayer;
+
+    setControlsEnabled(false);
 
     if (gameState?.phase === 1) {
       const hasActivations =
@@ -198,17 +210,20 @@ function GameContent() {
 
       if (hasActivations) {
         console.log("Submitting activation updates:", pendingActivations);
-        wsClient.activationUpdate({
-          line_activation: pendingActivations.lines,
-          asset_activation: pendingActivations.assets,
-        });
+        ws.activationUpdate(
+          {
+            line_activation: pendingActivations.lines,
+            asset_activation: pendingActivations.assets,
+          },
+          player.id,
+        );
       }
     }
 
     if (gameState?.phase === 2) {
       if (Object.keys(pendingBids).length > 0) {
         console.log("Submitting pending bids:", pendingBids);
-        wsClient.submitBatchBids(pendingBids);
+        ws.submitBatchBids(pendingBids, player.id);
       }
     }
 
@@ -216,8 +231,7 @@ function GameContent() {
     setPendingBids({});
 
     console.log("Ending turn");
-    setIsEndingTurn(true);
-    wsClient.endTurn();
+    ws.endTurn(player.id);
   };
 
   const handleBidAsset = (assetId: number, newBidPrice: number) => {
@@ -263,105 +277,49 @@ function GameContent() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-gray-200 shadow-sm border-b">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900 flex-shrink-0">
-              Power Flow Game
-            </h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    connectionState === "CONNECTED"
-                      ? "bg-green-500"
-                      : connectionState === "CONNECTING"
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                  }`}
-                ></div>
-                <span className="text-sm text-gray-600">
-                  {connectionState === "CONNECTED"
-                    ? "Connected"
-                    : connectionState === "CONNECTING"
-                      ? "Connecting..."
-                      : "Disconnected"}
-                </span>
-              </div>
-
-              <div className="flex-shrink-0">
-                <GameStatus
-                  phase={gameState.phase}
-                  round={gameState.game_round}
-                />
-              </div>
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
-                  <button
-                    onClick={() => setError(null)}
-                    className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        connectionState={connectionState}
+        gameState={gameState}
+        error={error}
+        setError={setError}
+      />
 
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
-              <h2 className="text-xl font-bold mb-4 text-black">
-                Grid Visualization
-              </h2>
-              <GridVisualization
-                gameState={gameState}
-                onPurchaseAsset={handlePurchaseAsset}
-                onPurchaseTransmissionLine={handlePurchaseTransmissionLine}
-                onActivateLine={handleActivateLine}
-                onDeactivateLine={handleDeactivateLine}
-                onActivateAsset={handleActivateAsset}
-                onDeactivateAsset={handleDeactivateAsset}
-                currentPlayer={currentPlayer}
-                pendingActivations={pendingActivations}
-              />
-            </div>
+          {/* Grid Visualization - spans 2 columns on desktop, appears second on mobile */}
+          <div className="lg:col-span-2 order-2 lg:order-none">
+            <GridVisualization
+              gameState={gameState}
+              onPurchaseAsset={handlePurchaseAsset}
+              onPurchaseTransmissionLine={handlePurchaseTransmissionLine}
+              onActivateLine={handleActivateLine}
+              onDeactivateLine={handleDeactivateLine}
+              onActivateAsset={handleActivateAsset}
+              onDeactivateAsset={handleDeactivateAsset}
+              currentPlayer={currentPlayer}
+              pendingActivations={pendingActivations}
+              controlsEnabled={controlsEnabled}
+            />
           </div>
 
-          <div className="space-y-6">
-            <GameControls
-              gameState={gameState}
-              gameId={gameId?.toString() || null}
-              currentPlayerName={currentPlayerName}
-              currentPlayerTrigram={currentPlayerTrigram}
-              currentPlayerColor={currentPlayerObj?.color}
-              isConnected={isConnected}
-              onEndTurn={handleEndTurn}
-              hasInsufficientFunds={hasInsufficientFunds}
-              isEndingTurn={isEndingTurn}
-            />
-
-            {gameState.phase === GamePhase.BIDDING && (
-              <BiddingTable
-                assets={gameState.assets.data}
+          {/* Right sidebar - appears first on mobile, stays on right on desktop */}
+          <div className="space-y-6 order-1 lg:order-none">
+            {/* Game Controls - appears first on mobile */}
+            <div className="lg:hidden order-1">
+              <GameControls
+                gameState={gameState}
+                gameId={gameId?.toString() || null}
                 currentPlayer={currentPlayer}
-                playerMoney={currentPlayerObj?.money || 0}
-                pendingBids={pendingBids}
-                onBidChange={handleBidAsset}
-                onInsufficientFundsChange={setHasInsufficientFunds}
+                isConnected={isConnected}
+                onEndTurn={handleEndTurn}
+                hasInsufficientFunds={hasInsufficientFunds}
+                controlsEnabled={controlsEnabled}
+                waitingForPlayers={waitingForPlayers}
               />
-            )}
+            </div>
 
-            <div className="bg-gray-200 rounded-lg shadow-sm border p-4">
+            {/* Players - appears second on mobile */}
+            <div className="bg-gray-200 rounded-lg shadow-sm border p-4 order-2 lg:order-none">
               <h3 className="text-lg font-bold mb-4 text-black">Players</h3>
               <PlayerTable
                 players={
@@ -370,8 +328,35 @@ function GameContent() {
                     : gameState.players?.data || []
                 }
                 gameState={gameState}
+                cookiePlayerId={cookiePlayerId}
               />
             </div>
+
+            {/* Game Controls - appears on desktop only, in right sidebar */}
+            <div className="hidden lg:block">
+              <GameControls
+                gameState={gameState}
+                gameId={gameId?.toString() || null}
+                currentPlayer={currentPlayer}
+                isConnected={isConnected}
+                onEndTurn={handleEndTurn}
+                hasInsufficientFunds={hasInsufficientFunds}
+                controlsEnabled={controlsEnabled}
+                waitingForPlayers={waitingForPlayers}
+              />
+            </div>
+
+            {gameState.phase === GamePhase.BIDDING &&
+              currentPlayer &&
+              controlsEnabled && (
+                <BiddingTable
+                  assets={gameState.assets.data}
+                  currentPlayer={currentPlayer}
+                  pendingBids={pendingBids}
+                  onBidChange={handleBidAsset}
+                  onInsufficientFundsChange={setHasInsufficientFunds}
+                />
+              )}
           </div>
         </div>
       </main>

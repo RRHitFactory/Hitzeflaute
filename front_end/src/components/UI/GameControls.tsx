@@ -1,35 +1,42 @@
 "use client";
-
-import React from "react";
-import { GameState, GamePhase } from "@/types/game";
+import PlayerTri from "@/components/UI/PlayerTri";
+import { GamePhase, GameState, Player } from "@/types/game";
+import React, { useEffect, useState } from "react";
 
 interface GameControlsProps {
   gameState: GameState;
   gameId: string | null;
-  currentPlayerName: string;
-  currentPlayerTrigram: string;
-  currentPlayerColor: string;
+  currentPlayer?: Player;
   isConnected: boolean;
   onEndTurn: () => void;
   hasInsufficientFunds?: boolean;
-  isEndingTurn?: boolean;
+  controlsEnabled: boolean;
+  waitingForPlayers: Player[];
 }
 
 const GameControls: React.FC<GameControlsProps> = ({
   gameState,
   gameId,
-  currentPlayerName,
-  currentPlayerTrigram,
-  currentPlayerColor,
+  currentPlayer,
   isConnected,
   onEndTurn,
   hasInsufficientFunds = false,
-  isEndingTurn = false,
+  controlsEnabled,
+  waitingForPlayers,
 }) => {
+  const [dotCount, setDotCount] = useState(1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDotCount((prev) => (prev + 1) % 4);
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   // Show loading animation during DA ahead auction phase
   if (gameState.phase === GamePhase.DA_AUCTION) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border p-6 flex items-center justify-center">
+      <div className="bg-gray-200 rounded-lg shadow-sm border p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h3 className="text-lg font-bold text-gray-900">Clearing auction</h3>
@@ -38,40 +45,43 @@ const GameControls: React.FC<GameControlsProps> = ({
     );
   }
 
+  if (!controlsEnabled) {
+    if (waitingForPlayers.length > 0) {
+      return (
+        <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
+          <h3 className="text-lg font-bold text-black">
+            Waiting for player{waitingForPlayers.length > 1 ? "s" : ""}
+            {".".repeat(dotCount)}
+          </h3>
+          <div className="flex flex-col gap-2 mt-4">
+            {waitingForPlayers.map((player) => (
+              <div key={player.id} className="flex items-center gap-2">
+                <PlayerTri player={player} big={true} />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return null;
+  }
+
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-6">
-      <h3 className="text-lg font-bold text-black">Controls</h3>
+    <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
+      <h3 className="text-lg font-bold text-black">Your turn</h3>
       {/* Current Player Info - Centered */}
-      {currentPlayerTrigram && (
+      {currentPlayer && (
         <div className="flex justify-left items-center gap-3 pt-2 pb-4">
-          {currentPlayerColor && (
-            <div
-              className="w-6 h-6 rounded-full border-2 border-gray-300"
-              style={{ backgroundColor: currentPlayerColor }}
-              title={`Player color: ${currentPlayerName}`}
-            ></div>
-          )}
-          <span className="text-lg font-bold text-gray-900 whitespace-nowrap">
-            {currentPlayerTrigram}
-          </span>
+          <PlayerTri player={currentPlayer} big={true} />
         </div>
       )}
       <div className="space-y-4">
         <button
           onClick={onEndTurn}
-          disabled={
-            !isConnected ||
-            (hasInsufficientFunds && gameState.phase == GamePhase.BIDDING) ||
-            isEndingTurn
-          }
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
         >
-          {isEndingTurn ? "Ending Turn..." : "End Turn"}
+          End Turn
         </button>
-        <div className="text-sm text-gray-600">
-          <p>Game ID: {gameId}</p>
-          <p>Round: {gameState.game_round}</p>
-        </div>
       </div>
     </div>
   );

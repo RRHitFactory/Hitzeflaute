@@ -1,13 +1,14 @@
 from dataclasses import dataclass, field
-from typing import Self
+from typing import Literal, Self
 
 from src.models.geometry import Point, Shape, ShapeType
+
+type TurnType = Literal["hotseat", "online"]
 
 
 @dataclass(frozen=True)
 class GameSettings:
-    """A class to hold game settings."""
-
+    turn_type: TurnType = "hotseat"
     n_buses: int = 5
     max_rounds: int = 20
     n_init_ice_cream: int = 5
@@ -29,6 +30,7 @@ class GameSettings:
     def to_simple_dict(self) -> dict:
         """Convert the game settings to a simple dictionary."""
         return {
+            "turn_type": self.turn_type,
             "n_buses": self.n_buses,
             "max_rounds": self.max_rounds,
             "n_init_ice_cream": self.n_init_ice_cream,
@@ -47,6 +49,7 @@ class GameSettings:
     def from_simple_dict(cls, simple_dict: dict) -> Self:
         """Create a GameSettings instance from a simple dictionary."""
         return cls(
+            turn_type=simple_dict["turn_type"],
             n_buses=simple_dict["n_buses"],
             max_rounds=simple_dict["max_rounds"],
             n_init_ice_cream=simple_dict["n_init_ice_cream"],

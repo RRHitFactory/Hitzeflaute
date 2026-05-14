@@ -4,7 +4,6 @@ from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.assets import AssetType
 from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker
-from tests.utils.infeasibility_catcher import infeasibility_catcher
 from tests.utils.repo_maker import (
     AssetRepoMaker,
     BusRepoMaker,
@@ -129,8 +128,7 @@ class TestMarketCoupling(BaseTest):
     def test_congestion_rent_and_price_spread(self) -> None:
         game_state = self.create_game_state()
 
-        with infeasibility_catcher():
-            market_result = MarketCouplingCalculator.run(game_state)
+        market_result = MarketCouplingCalculator.run(game_state)
 
         for mtu in market_result.transmission_flows.index:
             for transmission in game_state.transmission:
@@ -141,7 +139,7 @@ class TestMarketCoupling(BaseTest):
                 p1: float = market_result.bus_prices.loc[mtu, transmission.bus1]  # type: ignore
                 p2: float = market_result.bus_prices.loc[mtu, transmission.bus2]  # type: ignore
                 if np.isclose(abs(flow), abs(transmission.capacity)):
-                    self.assertGreaterEqual(p1 - p2, 0)
+                    self.assertGreaterEqual(p2 - p1, 0)
                 else:
                     self.assertAlmostEqual(p1, p2, places=0)
 

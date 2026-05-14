@@ -5,12 +5,16 @@ from src.app.game_repo.file_game_repo import FileGameStateRepo
 from src.app.lobby_manager import LobbyManager
 from src.directories import test_dir
 from src.engine.engine import Engine
-from src.models.message import GameToPlayerMessage
+from src.models.ids import GameId
+from src.models.message import GameToPlayerMessage, GameUpdate
 from tests.base_test import BaseTest
 
 
 class DummyFrontEndMessageHandler:
     async def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None:
+        return None
+
+    async def broadcast_to_players(self, game_id: GameId, message: GameUpdate) -> None:
         return None
 
 
@@ -47,8 +51,8 @@ class TestGameAndLobbyManager(BaseTest):
         game_manager = self.game_manager
         lobby_manager = LobbyManager(game_manager=game_manager)
 
-        game_id = game_manager.new_game(game_repo=game_repo, player_names=["Robbie", "Roman"])
+        game_id = game_manager.new_game(game_repo=game_repo, player_names=["Robbie", "Roman"], turn_type="hotseat")
         lobby_game_id = lobby_manager.create_lobby()
-        game_id_2 = game_manager.new_game(game_repo=game_repo, player_names=["Robbie", "Roman"])
+        game_id_2 = game_manager.new_game(game_repo=game_repo, player_names=["Robbie", "Roman"], turn_type="hotseat")
         lobby_game_id_2 = lobby_manager.create_lobby()
         self.assertEqual(len(set([game_id, lobby_game_id, game_id_2, lobby_game_id_2])), 4)

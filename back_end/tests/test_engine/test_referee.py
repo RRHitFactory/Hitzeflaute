@@ -1,8 +1,9 @@
 from src.engine.referee import Referee
 from src.models.game_state import GameState, Phase
-from src.models.ids import PlayerId
+from src.models.ids import BusId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import IceCreamMeltedMessage
+from src.models.transmission import TransmissionInfo
 from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
@@ -119,6 +120,10 @@ class TestReferee(BaseTest):
 
     def test_validate_purchase(self):
         game_state, market_result = self.create_game_state_and_market_coupling_result()
+        for_sale_line = TransmissionInfo(
+            id=TransmissionId(200), owner_player=PlayerId.get_npc(), bus1=BusId(1), bus2=BusId(2), reactance=2.0, capacity=100.0, is_for_sale=True, minimum_acquisition_price=100.0
+        )
+        game_state = game_state.update(game_state.transmission + for_sale_line)
 
         # make the first player go in debt
         poor_player = game_state.players[0]
