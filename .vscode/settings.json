@@ -71,5 +71,9 @@
             "selfParameter": "#e181ff",
             "clsParameter": "#e181ff",
         }
-    }
+    },
+    "editor.codeActionsOnSave": {
+        "source.fixAll.ts": "always"
+    },
+    "eslint.validate": ["typescript", "typescriptreact"]
 }

@@ -6,7 +6,10 @@ import GameControls from "@/components/UI/GameControls";
 import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
 import { usePlayerTurn } from "@/hooks/usePlayerTurn";
-import GameWebSocketClient, { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
+import GameWebSocketClient, {
+  useGameWebSocket,
+  type WebSocketMessage,
+} from "@/lib/gameWebSocket";
 import { GamePhase, Player } from "@/types/game";
 import { useSearchParams } from "next/navigation";
 import {
@@ -120,14 +123,19 @@ function GameContent() {
   // State to track insufficient funds status from BiddingTable
   const [hasInsufficientFunds, setHasInsufficientFunds] = useState(false);
 
-  const getWsAndCurrentPlayer = (): { "ws": GameWebSocketClient, "player": Player} | undefined => {
+  const getWsAndCurrentPlayer = ():
+    | { ws: GameWebSocketClient; player: Player }
+    | undefined => {
     if (!wsClient || !wsClient.isConnected()) {
       setError("Not connected to server");
-      return
+      return;
     }
-    if (!currentPlayer) {setError("No curent player"); return}
-    return {"ws": wsClient, "player": currentPlayer}
-  }
+    if (!currentPlayer) {
+      setError("No curent player");
+      return;
+    }
+    return { ws: wsClient, player: currentPlayer };
+  };
 
   // Reset pending activations when current player or phase changes
   useEffect(() => {
@@ -136,23 +144,24 @@ function GameContent() {
   }, [gameState?.phase, currentPlayer?.id]);
 
   const handlePurchaseAsset = (assetId: number) => {
-    const wsAndCurrentPlayer = getWsAndCurrentPlayer()
-    if (!wsAndCurrentPlayer) {return}
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer();
+    if (!wsAndCurrentPlayer) {
+      return;
+    }
     const { ws, player } = wsAndCurrentPlayer;
     console.log("Purchasing asset:", assetId);
     ws.buyAsset(assetId.toString(), player.id);
   };
 
   const handlePurchaseTransmissionLine = (lineId: number) => {
-    const wsAndCurrentPlayer = getWsAndCurrentPlayer()
-    if (!wsAndCurrentPlayer) {return}
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer();
+    if (!wsAndCurrentPlayer) {
+      return;
+    }
     const { ws, player } = wsAndCurrentPlayer;
 
     console.log("Purchasing transmission line:", lineId);
-    ws.buyTransmissionLine(
-      lineId.toString(),
-      player.id,
-    );
+    ws.buyTransmissionLine(lineId.toString(), player.id);
   };
 
   const handleActivateLine = (lineId: number) => {
@@ -188,9 +197,10 @@ function GameContent() {
   };
 
   const handleEndTurn = () => {
-
-    const wsAndCurrentPlayer = getWsAndCurrentPlayer()
-    if (!wsAndCurrentPlayer) {return}
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer();
+    if (!wsAndCurrentPlayer) {
+      return;
+    }
     const { ws, player } = wsAndCurrentPlayer;
 
     setControlsEnabled(false);
@@ -207,7 +217,7 @@ function GameContent() {
             line_activation: pendingActivations.lines,
             asset_activation: pendingActivations.assets,
           },
-          player.id
+          player.id,
         );
       }
     }

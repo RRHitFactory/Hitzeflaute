@@ -1,11 +1,11 @@
 "use client";
 
 import {
-    BusWithDisplayCoords,
-    HoverableElement,
-    Player,
-    Point,
-    TransmissionLine,
+  BusWithDisplayCoords,
+  HoverableElement,
+  Player,
+  Point,
+  TransmissionLine,
 } from "@/types/game";
 import React from "react";
 

@@ -201,6 +201,8 @@ def get_lobby_rest_router(
             )
             await lobby_ws_manager.broadcast_to_lobby(GameId(int(game_id)), message)
 
+            lobby_manager.delete_lobby(game_id=game_id_obj)
+
             return {
                 "message": f"Lobby started, game created with ID {game_id_obj}",
                 "game_id": int(game_id_obj),

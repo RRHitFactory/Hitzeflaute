@@ -90,7 +90,9 @@ export function usePlayerTurn(
       ? gameState.players
       : gameState.players?.data || [];
 
-    return playersArray.find((p: Player) => p.id === currentPlayerId) || undefined;
+    return (
+      playersArray.find((p: Player) => p.id === currentPlayerId) || undefined
+    );
   }, [gameState, currentPlayerId]);
 
   const isCurrentPlayersTurn: boolean = useMemo(() => {
@@ -115,9 +117,11 @@ export function usePlayerTurn(
   ]);
 
   const waitingForPlayers: Player[] = useMemo(() => {
-    if (isCurrentPlayersTurn) {return []}
-    return activePlayers.filter((p: Player) =>  p.id != currentPlayerId)
-  }, [isCurrentPlayersTurn, activePlayers])
+    if (isCurrentPlayersTurn) {
+      return [];
+    }
+    return activePlayers.filter((p: Player) => p.id != currentPlayerId);
+  }, [isCurrentPlayersTurn, activePlayers, currentPlayerId]);
 
   // Enable controls when it's the current player's turn
   useEffect(() => {

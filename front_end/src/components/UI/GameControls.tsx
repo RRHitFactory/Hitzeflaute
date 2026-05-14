@@ -1,5 +1,5 @@
 "use client";
-
+import PlayerTri from "@/components/UI/PlayerTri"
 import { GamePhase, GameState, Player } from "@/types/game";
 import React from "react";
 
@@ -11,7 +11,7 @@ interface GameControlsProps {
   onEndTurn: () => void;
   hasInsufficientFunds?: boolean;
   controlsEnabled: boolean;
-  waitingForPlayers: Player[]
+  waitingForPlayers: Player[];
 }
 
 const GameControls: React.FC<GameControlsProps> = ({
@@ -22,12 +22,12 @@ const GameControls: React.FC<GameControlsProps> = ({
   onEndTurn,
   hasInsufficientFunds = false,
   controlsEnabled,
-  waitingForPlayers
+  waitingForPlayers,
 }) => {
   // Show loading animation during DA ahead auction phase
   if (gameState.phase === GamePhase.DA_AUCTION) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border p-6 flex items-center justify-center">
+      <div className="bg-gray-200 rounded-lg shadow-sm border p-6 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <h3 className="text-lg font-bold text-gray-900">Clearing auction</h3>
@@ -37,23 +37,32 @@ const GameControls: React.FC<GameControlsProps> = ({
   }
 
   if (!controlsEnabled) {
-    if (waitingForPlayers.length == 0) {return}
+    if (waitingForPlayers.length > 0) {
+      return (
+        <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
+          <h3 className="text-lg font-bold text-black">
+            Waiting for players...
+          </h3>
+          <div className="flex flex-wrap gap-2 mt-4">
+            {waitingForPlayers.map((player) => (
+              <div key={player.id} className="flex items-center gap-2">
+                {PlayerTri(player)}
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    return null;
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border p-6">
+    <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
       <h3 className="text-lg font-bold text-black">Controls</h3>
       {/* Current Player Info - Centered */}
       {currentPlayer && (
         <div className="flex justify-left items-center gap-3 pt-2 pb-4">
-          <div
-            className="w-6 h-6 rounded-full border-2 border-gray-300"
-            style={{ backgroundColor: currentPlayer.color }}
-            title={`Player color: ${currentPlayer.name}`}
-          ></div>
-          <span className="text-lg font-bold text-gray-900 whitespace-nowrap">
-            {currentPlayer.trigram}
-          </span>
+          {PlayerTri(currentPlayer)}
         </div>
       )}
       <div className="space-y-4">
