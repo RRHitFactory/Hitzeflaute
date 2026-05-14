@@ -1,11 +1,11 @@
 "use client";
 
+import { BACKEND_HOST } from "@/config/apiConfig";
+import { useJoinLobby, useLobbyInfo, useStartLobby } from "@/lib/gameAPI";
+import { useLobbyWebSocket } from "@/lib/lobbyWebSocket";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useJoinLobby, useLobbyInfo, useStartLobby } from "@/lib/gameAPI";
-import { useLobbyWebSocket } from "@/lib/lobbyWebSocket";
-import { BACKEND_HOST } from "@/config/apiConfig";
 
 function LobbyContent() {
   const searchParams = useSearchParams();
@@ -201,32 +201,6 @@ function LobbyContent() {
     );
   }
 
-  // Show loading state while player is being set up
-  if (!isPlayerReady) {
-    return (
-      <div className="min-h-screen bg-gray-300">
-        <header className="bg-gray-300 shadow-sm border-b">
-          <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-4">
-              <h1 className="text-2xl font-bold text-black">
-                Power Flow Game - Lobby
-              </h1>
-              <Link href="/" className="text-blue-600 hover:text-blue-800">
-                Home
-              </Link>
-            </div>
-          </div>
-        </header>
-        <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="bg-gray-300 rounded-lg shadow-lg p-8 max-w-2xl w-full mx-auto text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-black">Waiting for player setup...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-gray-300">
       <header className="bg-gray-300 shadow-sm border-b">
@@ -242,163 +216,168 @@ function LobbyContent() {
         </div>
       </header>
 
-      <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-gray-300 rounded-lg shadow-lg p-8 max-w-2xl w-full mx-auto">
-          <h2 className="text-2xl font-bold text-black mb-6 text-center">
-            GameId: {gameId}
-          </h2>
+      {isPlayerReady && (
+        <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="bg-gray-300 rounded-lg shadow-lg p-8 max-w-2xl w-full mx-auto">
+            <h2 className="text-2xl font-bold text-black mb-6 text-center">
+              GameId: {gameId}
+            </h2>
 
-          {showStartingMessage && (
-            <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <p className="text-sm text-blue-700">
-                    Starting game... All players will be redirected
-                    automatically.
-                  </p>
+            {showStartingMessage && (
+              <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4">
+                <div className="flex">
+                  <div className="ml-3">
+                    <p className="text-sm text-blue-700">
+                      Starting game... All players will be redirected
+                      automatically.
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {playerName && (
+            {playerName && (
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-black mb-2">
+                  Your Player Name
+                </label>
+                <code className="bg-gray-400 px-4 py-2 rounded-md text-lg text-black block text-center">
+                  {playerName}
+                </code>
+                {isHost && (
+                  <p className="text-sm text-gray-700 text-center mt-2">
+                    You are the host
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* WebSocket Connection Status */}
+            {parsedPlayerId !== -1 && (
+              <div className="mb-4 flex items-center justify-center gap-2">
+                <div
+                  className={`w-3 h-3 rounded-full ${
+                    isConnected
+                      ? "bg-green-500"
+                      : connectionState === "CONNECTING"
+                        ? "bg-yellow-500"
+                        : "bg-red-500"
+                  }`}
+                ></div>
+                <span className="text-sm text-gray-600">
+                  {isConnected
+                    ? "Real-time updates: Connected"
+                    : connectionState === "CONNECTING"
+                      ? "Real-time updates: Connecting..."
+                      : "Real-time updates: Disconnected (using polling fallback)"}
+                </span>
+              </div>
+            )}
+
+            {/* Player Table */}
+            <div className="mb-6">
+              <h3 className="text-lg font-bold text-black mb-3">
+                Players in Lobby ({players.length}/{lobbyInfo?.max_players || 5}
+                )
+              </h3>
+              {players.length === 0 ? (
+                <p className="text-black text-center py-4">
+                  No players yet. Share the link below to invite others.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full bg-gray-400 rounded-md">
+                    <thead className="bg-gray-500">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-black">
+                          Player Name
+                        </th>
+                        <th className="px-4 py-2 text-left text-sm font-medium text-black">
+                          Player ID
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-gray-300">
+                      {players.map((player) => (
+                        <tr
+                          key={player.player_id}
+                          className="border-t border-gray-500"
+                        >
+                          <td className="px-4 py-2 text-black">
+                            {player.name}
+                          </td>
+                          <td className="px-4 py-2 text-black">
+                            {player.player_id}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Start Game Button - only shown to host with 2+ players */}
+            {isHost && (
+              <div className="mb-6">
+                <button
+                  onClick={handleStartWithMessage}
+                  disabled={!canStart || startLoading || showStartingMessage}
+                  className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                  {startLoading
+                    ? "Starting Game..."
+                    : showStartingMessage
+                      ? "Game Starting..."
+                      : "Start Game"}
+                </button>
+              </div>
+            )}
+
             <div className="mb-6">
               <label className="block text-sm font-medium text-black mb-2">
-                Your Player Name
+                Share this link with others to join:
               </label>
-              <code className="bg-gray-400 px-4 py-2 rounded-md text-lg text-black block text-center">
-                {playerName}
-              </code>
-              {isHost && (
-                <p className="text-sm text-gray-700 text-center mt-2">
-                  You are the host
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={lobbyUrl}
+                  readOnly
+                  className="flex-1 px-3 py-2 border border-gray-400 rounded-md bg-gray-400 text-sm text-black"
+                />
+                <button
+                  onClick={copyLink}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            {copySuccess && (
+              <div className="bg-green-50 text-green-700 p-3 rounded-md mb-4 text-center">
+                {copySuccess}
+              </div>
+            )}
+
+            <div className="text-sm text-black text-center">
+              <p>Players who open this link will join your lobby.</p>
+              {isHost ? (
+                <p className="mt-2">
+                  You are the host. Start the game when ready.
+                </p>
+              ) : (
+                <p className="mt-2">Waiting for the host to start the game.</p>
+              )}
+              {!canStart && isHost && (
+                <p className="mt-2 text-red-600">
+                  Need at least 2 players to start.
                 </p>
               )}
             </div>
-          )}
-
-          {/* WebSocket Connection Status */}
-          {parsedPlayerId !== -1 && (
-            <div className="mb-4 flex items-center justify-center gap-2">
-              <div
-                className={`w-3 h-3 rounded-full ${
-                  isConnected
-                    ? "bg-green-500"
-                    : connectionState === "CONNECTING"
-                      ? "bg-yellow-500"
-                      : "bg-red-500"
-                }`}
-              ></div>
-              <span className="text-sm text-gray-600">
-                {isConnected
-                  ? "Real-time updates: Connected"
-                  : connectionState === "CONNECTING"
-                    ? "Real-time updates: Connecting..."
-                    : "Real-time updates: Disconnected (using polling fallback)"}
-              </span>
-            </div>
-          )}
-
-          {/* Player Table */}
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-black mb-3">
-              Players in Lobby ({players.length}/{lobbyInfo?.max_players || 5})
-            </h3>
-            {players.length === 0 ? (
-              <p className="text-black text-center py-4">
-                No players yet. Share the link below to invite others.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full bg-gray-400 rounded-md">
-                  <thead className="bg-gray-500">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-black">
-                        Player Name
-                      </th>
-                      <th className="px-4 py-2 text-left text-sm font-medium text-black">
-                        Player ID
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-gray-300">
-                    {players.map((player) => (
-                      <tr
-                        key={player.player_id}
-                        className="border-t border-gray-500"
-                      >
-                        <td className="px-4 py-2 text-black">{player.name}</td>
-                        <td className="px-4 py-2 text-black">
-                          {player.player_id}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
           </div>
-
-          {/* Start Game Button - only shown to host with 2+ players */}
-          {isHost && (
-            <div className="mb-6">
-              <button
-                onClick={handleStartWithMessage}
-                disabled={!canStart || startLoading || showStartingMessage}
-                className="w-full bg-green-600 text-white py-3 px-4 rounded-md hover:bg-green-700 transition-colors font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {startLoading
-                  ? "Starting Game..."
-                  : showStartingMessage
-                    ? "Game Starting..."
-                    : "Start Game"}
-              </button>
-            </div>
-          )}
-
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-black mb-2">
-              Share this link with others to join:
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={lobbyUrl}
-                readOnly
-                className="flex-1 px-3 py-2 border border-gray-400 rounded-md bg-gray-400 text-sm text-black"
-              />
-              <button
-                onClick={copyLink}
-                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors whitespace-nowrap"
-              >
-                Copy
-              </button>
-            </div>
-          </div>
-
-          {copySuccess && (
-            <div className="bg-green-50 text-green-700 p-3 rounded-md mb-4 text-center">
-              {copySuccess}
-            </div>
-          )}
-
-          <div className="text-sm text-black text-center">
-            <p>Players who open this link will join your lobby.</p>
-            {isHost ? (
-              <p className="mt-2">
-                You are the host. Start the game when ready.
-              </p>
-            ) : (
-              <p className="mt-2">Waiting for the host to start the game.</p>
-            )}
-            {!canStart && isHost && (
-              <p className="mt-2 text-red-600">
-                Need at least 2 players to start.
-              </p>
-            )}
-          </div>
-        </div>
-      </main>
+        </main>
+      )}
     </div>
   );
 }

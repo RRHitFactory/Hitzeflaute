@@ -1,7 +1,7 @@
 "use client";
-import PlayerTri from "@/components/UI/PlayerTri"
+import PlayerTri from "@/components/UI/PlayerTri";
 import { GamePhase, GameState, Player } from "@/types/game";
-import React from "react";
+import React, { useEffect, useState } from "react";
 
 interface GameControlsProps {
   gameState: GameState;
@@ -24,6 +24,15 @@ const GameControls: React.FC<GameControlsProps> = ({
   controlsEnabled,
   waitingForPlayers,
 }) => {
+  const [dotCount, setDotCount] = useState(1);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDotCount((prev) => (prev + 1) % 4);
+    }, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   // Show loading animation during DA ahead auction phase
   if (gameState.phase === GamePhase.DA_AUCTION) {
     return (
@@ -41,12 +50,13 @@ const GameControls: React.FC<GameControlsProps> = ({
       return (
         <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
           <h3 className="text-lg font-bold text-black">
-            Waiting for players...
+            Waiting for player{waitingForPlayers.length > 1 ? "s" : ""}
+            {".".repeat(dotCount)}
           </h3>
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="flex flex-col gap-2 mt-4">
             {waitingForPlayers.map((player) => (
               <div key={player.id} className="flex items-center gap-2">
-                {PlayerTri(player)}
+                <PlayerTri player={player} big={true} />
               </div>
             ))}
           </div>
@@ -62,7 +72,7 @@ const GameControls: React.FC<GameControlsProps> = ({
       {/* Current Player Info - Centered */}
       {currentPlayer && (
         <div className="flex justify-left items-center gap-3 pt-2 pb-4">
-          {PlayerTri(currentPlayer)}
+          <PlayerTri player={currentPlayer} big={true}/>
         </div>
       )}
       <div className="space-y-4">

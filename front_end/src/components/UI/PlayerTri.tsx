@@ -3,15 +3,24 @@
 import { Player } from "@/types/game";
 import React from "react";
 
-const PlayerTri: React.FC<Player> = (player) => {
+interface PlayerTriProps {
+  player: Player;
+  big?: boolean;
+}
+
+const PlayerTri: React.FC<PlayerTriProps> = ({ player, big = false }) => {
   return (
     <div className="flex items-center gap-2">
       <div
-        className="w-5 h-5 rounded-full border border-gray-300 flex-shrink-0 mt-[2px]"
+        className={`rounded-full border border-gray-300 flex-shrink-0 mt-[2px] ${
+          big ? 'w-8 h-8' : 'w-5 h-5'
+        }`}
         style={{ backgroundColor: player.color }}
         title={`${player.name}'s color: ${player.color}`}
       />
-      <span className="text-sm font-medium text-gray-900 leading-none">
+      <span className={`font-medium text-gray-900 leading-none ${
+          big ? 'text-lg' : 'text-sm'
+        }`}>
         {player.trigram}
       </span>
     </div>
