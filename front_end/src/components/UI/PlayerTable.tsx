@@ -10,19 +10,24 @@ interface PlayerTableProps {
   cookiePlayerId?: number | null;
 }
 
-const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState, cookiePlayerId}) => {
-  const isOnlineMode = cookiePlayerId !== null
+const PlayerTable: React.FC<PlayerTableProps> = ({
+  players,
+  gameState,
+  cookiePlayerId,
+}) => {
+  const isOnlineMode = cookiePlayerId !== null;
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
 
   const humanPlayers = players.filter((player) => player.id !== NPC_PLAYER_ID);
 
   // Move current player to the top if in online mode
-  const sortedPlayers = isOnlineMode && cookiePlayerId !== null
-    ? [
-        ...humanPlayers.filter((player) => player.id === cookiePlayerId),
-        ...humanPlayers.filter((player) => player.id !== cookiePlayerId)
-      ]
-    : humanPlayers;
+  const sortedPlayers =
+    isOnlineMode && cookiePlayerId !== null
+      ? [
+          ...humanPlayers.filter((player) => player.id === cookiePlayerId),
+          ...humanPlayers.filter((player) => player.id !== cookiePlayerId),
+        ]
+      : humanPlayers;
 
   const getIceCreams = (playerId: number) => {
     if (!gameState) {
@@ -68,12 +73,13 @@ const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState, cookiePla
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
           {sortedPlayers.map((player) => {
-            const isCurrentPlayer = isOnlineMode && cookiePlayerId === player.id;
-            
+            const isCurrentPlayer =
+              isOnlineMode && cookiePlayerId === player.id;
+
             return (
-              <tr 
-                key={player.id} 
-                className={`${isCurrentPlayer ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
+              <tr
+                key={player.id}
+                className={`${isCurrentPlayer ? "bg-yellow-50 border-l-4 border-yellow-400" : ""}`}
               >
                 <td
                   className="px-2 py-2 whitespace-nowrap"

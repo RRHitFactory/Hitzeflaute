@@ -68,7 +68,7 @@ const GameControls: React.FC<GameControlsProps> = ({
 
   return (
     <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
-      <h3 className="text-lg font-bold text-black">Controls</h3>
+      <h3 className="text-lg font-bold text-black">Your turn</h3>
       {/* Current Player Info - Centered */}
       {currentPlayer && (
         <div className="flex justify-left items-center gap-3 pt-2 pb-4">
@@ -78,19 +78,10 @@ const GameControls: React.FC<GameControlsProps> = ({
       <div className="space-y-4">
         <button
           onClick={onEndTurn}
-          disabled={
-            !isConnected ||
-            !controlsEnabled ||
-            (hasInsufficientFunds && gameState.phase == GamePhase.BIDDING)
-          }
           className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
         >
-          {controlsEnabled ? "End Turn" : "..."}
+          End Turn
         </button>
-        <div className="text-sm text-gray-600">
-          <p>Game ID: {gameId}</p>
-          <p>Round: {gameState.game_round}</p>
-        </div>
       </div>
     </div>
   );
