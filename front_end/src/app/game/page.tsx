@@ -6,8 +6,8 @@ import GameControls from "@/components/UI/GameControls";
 import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
 import { usePlayerTurn } from "@/hooks/usePlayerTurn";
-import { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
-import { GamePhase } from "@/types/game";
+import GameWebSocketClient, { useGameWebSocket, type WebSocketMessage } from "@/lib/gameWebSocket";
+import { GamePhase, Player } from "@/types/game";
 import { useSearchParams } from "next/navigation";
 import {
   Suspense,
@@ -47,7 +47,7 @@ function GameContent() {
       console.error(msg.data);
       setError(msg.data || "Unknown server error");
     } else if (msg.message_type === "GameUpdate") {
-      // Controls are now managed by the usePlayerTurn hook based on currentPlayerObj.is_having_turn
+      // Controls are now managed by the usePlayerTurn hook based on currentPlayer.is_having_turn
     }
 
     console.log("=== End WebSocket Message Processing ===");
@@ -86,8 +86,8 @@ function GameContent() {
   // Use the new player turn hook to handle all player-related logic
   const {
     cookiePlayerId,
-    currentPlayerId,
-    currentPlayerObj,
+    currentPlayer,
+    waitingForPlayers,
     isHotseatMode,
     controlsEnabled,
     setControlsEnabled,
@@ -120,32 +120,38 @@ function GameContent() {
   // State to track insufficient funds status from BiddingTable
   const [hasInsufficientFunds, setHasInsufficientFunds] = useState(false);
 
+  const getWsAndCurrentPlayer = (): { "ws": GameWebSocketClient, "player": Player} | undefined => {
+    if (!wsClient || !wsClient.isConnected()) {
+      setError("Not connected to server");
+      return
+    }
+    if (!currentPlayer) {setError("No curent player"); return}
+    return {"ws": wsClient, "player": currentPlayer}
+  }
+
   // Reset pending activations when current player or phase changes
   useEffect(() => {
     setPendingActivations({ lines: {}, assets: {} });
     setPendingBids({});
-  }, [gameState?.phase, currentPlayerId]);
+  }, [gameState?.phase, currentPlayer?.id]);
 
   const handlePurchaseAsset = (assetId: number) => {
-    if (!wsClient || !wsClient.isConnected()) {
-      setError("Not connected to server");
-      return;
-    }
-
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer()
+    if (!wsAndCurrentPlayer) {return}
+    const { ws, player } = wsAndCurrentPlayer;
     console.log("Purchasing asset:", assetId);
-    wsClient.buyAsset(assetId.toString(), currentPlayerId || DEFAULT_PLAYER);
+    ws.buyAsset(assetId.toString(), player.id);
   };
 
   const handlePurchaseTransmissionLine = (lineId: number) => {
-    if (!wsClient || !wsClient.isConnected()) {
-      setError("Not connected to server");
-      return;
-    }
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer()
+    if (!wsAndCurrentPlayer) {return}
+    const { ws, player } = wsAndCurrentPlayer;
 
     console.log("Purchasing transmission line:", lineId);
-    wsClient.buyTransmissionLine(
+    ws.buyTransmissionLine(
       lineId.toString(),
-      currentPlayerId || DEFAULT_PLAYER,
+      player.id,
     );
   };
 
@@ -182,13 +188,11 @@ function GameContent() {
   };
 
   const handleEndTurn = () => {
-    if (!wsClient || !wsClient.isConnected()) {
-      setError("Not connected to server");
-      return;
-    }
-    if (!currentPlayerId) {
-      return;
-    }
+
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer()
+    if (!wsAndCurrentPlayer) {return}
+    const { ws, player } = wsAndCurrentPlayer;
+
     setControlsEnabled(false);
 
     if (gameState?.phase === 1) {
@@ -198,12 +202,12 @@ function GameContent() {
 
       if (hasActivations) {
         console.log("Submitting activation updates:", pendingActivations);
-        wsClient.activationUpdate(
+        ws.activationUpdate(
           {
             line_activation: pendingActivations.lines,
             asset_activation: pendingActivations.assets,
           },
-          currentPlayerId,
+          player.id
         );
       }
     }
@@ -211,7 +215,7 @@ function GameContent() {
     if (gameState?.phase === 2) {
       if (Object.keys(pendingBids).length > 0) {
         console.log("Submitting pending bids:", pendingBids);
-        wsClient.submitBatchBids(pendingBids, currentPlayerId);
+        ws.submitBatchBids(pendingBids, player.id);
       }
     }
 
@@ -219,7 +223,7 @@ function GameContent() {
     setPendingBids({});
 
     console.log("Ending turn");
-    wsClient.endTurn(currentPlayerId);
+    ws.endTurn(player.id);
   };
 
   const handleBidAsset = (assetId: number, newBidPrice: number) => {
@@ -333,7 +337,7 @@ function GameContent() {
                 onDeactivateLine={handleDeactivateLine}
                 onActivateAsset={handleActivateAsset}
                 onDeactivateAsset={handleDeactivateAsset}
-                currentPlayerObj={currentPlayerObj}
+                currentPlayer={currentPlayer}
                 pendingActivations={pendingActivations}
                 controlsEnabled={controlsEnabled}
               />
@@ -356,19 +360,20 @@ function GameContent() {
             <GameControls
               gameState={gameState}
               gameId={gameId?.toString() || null}
-              currentPlayerObj={currentPlayerObj}
+              currentPlayer={currentPlayer}
               isConnected={isConnected}
               onEndTurn={handleEndTurn}
               hasInsufficientFunds={hasInsufficientFunds}
               controlsEnabled={controlsEnabled}
+              waitingForPlayers={waitingForPlayers}
             />
 
             {gameState.phase === GamePhase.BIDDING &&
-              currentPlayerObj &&
+              currentPlayer &&
               controlsEnabled && (
                 <BiddingTable
                   assets={gameState.assets.data}
-                  currentPlayerObj={currentPlayerObj}
+                  currentPlayer={currentPlayer}
                   pendingBids={pendingBids}
                   onBidChange={handleBidAsset}
                   onInsufficientFundsChange={setHasInsufficientFunds}

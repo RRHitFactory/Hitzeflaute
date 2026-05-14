@@ -1,13 +1,13 @@
 "use client";
 
 import {
-  BusWithDisplayCoords,
-  GamePhase,
-  GameState,
-  HoverableElement,
-  mapBackendToDisplay,
-  NPC_PLAYER_ID,
-  Player,
+    BusWithDisplayCoords,
+    GamePhase,
+    GameState,
+    HoverableElement,
+    mapBackendToDisplay,
+    NPC_PLAYER_ID,
+    Player,
 } from "@/types/game";
 import React, { useCallback, useMemo, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
@@ -28,7 +28,7 @@ interface GridVisualizationProps {
   onDeactivateLine?: (lineId: number) => void;
   onActivateAsset?: (assetId: number) => void;
   onDeactivateAsset?: (assetId: number) => void;
-  currentPlayerObj?: Player;
+  currentPlayer?: Player;
   pendingActivations?: {
     lines?: Record<number, boolean>;
     assets?: Record<number, boolean>;
@@ -44,7 +44,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   onDeactivateLine,
   onActivateAsset,
   onDeactivateAsset,
-  currentPlayerObj,
+  currentPlayer,
   pendingActivations = {},
   controlsEnabled,
 }) => {
@@ -473,8 +473,8 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
           // Check if player owns this line and we're in sneaky tricks phase
           const isOwnedByCurrentPlayer =
-            currentPlayerObj !== undefined &&
-            line.owner_player === currentPlayerObj.id;
+            currentPlayer !== undefined &&
+            line.owner_player === currentPlayer.id;
           const isSneakyTricks = gameState.phase === GamePhase.SNEAKY_TRICKS;
 
           // Get pending activation state if available, otherwise use game state
@@ -499,7 +499,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               maxFlow={maxFlow}
               actualFlow={linePower}
               showFlowAnimation={true}
-              currentPlayerObj={currentPlayerObj}
+              currentPlayer={currentPlayer}
               isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
               isSneakyTricks={isSneakyTricks}
               isActive={isLineActive}
@@ -557,7 +557,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 onLeave={handleMouseLeave}
                 isPurchasable={isPurchasable}
                 onPurchase={handleAssetPurchaseRequest}
-                currentPlayerObj={currentPlayerObj}
+                currentPlayer={currentPlayer}
                 viewMode={viewMode}
                 isSneakyTricks={isSneakyTricks}
                 isActive={isAssetActive}

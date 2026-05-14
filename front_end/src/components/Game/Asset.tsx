@@ -29,7 +29,7 @@ interface AssetProps {
   onLeave: () => void;
   isPurchasable?: boolean;
   onPurchase?: (assetId: number) => void;
-  currentPlayerObj?: Player;
+  currentPlayer?: Player;
   viewMode?: "normal" | "market";
   isSneakyTricks?: boolean;
   isActive?: boolean;
@@ -60,7 +60,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   onLeave,
   isPurchasable = false,
   onPurchase,
-  currentPlayerObj,
+  currentPlayer,
   viewMode = "normal",
   isSneakyTricks = false,
   isActive,
@@ -84,8 +84,8 @@ const AssetComponent: React.FC<AssetProps> = ({
   const isLoad = asset.asset_type === AssetType.LOAD;
   // Freezers cannot be disabled
   const isFreezer = asset.is_freezer;
-  const playerHasNegativeMoney = currentPlayerObj
-    ? currentPlayerObj.money < 0
+  const playerHasNegativeMoney = currentPlayer
+    ? currentPlayer.money < 0
     : false;
   const isForcedInactive = isLoad && !isFreezer && playerHasNegativeMoney;
 
@@ -101,7 +101,7 @@ const AssetComponent: React.FC<AssetProps> = ({
     };
 
     // Show current bid price if asset is owned by current player
-    if (currentPlayerObj && asset.owner_player === currentPlayerObj.id) {
+    if (currentPlayer && asset.owner_player === currentPlayer.id) {
       data["Current Bid"] = formatPrice(asset.bid_price);
     }
 
@@ -236,7 +236,7 @@ const AssetComponent: React.FC<AssetProps> = ({
   const PropComponent = technologyMap[asset.technology];
 
   // Check if player can afford this asset
-  const playerMoney = currentPlayerObj?.money || 0;
+  const playerMoney = currentPlayer?.money || 0;
   const canAfford =
     !isPurchasable ||
     (onPurchase && asset.minimum_acquisition_price <= playerMoney);
@@ -351,8 +351,8 @@ const AssetComponent: React.FC<AssetProps> = ({
       )}
 
       {/* Activation control for owned assets in sneaky tricks phase */}
-      {currentPlayerObj &&
-        asset.owner_player === currentPlayerObj.id &&
+      {currentPlayer &&
+        asset.owner_player === currentPlayer.id &&
         isSneakyTricks &&
         viewMode === "normal" &&
         canToggle && (

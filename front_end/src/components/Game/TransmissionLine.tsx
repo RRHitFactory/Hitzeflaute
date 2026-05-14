@@ -1,11 +1,11 @@
 "use client";
 
 import {
-  BusWithDisplayCoords,
-  HoverableElement,
-  Player,
-  Point,
-  TransmissionLine,
+    BusWithDisplayCoords,
+    HoverableElement,
+    Player,
+    Point,
+    TransmissionLine,
 } from "@/types/game";
 import React from "react";
 
@@ -22,7 +22,7 @@ interface TransmissionLineProps {
   maxFlow?: number;
   actualFlow?: number;
   showFlowAnimation?: boolean;
-  currentPlayerObj?: Player;
+  currentPlayer?: Player;
   isOwnedByCurrentPlayer?: boolean;
   isSneakyTricks?: boolean;
   isActive?: boolean;
@@ -44,7 +44,7 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   maxFlow = 1,
   actualFlow = 0,
   showFlowAnimation = false,
-  currentPlayerObj,
+  currentPlayer,
   isSneakyTricks = false,
   isActive,
   onActivate,
@@ -221,8 +221,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const perpX2 = curveMidX - perpVector.x * 8;
   const perpY2 = curveMidY - perpVector.y * 8;
 
-  const isOwnedByCurrentPlayer = owner.id == currentPlayerObj?.id;
-  const playerMoney: number = !currentPlayerObj ? 0 : currentPlayerObj.money;
+  const isOwnedByCurrentPlayer = owner.id == currentPlayer?.id;
+  const playerMoney: number = !currentPlayer ? 0 : currentPlayer.money;
 
   // Check if player can afford this line
   const canAfford =

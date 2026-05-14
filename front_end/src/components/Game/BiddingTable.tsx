@@ -5,7 +5,7 @@ import React from "react";
 
 interface BiddingTableProps {
   assets: Asset[];
-  currentPlayerObj: Player;
+  currentPlayer: Player;
   pendingBids?: Record<number, number>;
   onBidChange?: (assetId: number, newBidPrice: number) => void;
   onInsufficientFundsChange?: (insufficient: boolean) => void;
@@ -13,7 +13,7 @@ interface BiddingTableProps {
 
 const BiddingTable: React.FC<BiddingTableProps> = ({
   assets,
-  currentPlayerObj,
+  currentPlayer,
   pendingBids = {},
   onBidChange,
   onInsufficientFundsChange,
@@ -25,7 +25,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
 
   // Filter assets owned by current player
   const playerAssets = assets.filter(
-    (asset) => asset.owner_player === currentPlayerObj.id,
+    (asset) => asset.owner_player === currentPlayer.id,
   );
 
   // Calculate expected cashflow for an asset
@@ -53,7 +53,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
 
   // Clip player money to minimum of 0 for insufficient funds calculation
   // This allows players with negative money to still place bids
-  const availableFunds = Math.max(0, currentPlayerObj.money);
+  const availableFunds = Math.max(0, currentPlayer.money);
   const insufficientFunds = totalCost > availableFunds;
 
   // Notify parent component about insufficient funds status

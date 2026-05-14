@@ -6,21 +6,23 @@ import React from "react";
 interface GameControlsProps {
   gameState: GameState;
   gameId: string | null;
-  currentPlayerObj?: Player;
+  currentPlayer?: Player;
   isConnected: boolean;
   onEndTurn: () => void;
   hasInsufficientFunds?: boolean;
   controlsEnabled: boolean;
+  waitingForPlayers: Player[]
 }
 
 const GameControls: React.FC<GameControlsProps> = ({
   gameState,
   gameId,
-  currentPlayerObj,
+  currentPlayer,
   isConnected,
   onEndTurn,
   hasInsufficientFunds = false,
   controlsEnabled,
+  waitingForPlayers
 }) => {
   // Show loading animation during DA ahead auction phase
   if (gameState.phase === GamePhase.DA_AUCTION) {
@@ -35,22 +37,22 @@ const GameControls: React.FC<GameControlsProps> = ({
   }
 
   if (!controlsEnabled) {
-    return;
+    if (waitingForPlayers.length == 0) {return}
   }
 
   return (
     <div className="bg-white rounded-lg shadow-sm border p-6">
       <h3 className="text-lg font-bold text-black">Controls</h3>
       {/* Current Player Info - Centered */}
-      {currentPlayerObj && (
+      {currentPlayer && (
         <div className="flex justify-left items-center gap-3 pt-2 pb-4">
           <div
             className="w-6 h-6 rounded-full border-2 border-gray-300"
-            style={{ backgroundColor: currentPlayerObj.color }}
-            title={`Player color: ${currentPlayerObj.name}`}
+            style={{ backgroundColor: currentPlayer.color }}
+            title={`Player color: ${currentPlayer.name}`}
           ></div>
           <span className="text-lg font-bold text-gray-900 whitespace-nowrap">
-            {currentPlayerObj.trigram}
+            {currentPlayer.trigram}
           </span>
         </div>
       )}

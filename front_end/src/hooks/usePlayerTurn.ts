@@ -83,14 +83,14 @@ export function usePlayerTurn(
   /**
    * Get the current player object from game state
    */
-  const currentPlayerObj: Player | undefined = useMemo(() => {
+  const currentPlayer: Player | undefined = useMemo(() => {
     if (!gameState || currentPlayerId === null) return;
 
     const playersArray = Array.isArray(gameState.players)
       ? gameState.players
       : gameState.players?.data || [];
 
-    return playersArray.find((p: any) => p.id === currentPlayerId) || undefined;
+    return playersArray.find((p: Player) => p.id === currentPlayerId) || undefined;
   }, [gameState, currentPlayerId]);
 
   const isCurrentPlayersTurn: boolean = useMemo(() => {
@@ -114,6 +114,11 @@ export function usePlayerTurn(
     phaseIsOneByOne,
   ]);
 
+  const waitingForPlayers: Player[] = useMemo(() => {
+    if (isCurrentPlayersTurn) {return []}
+    return activePlayers.filter((p: Player) =>  p.id != currentPlayerId)
+  }, [isCurrentPlayersTurn, activePlayers])
+
   // Enable controls when it's the current player's turn
   useEffect(() => {
     if (!currentPlayerId) {
@@ -124,8 +129,8 @@ export function usePlayerTurn(
 
   return {
     cookiePlayerId: cookiePlayerId,
-    currentPlayerId: currentPlayerId,
-    currentPlayerObj: currentPlayerObj,
+    currentPlayer: currentPlayer,
+    waitingForPlayers: waitingForPlayers,
     isHotseatMode: isHotSeatMode,
     controlsEnabled: controlsEnabled,
     setControlsEnabled: setControlsEnabled,
