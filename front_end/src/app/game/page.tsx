@@ -328,6 +328,7 @@ function GameContent() {
                     : gameState.players?.data || []
                 }
                 gameState={gameState}
+                cookiePlayerId={cookiePlayerId}
               />
             </div>
 

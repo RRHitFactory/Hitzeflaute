@@ -7,12 +7,22 @@ import React from "react";
 interface PlayerTableProps {
   players: Player[];
   gameState?: GameState;
+  cookiePlayerId?: number | null;
 }
 
-const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState }) => {
+const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState, cookiePlayerId}) => {
+  const isOnlineMode = cookiePlayerId !== null
   const formatMoney = (amount: number) => `$${amount.toLocaleString()}`;
 
   const humanPlayers = players.filter((player) => player.id !== NPC_PLAYER_ID);
+
+  // Move current player to the top if in online mode
+  const sortedPlayers = isOnlineMode && cookiePlayerId !== null
+    ? [
+        ...humanPlayers.filter((player) => player.id === cookiePlayerId),
+        ...humanPlayers.filter((player) => player.id !== cookiePlayerId)
+      ]
+    : humanPlayers;
 
   const getIceCreams = (playerId: number) => {
     if (!gameState) {
@@ -38,59 +48,56 @@ const PlayerTable: React.FC<PlayerTableProps> = ({ players, gameState }) => {
           <tr>
             <th
               className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              style={{ width: "20%" }}
+              style={{ width: "30%" }}
             >
               Player
             </th>
             <th
               className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              style={{ width: "30%" }}
-            >
-              Name
-            </th>
-            <th
-              className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              style={{ width: "35%" }}
+              style={{ width: "40%" }}
             >
               Money
             </th>
             <th
               className="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-              style={{ width: "15%" }}
+              style={{ width: "30%" }}
             >
               Ice Creams
             </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {humanPlayers.map((player) => (
-            <tr key={player.id} className="hover:bg-gray-50">
-              <td
-                className="px-2 py-2 whitespace-nowrap"
-                style={{ width: "20%" }}
+          {sortedPlayers.map((player) => {
+            const isCurrentPlayer = isOnlineMode && cookiePlayerId === player.id;
+            
+            return (
+              <tr 
+                key={player.id} 
+                className={`${isCurrentPlayer ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
               >
-                <PlayerTri player={player} />
-              </td>
-              <td
-                className="px-2 py-2 whitespace-nowrap text-sm font-medium text-gray-900"
-                style={{ width: "30%" }}
-              >
-                {player.name}
-              </td>
-              <td
-                className="px-2 py-2 whitespace-nowrap text-sm text-gray-900"
-                style={{ width: "35%" }}
-              >
-                {formatMoney(player.money)}
-              </td>
-              <td
-                className="px-2 py-2 whitespace-nowrap text-sm text-gray-900"
-                style={{ width: "15%" }}
-              >
-                {getIceCreams(player.id)}
-              </td>
-            </tr>
-          ))}
+                <td
+                  className="px-2 py-2 whitespace-nowrap"
+                  style={{ width: "30%" }}
+                >
+                  <div className="flex items-center gap-2">
+                    <PlayerTri player={player} big={false} />
+                  </div>
+                </td>
+                <td
+                  className="px-2 py-2 whitespace-nowrap text-sm text-gray-900"
+                  style={{ width: "40%" }}
+                >
+                  {formatMoney(player.money)}
+                </td>
+                <td
+                  className="px-2 py-2 whitespace-nowrap text-sm text-gray-900"
+                  style={{ width: "30%" }}
+                >
+                  {getIceCreams(player.id)}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

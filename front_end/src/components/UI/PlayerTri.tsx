@@ -16,7 +16,7 @@ const PlayerTri: React.FC<PlayerTriProps> = ({ player, big = false }) => {
           big ? "w-8 h-8" : "w-5 h-5"
         }`}
         style={{ backgroundColor: player.color }}
-        title={`${player.name}'s color: ${player.color}`}
+        title={player.name}
       />
       <span
         className={`font-medium text-gray-900 leading-none ${
