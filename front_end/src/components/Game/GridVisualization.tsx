@@ -9,7 +9,7 @@ import {
   NPC_PLAYER_ID,
   Player,
 } from "@/types/game";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ConfirmationDialog from "../UI/ConfirmationDialog";
 import ViewToggle from "../UI/ViewToggle";
 import AssetComponent from "./Asset";
@@ -48,6 +48,16 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   pendingActivations = {},
   controlsEnabled,
 }) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Center the scroll position on mount
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      const container = scrollContainerRef.current;
+      container.scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
+      container.scrollTop = (container.scrollHeight - container.clientHeight) / 2;
+    }
+  }, []);
   const [hoveredElement, setHoveredElement] = useState<HoverableElement | null>(
     null,
   );
@@ -435,7 +445,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     : 0;
 
   return (
-    <div className="relative w-full h-[700px] bg-gray-50 rounded-lg border overflow-auto">
+    <div className="relative w-full h-[700px] bg-gray-50 rounded-lg border overflow-auto" ref={scrollContainerRef}>
       {/* View Toggle in top left corner */}
       <div className="absolute top-2 left-2 z-10">
         <ViewToggle
