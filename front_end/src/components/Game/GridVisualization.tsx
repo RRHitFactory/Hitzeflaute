@@ -435,7 +435,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     : 0;
 
   return (
-    <div className="relative w-full h-[700px] bg-gray-50 rounded-lg border overflow-hidden">
+    <div className="relative w-full h-[700px] bg-gray-50 rounded-lg border overflow-auto">
       {/* View Toggle in top left corner */}
       <div className="absolute top-2 left-2 z-10">
         <ViewToggle
@@ -445,14 +445,14 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         />
       </div>
 
-      <svg
-        width="100%"
-        height="100%"
-        viewBox="0 0 400 300"
-        className="grid-container"
-        preserveAspectRatio="xMidYMid meet"
-        onMouseLeave={handleMouseLeave}
-      >
+      <div className="min-w-[1500px] min-h-[1200px] relative">
+        <svg
+          width="1500"
+          height="1200"
+          viewBox="-50 -50 500 350"
+          className="grid-container"
+          onMouseLeave={handleMouseLeave}
+        >
         {/* Transmission Lines */}
         {getTransmissionArray().map((line) => {
           const owner = getPlayerById(line.owner_player);
@@ -569,6 +569,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
           }),
         )}
       </svg>
+      </div>
 
       {/* Info Panel or Market Results Table */}
       {hoveredElement && viewMode === "normal" && (

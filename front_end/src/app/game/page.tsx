@@ -2,8 +2,8 @@
 
 import BiddingTable from "@/components/Game/BiddingTable";
 import GridVisualization from "@/components/Game/GridVisualization";
+import Header from "@/components/Game/Header";
 import GameControls from "@/components/UI/GameControls";
-import GameStatus from "@/components/UI/GameStatus";
 import PlayerTable from "@/components/UI/PlayerTable";
 import { usePlayerTurn } from "@/hooks/usePlayerTurn";
 import GameWebSocketClient, {
@@ -25,11 +25,9 @@ function GameContent() {
   const searchParams = useSearchParams();
   const gameIdParam = searchParams.get("gameId");
   const [gameId, setGameId] = useState<number | null>(null);
-  const DEFAULT_PLAYER = 1;
   const [error, setError] = useState<string | null>(null);
   const hasConnectedRef = useRef(false);
   const hasSetPlayerRef = useRef(false);
-  const debug = (process.env.DEBUG || "") == "true";
 
   // Initialize gameId from URL param
   useEffect(() => {
@@ -279,66 +277,17 @@ function GameContent() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-gray-200 shadow-sm border-b">
-        <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <h1 className="text-2xl font-bold text-gray-900 flex-shrink-0">
-              Power Flow Game
-            </h1>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-3 h-3 rounded-full ${
-                    connectionState === "CONNECTED"
-                      ? "bg-green-500"
-                      : connectionState === "CONNECTING"
-                        ? "bg-yellow-500"
-                        : "bg-red-500"
-                  }`}
-                ></div>
-                <span className="text-sm text-gray-600">
-                  {connectionState === "CONNECTED"
-                    ? "Connected"
-                    : connectionState === "CONNECTING"
-                      ? "Connecting..."
-                      : "Disconnected"}
-                </span>
-              </div>
-
-              <div className="flex-shrink-0">
-                <GameStatus
-                  phase={gameState.phase}
-                  round={gameState.game_round}
-                />
-              </div>
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <p className="text-sm text-red-700">{error}</p>
-                  <button
-                    onClick={() => setError(null)}
-                    className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </header>
+      <Header
+        connectionState={connectionState}
+        gameState={gameState}
+        error={error}
+        setError={setError}
+      />
 
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <div className="bg-gray-200 rounded-lg shadow-sm border p-6">
-              <h2 className="text-xl font-bold mb-4 text-black">
-                Grid Visualization
-              </h2>
+          {/* Grid Visualization - spans 2 columns on desktop, appears second on mobile */}
+          <div className="lg:col-span-2 order-2 lg:order-none">
               <GridVisualization
                 gameState={gameState}
                 onPurchaseAsset={handlePurchaseAsset}
@@ -351,11 +300,26 @@ function GameContent() {
                 pendingActivations={pendingActivations}
                 controlsEnabled={controlsEnabled}
               />
-            </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-gray-200 rounded-lg shadow-sm border p-4">
+          {/* Right sidebar - appears first on mobile, stays on right on desktop */}
+          <div className="space-y-6 order-1 lg:order-none">
+            {/* Game Controls - appears first on mobile */}
+            <div className="lg:hidden order-1">
+              <GameControls
+                gameState={gameState}
+                gameId={gameId?.toString() || null}
+                currentPlayer={currentPlayer}
+                isConnected={isConnected}
+                onEndTurn={handleEndTurn}
+                hasInsufficientFunds={hasInsufficientFunds}
+                controlsEnabled={controlsEnabled}
+                waitingForPlayers={waitingForPlayers}
+              />
+            </div>
+
+            {/* Players - appears second on mobile */}
+            <div className="bg-gray-200 rounded-lg shadow-sm border p-4 order-2 lg:order-none">
               <h3 className="text-lg font-bold mb-4 text-black">Players</h3>
               <PlayerTable
                 players={
@@ -367,16 +331,19 @@ function GameContent() {
               />
             </div>
 
-            <GameControls
-              gameState={gameState}
-              gameId={gameId?.toString() || null}
-              currentPlayer={currentPlayer}
-              isConnected={isConnected}
-              onEndTurn={handleEndTurn}
-              hasInsufficientFunds={hasInsufficientFunds}
-              controlsEnabled={controlsEnabled}
-              waitingForPlayers={waitingForPlayers}
-            />
+            {/* Game Controls - appears on desktop only, in right sidebar */}
+            <div className="hidden lg:block">
+              <GameControls
+                gameState={gameState}
+                gameId={gameId?.toString() || null}
+                currentPlayer={currentPlayer}
+                isConnected={isConnected}
+                onEndTurn={handleEndTurn}
+                hasInsufficientFunds={hasInsufficientFunds}
+                controlsEnabled={controlsEnabled}
+                waitingForPlayers={waitingForPlayers}
+              />
+            </div>
 
             {gameState.phase === GamePhase.BIDDING &&
               currentPlayer &&
