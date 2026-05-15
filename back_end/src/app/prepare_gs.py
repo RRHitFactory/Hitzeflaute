@@ -50,9 +50,10 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
     """
     Reduces the game state by removing unnecessary data for a single bus
     """
-    bus_assets = game_state.assets.get_all_assets_at_bus(bus_id=bus_id)
-    gens = bus_assets.only_generators
-    loads = bus_assets.only_loads
+    bus_asset_ids = coupling_result.assets_locations.get(bus_id, [])
+    assets = game_state.assets.get_multiple(bus_asset_ids)
+    gens = assets.only_generators
+    loads = assets.only_loads
 
     total_dispatch_dict: dict[int, float] = coupling_result.assets_dispatch.sum().to_dict()  # type: ignore
     dispatch_dict: dict[AssetId, float] = {AssetId(k): v for k, v in total_dispatch_dict.items()}

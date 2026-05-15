@@ -1,8 +1,6 @@
-from typing import TypeVar
+from src.models.assets import AssetRepo
+from src.models.ids import AssetId, BusId
 
-T = TypeVar("T")
 
-
-def flatten(x: list[list[T]]) -> list[T]:
-    """Flatten a list of lists into a single list."""
-    return [item for sublist in x for item in sublist]
+def get_asset_locations(assets: AssetRepo, bus_ids: list[BusId]) -> dict[BusId, list[AssetId]]:
+    return {b: assets.get_all_assets_at_bus(b).asset_ids for b in bus_ids}

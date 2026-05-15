@@ -348,6 +348,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         self,
         transmission_info: TransmissionInfo | None = None,
         owner: PlayerId | None = None,
+        buses: tuple[BusId, BusId] | None = None,
         reactance: float | None = None,
         capacity: float | None = None,
         health: int | None = None,
@@ -360,7 +361,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
         if transmission_info is None:
             transmission = self._make_dc(
                 owner=owner,
-                buses=None,
+                buses=buses,
                 reactance=reactance,
                 capacity=capacity,
                 health=health,

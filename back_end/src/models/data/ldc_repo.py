@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from typing import (
     Any,
     Literal,
@@ -102,6 +102,11 @@ class LdcRepo[T_LightDc: LightDc](ABC):
             raise ValueError("Cannot get a random item from an empty repo")
         random_index: int = random_choice(self.df.index.tolist(), generator=None)
         return self[random_index]
+
+    def get_multiple(self: "T_LdcRepo", ids: Sequence[int]) -> "T_LdcRepo":
+        int_ids = [int(id) for id in ids]
+        df = self.df.loc[int_ids, :]
+        return self.update_frame(df)
 
     # UPDATE
     def add(self: "T_LdcRepo", x: "T_LdcRepo" | T_LightDc) -> "T_LdcRepo":

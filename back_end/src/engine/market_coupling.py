@@ -9,6 +9,7 @@ from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.transmission import TransmissionId, TransmissionRepo
+from tests.utils.misc import get_asset_locations
 
 
 class OptimizationError(Exception):
@@ -27,10 +28,14 @@ class MarketCouplingCalculator:
         else:
             logging.getLogger(__name__).info("No active assets, skipping market coupling.")
 
+        flows = cls.get_transmission_flows(network=network, transmission=game_state.transmission)
+        asset_locations = get_asset_locations(assets=game_state.assets, bus_ids=game_state.buses.bus_ids)
+
         return MarketCouplingResult(
             bus_prices=cls.get_bus_prices(network),
-            transmission_flows=cls.get_transmission_flows(network=network, transmission=game_state.transmission),
+            transmission_flows=flows,
             assets_dispatch=cls.get_assets_dispatch(network=network, assets=game_state.assets),
+            asset_locations=asset_locations,
         )
 
     @classmethod
@@ -52,24 +57,23 @@ class MarketCouplingCalculator:
             if not transmission.is_active:
                 continue
 
-            if transmission.line_or_link=="Line":
+            other_parameters: dict[str, float | int] = {}
+            if transmission.is_line:
                 other_parameters = {
                     "x": transmission.reactance,
                     "s_nom": transmission.capacity,
                 }
-            elif transmission.line_or_link=="Link":
-                other_parameters = {
-                    "p_nom": transmission.capacity,
-                }
+            elif transmission.is_link:
+                other_parameters = {"p_nom": transmission.capacity, "efficiency": 1, "p_min_pu": -1}
             else:
-                other_parameters = {}
+                raise AssertionError()
 
             network.add(
                 class_name=transmission.line_or_link,
                 name=cls.get_pypsa_name(transmission.id),
                 bus0=cls.get_pypsa_name(transmission.bus1),
                 bus1=cls.get_pypsa_name(transmission.bus2),
-                **other_parameters # type: ignore
+                **other_parameters,  # type: ignore
             )
 
         for generator in game_state.assets.only_generators:
@@ -126,10 +130,7 @@ class MarketCouplingCalculator:
 
     @classmethod
     def get_transmission_flows(cls, network: pypsa.Network, transmission: TransmissionRepo) -> pd.DataFrame:
-        df = cls._tidy_df(
-            df=pd.concat([network.lines_t.p0, network.links_t.p0], axis=1),
-            column_name="Line"
-        )
+        df = cls._tidy_df(df=pd.concat([network.lines_t.p0, network.links_t.p0], axis=1), column_name="Line")
         # Add zero flows to open lines
         open_ids = transmission.only_open.transmission_ids
         df.loc[:, open_ids] = 0.0
