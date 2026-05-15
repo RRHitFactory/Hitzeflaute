@@ -17,7 +17,7 @@ class TestPrepareGs(BaseTest):
 
         self.assertIn("market_summary", reduced)
         self.assertIn("losing_player", reduced)
-        self.assertIsNone(reduced["market_couping_result"])
+        self.assertIsNone(reduced["market_coupling_result"])
 
         # The result should be json serializatble
         json.dumps(reduced)

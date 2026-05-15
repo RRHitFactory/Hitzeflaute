@@ -89,21 +89,21 @@ class Engine:
         game_state: GameState,
         msg: ClearAuction,
     ) -> tuple[GameState, Sequence[Message]]:
-        new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
+        gs, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
 
-        market_result = MarketCouplingCalculator.run(game_state=new_game_state)
+        market_result = MarketCouplingCalculator.run(game_state=gs)
 
-        new_game_state, new_msgs = cls._run_post_clearing_book_keeping(game_state=new_game_state, market_result=market_result)
+        gs, new_msgs = cls._run_post_clearing_book_keeping(game_state=gs, market_result=market_result)
         melted_ice_cream_players = [m.player_id for m in new_msgs if isinstance(m, IceCreamMeltedMessage)]
-        loser = Referee.get_losing_player(gs=game_state)
+        loser = Referee.get_losing_player(gs=gs)
         if loser in melted_ice_cream_players:
             # Someone is having a really bad day. Let's help them out.
             next_phase = Phase.MIGRATION
         else:
             next_phase = Phase(0)
 
-        conclude_phase = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase, force_new_phase=next_phase)
-        return new_game_state, [*msgs_load_deactivation, *new_msgs, conclude_phase]
+        conclude_phase = ConcludePhase(game_id=gs.game_id, phase=gs.phase, force_new_phase=next_phase)
+        return gs, [*msgs_load_deactivation, *new_msgs, conclude_phase]
 
     @classmethod
     def handle_new_phase_message(

@@ -19,11 +19,7 @@ const ArrowHeadDefinition: React.FC = () => (
       refY="2"
       orient="auto"
     >
-      <polygon
-        points="0 0, 6 2, 0 4"
-        fill="#FFFF00"
-        opacity="0.8"
-      />
+      <polygon points="0 0, 6 2, 0 4" fill="#FFFF00" opacity="0.8" />
     </marker>
   </defs>
 );

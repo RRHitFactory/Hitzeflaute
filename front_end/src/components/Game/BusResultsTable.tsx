@@ -191,7 +191,7 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
 
         {generationData.columns.length > 0 && (
           <div className="mt-3">
-            <div className="overflow-x-auto">
+            <div>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-gray-600">
@@ -272,7 +272,7 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
 
         {loadData.columns.length > 0 && (
           <div className="mt-3">
-            <div className="overflow-x-auto">
+            <div>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-gray-600">

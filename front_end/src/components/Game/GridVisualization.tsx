@@ -10,6 +10,7 @@ import {
   NPC_PLAYER_ID,
   Player,
   Point,
+  TransmissionLine,
 } from "@/types/game";
 import React, {
   useCallback,
@@ -27,6 +28,14 @@ import InfoPanel from "./InfoPanel";
 import MigrationArrow from "./MigrationArrow";
 import TransmissionLineComponent from "./TransmissionLine";
 import TransmissionResultsTable from "./TransmissionResultsTable";
+import {
+  createActivationWrapper,
+  createDeactivationWrapper,
+  getDataArray,
+  getPlayerById,
+  isAssetPurchasable,
+  isLinePurchasable,
+} from "./gameUtils";
 import { parseDataFrameToDict } from "./utils";
 
 interface GridVisualizationProps {
@@ -94,87 +103,51 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Wrapper functions for activation that update hover state
   const handleActivateAssetWrapper = useCallback(
-    (assetId: number) => {
-      if (onActivateAsset) {
-        onActivateAsset(assetId);
-        // Activation state will be handled by pendingActivations prop
-        // If this asset is currently hovered, update the hover data
-        if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
-          setHoveredElement((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  data: { ...prev.data, Status: "ACTIVE" },
-                }
-              : null,
-          );
-        }
-      }
-    },
-    [onActivateAsset, hoveredElement],
+    createActivationWrapper(
+      onActivateAsset,
+      setHoveredElement,
+      hoveredElement,
+      "asset",
+      "ACTIVE",
+      "INACTIVE",
+    ),
+    [onActivateAsset, setHoveredElement, hoveredElement],
   );
 
   const handleDeactivateAssetWrapper = useCallback(
-    (assetId: number) => {
-      if (onDeactivateAsset) {
-        onDeactivateAsset(assetId);
-        // Activation state will be handled by pendingActivations prop
-        // If this asset is currently hovered, update the hover data
-        if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
-          setHoveredElement((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  data: { ...prev.data, Status: "INACTIVE" },
-                }
-              : null,
-          );
-        }
-      }
-    },
-    [onDeactivateAsset, hoveredElement],
+    createDeactivationWrapper(
+      onDeactivateAsset,
+      setHoveredElement,
+      hoveredElement,
+      "asset",
+      "ACTIVE",
+      "INACTIVE",
+    ),
+    [onDeactivateAsset, setHoveredElement, hoveredElement],
   );
 
   const handleActivateLineWrapper = useCallback(
-    (lineId: number) => {
-      if (onActivateLine) {
-        onActivateLine(lineId);
-        // Activation state will be handled by pendingActivations prop
-        // If this line is currently hovered, update the hover data
-        if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
-          setHoveredElement((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  data: { ...prev.data, Status: "CLOSED" },
-                }
-              : null,
-          );
-        }
-      }
-    },
-    [onActivateLine, hoveredElement],
+    createActivationWrapper(
+      onActivateLine,
+      setHoveredElement,
+      hoveredElement,
+      "line",
+      "CLOSED",
+      "OPEN",
+    ),
+    [onActivateLine, setHoveredElement, hoveredElement],
   );
 
   const handleDeactivateLineWrapper = useCallback(
-    (lineId: number) => {
-      if (onDeactivateLine) {
-        onDeactivateLine(lineId);
-        // Activation state will be handled by pendingActivations prop
-        // If this line is currently hovered, update the hover data
-        if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
-          setHoveredElement((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  data: { ...prev.data, Status: "OPEN" },
-                }
-              : null,
-          );
-        }
-      }
-    },
-    [onDeactivateLine, hoveredElement],
+    createDeactivationWrapper(
+      onDeactivateLine,
+      setHoveredElement,
+      hoveredElement,
+      "line",
+      "CLOSED",
+      "OPEN",
+    ),
+    [onDeactivateLine, setHoveredElement, hoveredElement],
   );
 
   const handleElementHover = (
@@ -235,31 +208,19 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Helper to get array from either array or repo structure
   const getBusesArray = useCallback(
-    () =>
-      Array.isArray(gameState.buses)
-        ? gameState.buses
-        : gameState.buses?.data || [],
+    () => getDataArray(gameState.buses),
     [gameState.buses],
   );
   const getAssetsArray = useCallback(
-    () =>
-      Array.isArray(gameState.assets)
-        ? gameState.assets
-        : gameState.assets?.data || [],
+    () => getDataArray(gameState.assets),
     [gameState.assets],
   );
   const getTransmissionArray = useCallback(
-    () =>
-      Array.isArray(gameState.transmission)
-        ? gameState.transmission
-        : gameState.transmission?.data || [],
+    () => getDataArray(gameState.transmission),
     [gameState.transmission],
   );
   const getPlayersArray = useCallback(
-    () =>
-      Array.isArray(gameState.players)
-        ? gameState.players
-        : gameState.players?.data || [],
+    () => getDataArray(gameState.players),
     [gameState.players],
   );
 
@@ -293,30 +254,38 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     getBusesArray,
   ]) as BusWithDisplayCoords[];
 
-  // Find bus by ID (with display coordinates)
-  const getBusById = (id: number) =>
-    busesWithDisplayCoords.find((bus) => bus.id === id);
+  // Find bus by ID (with display coordinates) - memoized
+  const getBusById = useCallback(
+    (id: number) => busesWithDisplayCoords.find((bus) => bus.id === id),
+    [busesWithDisplayCoords],
+  );
 
-  // Get assets for a specific bus and calculate their positions
-  const getAssetsForBus = (busId: number) => {
-    const bus = getBusById(busId);
-    if (!bus) return [];
+  // Get assets for a specific bus and calculate their positions (memoized)
+  const getAssetsForBus = useCallback(
+    (busId: number) => {
+      const bus = getBusById(busId);
+      if (!bus) return [];
 
-    const assets: Asset[] = getAssetsArray()
-      .filter((asset: Asset) => asset.bus === busId)
-      .sort((a: Asset) => a.birthday * 100 + a.id);
-    return assets.map((asset, index) => {
-      // Position assets around the bus using display coordinates
-      const offsetRadius = 25;
-      const angleStep = (2 * Math.PI) / 5;
-      const angle = index * angleStep * 2;
+      const assets: Asset[] = getAssetsArray()
+        .filter((asset: Asset) => asset.bus === busId)
+        .sort(
+          (a: Asset, b: Asset) =>
+            a.birthday * 100 + a.id - (b.birthday * 100 + b.id),
+        );
+      return assets.map((asset, index) => {
+        // Position assets around the bus using display coordinates
+        const offsetRadius = 25;
+        const angleStep = (2 * Math.PI) / 5;
+        const angle = index * angleStep * 2;
 
-      const x = bus.display_position.x + offsetRadius * Math.cos(angle);
-      const y = bus.display_position.y + offsetRadius * Math.sin(angle);
+        const x = bus.display_position.x + offsetRadius * Math.cos(angle);
+        const y = bus.display_position.y + offsetRadius * Math.sin(angle);
 
-      return { asset, position: { x, y } };
-    });
-  };
+        return { asset, position: { x, y } };
+      });
+    },
+    [getBusById, getAssetsArray],
+  );
 
   const loserPlayerFreezer: Asset | null = useMemo(() => {
     if (!gameState) {
@@ -339,39 +308,29 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     const myAssetPosition: Point = assetPositions.filter(
       (a: { asset: Asset; position: any }) =>
         a.asset.id == loserPlayerFreezer.id,
-    )[0].position;
-    return myAssetPosition;
-  }, [gameState]);
+    )[0]?.position;
+    return myAssetPosition ?? null;
+  }, [getAssetsForBus, loserPlayerFreezer]);
 
-  // Get player by ID
-  const getPlayerById = (playerId: number) =>
-    getPlayersArray().find((player) => player.id === playerId);
+  // Get player by ID (memoized version)
+  const getPlayerByIdMemoized = useCallback(
+    (playerId: number) => getPlayerById(getPlayersArray(), playerId),
+    [getPlayersArray],
+  );
 
-  // Check if asset is purchasable
-  const isAssetPurchasable = (asset: any) => {
-    if (!controlsEnabled) {
-      return false;
-    }
-    return (
-      gameState.phase === GamePhase.CONSTRUCTION &&
-      asset.owner_player === NPC_PLAYER_ID &&
-      asset.minimum_acquisition_price > 0 &&
-      (asset.is_for_sale === true || asset.is_for_sale === undefined)
-    );
-  };
+  // Check if asset is purchasable (memoized version)
+  const checkAssetPurchasable = useCallback(
+    (asset: Asset) =>
+      isAssetPurchasable(asset, gameState.phase, controlsEnabled),
+    [gameState.phase, controlsEnabled],
+  );
 
-  // Check if transmission line is purchasable
-  const isLinePurchasable = (line: any) => {
-    if (!controlsEnabled) {
-      return false;
-    }
-    return (
-      gameState.phase === GamePhase.CONSTRUCTION &&
-      line.owner_player === NPC_PLAYER_ID &&
-      line.minimum_acquisition_price > 0 &&
-      (line.is_for_sale === true || line.is_for_sale === undefined)
-    );
-  };
+  // Check if transmission line is purchasable (memoized version)
+  const checkLinePurchasable = useCallback(
+    (line: TransmissionLine) =>
+      isLinePurchasable(line, gameState.phase, controlsEnabled),
+    [gameState.phase, controlsEnabled],
+  );
 
   // Handle purchase confirmation for assets
   const handleAssetPurchaseRequest = (assetId: number) => {
@@ -381,9 +340,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         isOpen: true,
         type: "asset",
         id: assetId,
-        title: `${asset.asset_type === "GENERATOR" ? "Gen" : "Load"}${
-          asset.id
-        }`,
+        title: `${asset.asset_type === 0 ? "Gen" : "Load"}${asset.id}`,
         price: asset.minimum_acquisition_price,
       });
     }
@@ -459,7 +416,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
       {/* Overlay controls container - fixed position at top */}
       <div className="absolute top-2 left-2 z-20 flex flex-col gap-2">
         {hasMarketData && (
-          <div className="flex-shrink-0 min-w-[250px]">
+          <div className="flex-shrink-0 min-w-[300px]">
             <ViewToggle viewMode={viewMode} onToggle={setViewMode} />
           </div>
         )}
@@ -501,9 +458,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
           >
             {/* Transmission Lines */}
             {getTransmissionArray().map((line) => {
-              const owner = getPlayerById(line.owner_player);
+              const owner = getPlayerByIdMemoized(line.owner_player);
               if (!owner) return null;
-              const isPurchasable = isLinePurchasable(line);
+              const isPurchasable = checkLinePurchasable(line);
 
               // Get actual power flow from market summary using parseDataFrame
               const lineResult =
@@ -616,9 +573,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
             {/* Assets */}
             {busesWithDisplayCoords.map((bus) =>
               getAssetsForBus(bus.id).map(({ asset, position }) => {
-                const owner = getPlayerById(asset.owner_player);
+                const owner = getPlayerByIdMemoized(asset.owner_player);
                 if (!owner) return null;
-                const isPurchasable = isAssetPurchasable(asset);
+                const isPurchasable = checkAssetPurchasable(asset);
 
                 // Check if player owns this asset and we're in sneaky tricks phase
                 const isSneakyTricks =
