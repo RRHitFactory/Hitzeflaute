@@ -21,6 +21,7 @@ class Phase(IntEnum):
     SNEAKY_TRICKS = 1
     BIDDING = 2
     DA_AUCTION = 3
+    MIGRATION = 4
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}.{self.name}>"
@@ -54,7 +55,6 @@ class GameState:
     assets: AssetRepo
     transmission: TransmissionRepo
     market_coupling_result: MarketCouplingResult | None
-    market_summary: MarketCouplingSummary | None = None
     game_round: Round = Round(1)
     pending_state: PendingState = PendingState()  # A record of actions that cannot be made public yet
 
@@ -69,6 +69,13 @@ class GameState:
     @cached_property
     def is_hotseat(self) -> bool:
         return self.game_settings.turn_type == "hotseat"
+
+    def get_players_with_updated_turns_for_new_phase(self, new_phase: Phase) -> PlayerRepo:
+        if self.is_hotseat or new_phase.is_one_by_one:
+            players = self.players.start_first_player_turn()
+        else:
+            players = self.players.start_all_turns()
+        return players
 
     def commit_pending_state(self) -> Self:
         assets = self.assets
@@ -143,7 +150,6 @@ class GameState:
             "assets": self.assets.to_simple_dict(),
             "transmission": self.transmission.to_simple_dict(),
             "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
-            "market_summary": (self.market_summary.to_simple_dict() if self.market_summary else None),
             "game_round": self.game_round,
             "pending_state": self.pending_state.to_simple_dict(),
         }
@@ -167,7 +173,6 @@ class GameState:
             assets=AssetRepo.from_simple_dict(simple_dict["assets"]),
             transmission=TransmissionRepo.from_simple_dict(simple_dict["transmission"]),
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
-            market_summary=(MarketCouplingSummary.from_simple_dict(simple_dict["market_summary"]) if simple_dict.get("market_summary") else None),
             game_round=Round(simple_dict["game_round"]),
             pending_state=PendingState.from_simple_dict(simple_dict["pending_state"]),
         )

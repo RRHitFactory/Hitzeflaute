@@ -59,7 +59,7 @@ class PlayerRepo(LdcRepo[Player]):
 
     @property
     def only_human(self) -> Self:
-        return self._filter(condition= lambda players: players.id != PlayerId.get_npc())
+        return self._filter(condition=lambda players: players.id != PlayerId.get_npc())
 
     def get_player(self, player_id: PlayerId) -> Player:
         return self[player_id]
@@ -69,6 +69,10 @@ class PlayerRepo(LdcRepo[Player]):
 
     def are_all_players_finished(self) -> bool:
         return len(self.get_currently_playing()) == 0
+
+    def get_money_for_players(self, ids: list[PlayerId]) -> list[float]:
+        simple_players = [int(p) for p in ids]
+        return self.df.loc[simple_players, "money"].to_list()
 
     # UPDATE
     def _adjust_money(self, player_id: PlayerId, func: Callable[[float], float]) -> Self:
@@ -99,6 +103,9 @@ class PlayerRepo(LdcRepo[Player]):
 
     def start_all_turns(self) -> Self:
         return self._set_turn(self.human_player_ids, True)
+
+    def end_all_turns(self) -> Self:
+        return self._set_turn(self.human_player_ids, False)
 
     def start_first_player_turn(self) -> Self:
         df = self.df

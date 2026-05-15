@@ -21,8 +21,8 @@ class TestGameState(BaseTest):
 
     def test_update(self):
         # Test the update method of GameState
-        game_state_1 = replace(GameStateMaker().make(), market_coupling_result=None, market_summary=None)
-        game_state_2 = replace(GameStateMaker().make(), market_coupling_result=None, market_summary=None)
+        game_state_1 = replace(GameStateMaker().make(), market_coupling_result=None)
+        game_state_2 = replace(GameStateMaker().make(), market_coupling_result=None)
         self.assertNotEqual(game_state_1, game_state_2)
 
         dict_vars = dict(vars(game_state_1))
@@ -36,7 +36,7 @@ class TestGameState(BaseTest):
             msg="GameState.update() got an unexpected keyword argument 'game_id'",
         ):
             # Keyword arguments are not allowed
-            game_state_2.update(game_id=game_state_1.game_id) # type: ignore 
+            game_state_2.update(game_id=game_state_1.game_id)  # type: ignore
 
         repeated_attributes = [dict_vars["players"], dict_vars["players"]]
         with self.assertRaises(

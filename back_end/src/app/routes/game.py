@@ -5,8 +5,8 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, st
 from src.app.game_manager import GameManager
 from src.app.game_repo.base import BaseGameStateRepo
 from src.app.game_ws_manager import GameWebSocketConnectionManager
+from src.app.prepare_gs import prepare_game_state_for_front_end
 from src.app.routes.logging import log_exception_with_traceback
-from src.app.tools.reduce_message import reduce_message
 from src.models.ids import GameId, PlayerId
 from src.models.message import GameUpdate
 from src.models.server_models import (
@@ -32,9 +32,7 @@ def get_game_ws_router(ws_connection_manager: GameWebSocketConnectionManager, ga
         # Send initial game state
         try:
             game_state = game_repo.read(GameId(int(game_id)))
-
-            game_update = GameUpdate(game_id=game_id_true, game_state=game_state)
-            msg_dict = reduce_message(game_update).to_simple_dict()
+            msg_dict = prepare_game_state_for_front_end(game_state)
 
             message = WebsocketMessage(game_id=game_id_true, player_id=player_id_true, message_type=GameUpdate.__name__, data=msg_dict)
             await websocket.send_text(message.to_string())

@@ -1,7 +1,7 @@
 from fastapi import WebSocket
 
+from src.app.prepare_gs import prepare_game_state_for_front_end
 from src.app.routes.logging import console_logger, log_exception_with_traceback
-from src.app.tools.reduce_message import reduce_message
 from src.models.ids import GameId, PlayerId
 from src.models.message import GameToPlayerMessage, GameUpdate
 from src.models.server_models import WebsocketMessage
@@ -46,8 +46,7 @@ class GameWebSocketConnectionManager:
         for msg in msgs:
             try:
                 # Convert message to simple dict for JSON serialization
-                reduced = reduce_message(msg)
-                message = WebsocketMessage.from_py_message(reduced)
+                message = WebsocketMessage.from_py_message(msg)
                 await self.send_to_one_player(message)
 
             except Exception as e:
@@ -60,7 +59,7 @@ class GameWebSocketConnectionManager:
             console_logger.info(f"No active connections for game {game_id}")
             return
 
-        data = reduce_message(message).to_simple_dict()
+        data = prepare_game_state_for_front_end(message.game_state)
 
         for player_id, websocket in list(self.active_connections[game_id].items()):
             try:

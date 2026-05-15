@@ -7,13 +7,8 @@ export interface Bus {
   color: string;
 }
 
-export interface Position {
-  x: number;
-  y: number;
-}
-
 export interface BusWithDisplayCoords extends Bus {
-  display_position: Position;
+  display_position: Point;
 }
 
 export interface TransmissionLine {
@@ -82,7 +77,6 @@ export interface Player {
 export const NPC_PLAYER_ID = -1;
 
 // Phase management - matches backend game_state.py Phase enum
-// Backend sends integer values: CONSTRUCTION=0, SNEAKY_TRICKS=1, BIDDING=2, DA_AUCTION=3
 
 // Game Phase Enum-like object with both integer and string representations
 export const GamePhase = {
@@ -91,6 +85,7 @@ export const GamePhase = {
   SNEAKY_TRICKS: 1,
   BIDDING: 2,
   DA_AUCTION: 3,
+  MIGRATION: 4,
 } as const;
 
 // Type for phase values (can be integer from backend)
@@ -102,6 +97,7 @@ export const GamePhaseName = {
   [GamePhase.SNEAKY_TRICKS]: "SNEAKY_TRICKS",
   [GamePhase.BIDDING]: "BIDDING",
   [GamePhase.DA_AUCTION]: "DA_AUCTION",
+  [GamePhase.MIGRATION]: "MIGRATION",
 } as const;
 
 export type GamePhaseNameValue = (typeof GamePhaseName)[GamePhaseValue];
@@ -150,28 +146,23 @@ export const GAME_PHASE_INFO: Record<GamePhaseValue, PhaseInfo> = {
     description: "Market clearing and results",
     one_by_one: false,
   },
+  [GamePhase.MIGRATION]: {
+    id: GamePhase.MIGRATION,
+    name: "MIGRATION",
+    displayName: "Migration",
+    color: "bg-green-200 text-black border border-red-400",
+    description: "Move your ice-cream truck",
+    one_by_one: true,
+  },
 };
-
-// Phase order for cycling
-export const PHASE_ORDER: GamePhaseValue[] = [
-  GamePhase.CONSTRUCTION,
-  GamePhase.SNEAKY_TRICKS,
-  GamePhase.BIDDING,
-  GamePhase.DA_AUCTION,
-];
 
 // Utility functions
 export function getPhaseInfo(phase: GamePhaseValue): PhaseInfo {
-  return GAME_PHASE_INFO[phase] || GAME_PHASE_INFO[GamePhase.CONSTRUCTION];
+  return GAME_PHASE_INFO[phase];
 }
 
 export function getPhaseName(phase: GamePhaseValue): GamePhaseNameValue {
-  return GamePhaseName[phase] || GamePhaseName[GamePhase.CONSTRUCTION];
-}
-
-export function getNextPhase(currentPhase: GamePhaseValue): GamePhaseValue {
-  const currentIndex = PHASE_ORDER.indexOf(currentPhase);
-  return PHASE_ORDER[(currentIndex + 1) % PHASE_ORDER.length];
+  return GamePhaseName[phase];
 }
 
 export function isValidPhase(phase: number): phase is GamePhaseValue {
@@ -259,14 +250,14 @@ export function mapDisplayToBackend(
 export interface GameState {
   game_id: number;
   game_settings: GameSettings;
-  phase: GamePhaseValue; // Integer values (0,1,2,3) from backend
+  phase: GamePhaseValue; // Integer values (0,1,2,3,4) from backend
   game_round: number;
   buses: { class: string; data: Bus[] }; // Can be array or repo structure
   transmission: { class: string; data: TransmissionLine[] }; // Backend uses "transmission", not "transmissionLines"
   assets: { class: string; data: Asset[] }; // Can be array or repo structure
   players: { class: string; data: Player[] }; // Can be array or repo structure from backend
-  market_coupling_result: MarketCouplingResult | null;
   market_summary: MarketCouplingSummary | null;
+  losing_player: number;
 }
 
 export interface Point {
@@ -289,7 +280,6 @@ export interface GameSettings {
   min_bid_price: number;
   max_bid_price: number;
   initial_funds: number;
-  max_connections_per_bus: number;
   map_area: Shape;
   [key: string]: any; // Allow for additional settings
 }
@@ -320,7 +310,7 @@ export interface HoverableElement {
   type: "bus" | "line" | "asset";
   id: number;
   title: string;
-  data: { [key: string]: string };
+  data?: { [key: string]: string };
 }
 
 export interface HoverInfo {

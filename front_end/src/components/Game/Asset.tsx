@@ -6,7 +6,7 @@ import {
   BusWithDisplayCoords,
   HoverableElement,
   Player,
-  Position,
+  Point,
 } from "@/types/game";
 import React from "react";
 import Ccgt from "../props/generators/Ccgt";
@@ -24,7 +24,7 @@ interface AssetProps {
   asset: Asset;
   bus: BusWithDisplayCoords;
   owner: Player;
-  position: Position;
+  position: Point;
   onHover: (element: HoverableElement, event: React.MouseEvent) => void;
   onLeave: () => void;
   isPurchasable?: boolean;
@@ -221,12 +221,12 @@ const AssetComponent: React.FC<AssetProps> = ({
     return brightness > 128 ? "#000000" : "#FFFFFF";
   };
 
-  const getButtonLocation = (bus: BusWithDisplayCoords, position: Position) => {
+  const getButtonLocation = (bus: BusWithDisplayCoords, position: Point) => {
     const x_offset = position.x - bus.display_position.x;
     const y_offset = position.y - bus.display_position.y;
     const buy_x = bus.display_position.x + x_offset * 1.6;
     const buy_y = bus.display_position.y + y_offset * 1.6;
-    return { x: buy_x, y: buy_y } as Position;
+    return { x: buy_x, y: buy_y } as Point;
   };
 
   const buttonLocation = getButtonLocation(bus, position);

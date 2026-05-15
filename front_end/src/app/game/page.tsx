@@ -194,6 +194,18 @@ function GameContent() {
     console.log(`Deactivating asset ${assetId} - stored locally`);
   };
 
+  const handleBusClickForMigration = (busId: number) => {
+    const wsAndCurrentPlayer = getWsAndCurrentPlayer();
+    if (!wsAndCurrentPlayer) {
+      return;
+    }
+    const { ws, player } = wsAndCurrentPlayer;
+
+    console.log(`Migrating freezer to bus ${busId}`);
+    ws.freezerMigrationRequest(null, busId, player.id);
+    setControlsEnabled(false); // End the player's turn
+  };
+
   const handleEndTurn = () => {
     const wsAndCurrentPlayer = getWsAndCurrentPlayer();
     if (!wsAndCurrentPlayer) {
@@ -296,6 +308,7 @@ function GameContent() {
               onDeactivateLine={handleDeactivateLine}
               onActivateAsset={handleActivateAsset}
               onDeactivateAsset={handleDeactivateAsset}
+              onBusClickForMigration={handleBusClickForMigration}
               currentPlayer={currentPlayer}
               pendingActivations={pendingActivations}
               controlsEnabled={controlsEnabled}
@@ -308,9 +321,7 @@ function GameContent() {
             <div className="lg:hidden order-1">
               <GameControls
                 gameState={gameState}
-                gameId={gameId?.toString() || null}
                 currentPlayer={currentPlayer}
-                isConnected={isConnected}
                 onEndTurn={handleEndTurn}
                 hasInsufficientFunds={hasInsufficientFunds}
                 controlsEnabled={controlsEnabled}
@@ -336,9 +347,7 @@ function GameContent() {
             <div className="hidden lg:block">
               <GameControls
                 gameState={gameState}
-                gameId={gameId?.toString() || null}
                 currentPlayer={currentPlayer}
-                isConnected={isConnected}
                 onEndTurn={handleEndTurn}
                 hasInsufficientFunds={hasInsufficientFunds}
                 controlsEnabled={controlsEnabled}

@@ -21,6 +21,7 @@ from src.models.message import (
     EndTurn,
     FreezerMigrationRequest,
     FreezerMigrationResponse,
+    IceCreamMeltedMessage,
     Message,
     PlayerNotInTurn,
     PlayerToGameMessage,
@@ -88,14 +89,21 @@ class Engine:
         game_state: GameState,
         msg: ClearAuction,
     ) -> tuple[GameState, Sequence[Message]]:
-        new_game_state, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
+        gs, msgs_load_deactivation = Referee.deactivate_loads_of_players_in_debt(gs=game_state)
 
-        market_result = MarketCouplingCalculator.run(game_state=new_game_state)
+        market_result = MarketCouplingCalculator.run(game_state=gs)
 
-        new_game_state, new_msgs = cls._run_post_clearing_book_keeping(game_state=new_game_state, market_result=market_result)
-        conclude_phase = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)
+        gs, new_msgs = cls._run_post_clearing_book_keeping(game_state=gs, market_result=market_result)
+        melted_ice_cream_players = [m.player_id for m in new_msgs if isinstance(m, IceCreamMeltedMessage)]
+        loser = Referee.get_losing_player(gs=gs)
+        if loser in melted_ice_cream_players:
+            # Someone is having a really bad day. Let's help them out.
+            next_phase = Phase.MIGRATION
+        else:
+            next_phase = Phase(0)
 
-        return new_game_state, [*msgs_load_deactivation, *new_msgs, conclude_phase]
+        conclude_phase = ConcludePhase(game_id=gs.game_id, phase=gs.phase, force_new_phase=next_phase)
+        return gs, [*msgs_load_deactivation, *new_msgs, conclude_phase]
 
     @classmethod
     def handle_new_phase_message(
@@ -106,12 +114,6 @@ class Engine:
         gs = game_state
         new_phase = msg.new_phase
         round = gs.game_round
-        players = gs.players
-
-        if msg.new_phase == Phase.DA_AUCTION:
-            ca_message = ClearAuction(game_state.game_id)
-            gs = gs.update(msg.new_phase)
-            return gs, [ca_message]
 
         msgs: Sequence[AssetBuiltMessage | TransmissionBuiltMessage | ClearAuction] = []
         if new_phase == Phase.CONSTRUCTION:
@@ -119,10 +121,16 @@ class Engine:
             round = Round(gs.game_round + 1)
             msgs += building_msgs  # type: ignore
 
-        if game_state.is_hotseat or msg.new_phase.is_one_by_one:
-            players = players.start_first_player_turn()
+        if new_phase == Phase.DA_AUCTION:
+            ca_message = ClearAuction(game_state.game_id)
+            gs = gs.update(new_phase)
+            return gs, [ca_message]
+
+        if new_phase == Phase.MIGRATION:
+            loser = Referee.get_losing_player(gs=game_state)
+            players = gs.players.end_all_turns().start_turn(loser)
         else:
-            players = players.start_all_turns()
+            players = gs.get_players_with_updated_turns_for_new_phase(new_phase=new_phase)
 
         gs = gs.update(new_phase, players, round)
         return gs, msgs
@@ -211,27 +219,42 @@ class Engine:
         cls,
         game_state: GameState,
         msg: FreezerMigrationRequest,
-    ) -> tuple[GameState, list[FreezerMigrationResponse]]:
-        freezer_current_bus = game_state.assets[msg.asset_id].bus
-        is_freezer = game_state.assets[msg.asset_id].is_freezer
+    ) -> tuple[GameState, Sequence[FreezerMigrationResponse | ConcludePhase]]:
+        cp_message = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)
+        asset_id = msg.asset_id
+        if asset_id is None:
+            asset_id = game_state.assets.get_freezer_for_player(msg.player_id).id
+
+        def fail(reason: str) -> tuple[GameState, Sequence[FreezerMigrationResponse | ConcludePhase]]:
+            response = msg.make_response(success=False, message=reason, asset_id=asset_id)
+            return game_state, [response, cp_message]
+
         is_losing_player = Referee.get_losing_player(gs=game_state) == msg.player_id
-        bus_has_sockets = game_state.buses[msg.bus].max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
-        freezer_is_already_there = freezer_current_bus == msg.bus
-        is_asset_owner = game_state.assets[msg.asset_id].owner_player == msg.player_id
         if not is_losing_player:
-            return game_state, [msg.make_response(success=False, message="Only the losing player can migrate their ice cream to the freezer.")]
+            return fail("Only the losing player can migrate their ice cream to the freezer.")
+
+        is_freezer = game_state.assets[asset_id].is_freezer
         if not is_freezer:
-            return game_state, [msg.make_response(success=False, message="The asset you are trying to move is not a freezer.")]
-        elif freezer_is_already_there:
-            return game_state, [msg.make_response(success=False, message="The freezer is already at the bus you are trying to move to.")]
-        elif not bus_has_sockets:
-            return game_state, [msg.make_response(success=False, message="The bus you are trying to move to does not have free sockets.")]
-        elif not is_asset_owner:
-            return game_state, [msg.make_response(success=False, message="You can only move your own freezer.")]
-        else:
-            new_assets = game_state.assets.migrate_asset(asset_id=msg.asset_id, new_bus_id=msg.bus)
-            new_game_state = game_state.update(new_assets)
-            return new_game_state, [msg.make_response(success=True, message=f"Successfully migrated freezer {msg.asset_id} from bus {freezer_current_bus} to bus {msg.bus}.")]
+            return fail("The asset you are trying to move is not a freezer.")
+
+        freezer_current_bus = game_state.assets[asset_id].bus
+        freezer_is_already_there = freezer_current_bus == msg.bus
+        if freezer_is_already_there:
+            return fail("The freezer is already at the bus you are trying to move to.")
+
+        bus_has_sockets = game_state.buses[msg.bus].max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
+        if not bus_has_sockets:
+            return fail("The bus you are trying to move to does not have free sockets.")
+
+        is_asset_owner = game_state.assets[asset_id].owner_player == msg.player_id
+        if not is_asset_owner:
+            return fail("You can only move your own freezer.")
+
+        new_assets = game_state.assets.migrate_asset(asset_id=asset_id, new_bus_id=msg.bus, round=game_state.game_round)
+        new_game_state = game_state.update(new_assets)
+        message = f"Successfully migrated freezer {asset_id} from bus {freezer_current_bus} to bus {msg.bus}."
+        success_msg = msg.make_response(success=True, message=message, asset_id=asset_id)
+        return new_game_state, [success_msg, cp_message]
 
     @classmethod
     def handle_end_turn_message(

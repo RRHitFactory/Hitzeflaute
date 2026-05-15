@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Asset,
   BusWithDisplayCoords,
   GamePhase,
   GameState,
@@ -8,6 +9,8 @@ import {
   mapBackendToDisplay,
   NPC_PLAYER_ID,
   Player,
+  Point,
+  TransmissionLine,
 } from "@/types/game";
 import React, {
   useCallback,
@@ -22,8 +25,17 @@ import AssetComponent from "./Asset";
 import BusComponent from "./Bus";
 import BusResultsTable from "./BusResultsTable";
 import InfoPanel from "./InfoPanel";
+import MigrationArrow from "./MigrationArrow";
 import TransmissionLineComponent from "./TransmissionLine";
 import TransmissionResultsTable from "./TransmissionResultsTable";
+import {
+  createActivationWrapper,
+  createDeactivationWrapper,
+  getDataArray,
+  getPlayerById,
+  isAssetPurchasable,
+  isLinePurchasable,
+} from "./gameUtils";
 import { parseDataFrameToDict } from "./utils";
 
 interface GridVisualizationProps {
@@ -34,6 +46,7 @@ interface GridVisualizationProps {
   onDeactivateLine?: (lineId: number) => void;
   onActivateAsset?: (assetId: number) => void;
   onDeactivateAsset?: (assetId: number) => void;
+  onBusClickForMigration?: (busId: number) => void;
   currentPlayer?: Player;
   pendingActivations?: {
     lines?: Record<number, boolean>;
@@ -50,6 +63,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   onDeactivateLine,
   onActivateAsset,
   onDeactivateAsset,
+  onBusClickForMigration,
   currentPlayer,
   pendingActivations = {},
   controlsEnabled,
@@ -69,18 +83,15 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   const [hoveredElement, setHoveredElement] = useState<HoverableElement | null>(
     null,
   );
-  const [hoverPosition, setHoverPosition] = useState({ x: 0, y: 0 });
-
   const [selectedBusForMarket, setSelectedBusForMarket] = useState<
     number | null
   >(null);
   const [selectedLineForMarket, setSelectedLineForMarket] = useState<
     number | null
   >(null);
-  const [marketPanelPosition, setMarketPanelPosition] = useState({
-    x: 0,
-    y: 0,
-  });
+  const [hoveredMigrateBus, setHoveredMigrateBus] = useState<number | null>(
+    null,
+  );
   const [confirmationDialog, setConfirmationDialog] = useState<{
     isOpen: boolean;
     type: "asset" | "line";
@@ -92,107 +103,58 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Wrapper functions for activation that update hover state
   const handleActivateAssetWrapper = useCallback(
-    (assetId: number) => {
-      if (onActivateAsset) {
-        onActivateAsset(assetId);
-        // Activation state will be handled by pendingActivations prop
-        // If this asset is currently hovered, update the hover data
-        if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
-          setHoveredElement((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  data: { ...prev.data, Status: "ACTIVE" },
-                }
-              : null,
-          );
-        }
-      }
-    },
-    [onActivateAsset, hoveredElement],
+    createActivationWrapper(
+      onActivateAsset,
+      setHoveredElement,
+      hoveredElement,
+      "asset",
+      "ACTIVE",
+      "INACTIVE",
+    ),
+    [onActivateAsset, setHoveredElement, hoveredElement],
   );
 
   const handleDeactivateAssetWrapper = useCallback(
-    (assetId: number) => {
-      if (onDeactivateAsset) {
-        onDeactivateAsset(assetId);
-        // Activation state will be handled by pendingActivations prop
-        // If this asset is currently hovered, update the hover data
-        if (hoveredElement?.type === "asset" && hoveredElement.id === assetId) {
-          setHoveredElement((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  data: { ...prev.data, Status: "INACTIVE" },
-                }
-              : null,
-          );
-        }
-      }
-    },
-    [onDeactivateAsset, hoveredElement],
+    createDeactivationWrapper(
+      onDeactivateAsset,
+      setHoveredElement,
+      hoveredElement,
+      "asset",
+      "ACTIVE",
+      "INACTIVE",
+    ),
+    [onDeactivateAsset, setHoveredElement, hoveredElement],
   );
 
   const handleActivateLineWrapper = useCallback(
-    (lineId: number) => {
-      if (onActivateLine) {
-        onActivateLine(lineId);
-        // Activation state will be handled by pendingActivations prop
-        // If this line is currently hovered, update the hover data
-        if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
-          setHoveredElement((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  data: { ...prev.data, Status: "CLOSED" },
-                }
-              : null,
-          );
-        }
-      }
-    },
-    [onActivateLine, hoveredElement],
+    createActivationWrapper(
+      onActivateLine,
+      setHoveredElement,
+      hoveredElement,
+      "line",
+      "CLOSED",
+      "OPEN",
+    ),
+    [onActivateLine, setHoveredElement, hoveredElement],
   );
 
   const handleDeactivateLineWrapper = useCallback(
-    (lineId: number) => {
-      if (onDeactivateLine) {
-        onDeactivateLine(lineId);
-        // Activation state will be handled by pendingActivations prop
-        // If this line is currently hovered, update the hover data
-        if (hoveredElement?.type === "line" && hoveredElement.id === lineId) {
-          setHoveredElement((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  data: { ...prev.data, Status: "OPEN" },
-                }
-              : null,
-          );
-        }
-      }
-    },
-    [onDeactivateLine, hoveredElement],
+    createDeactivationWrapper(
+      onDeactivateLine,
+      setHoveredElement,
+      hoveredElement,
+      "line",
+      "CLOSED",
+      "OPEN",
+    ),
+    [onDeactivateLine, setHoveredElement, hoveredElement],
   );
 
   const handleElementHover = (
     element: HoverableElement,
     event: React.MouseEvent,
   ) => {
-    const svgRect = event.currentTarget.closest("svg")?.getBoundingClientRect();
-    const rect = event.currentTarget.getBoundingClientRect();
-
-    if (svgRect) {
-      // Position relative to the SVG container
-      const elementX = rect.left + rect.width / 2 - svgRect.left;
-      const elementY = rect.top + rect.height / 2 - svgRect.top;
-
-      setHoveredElement(element);
-      setHoverPosition({
-        x: elementX,
-        y: elementY,
-      });
-    }
+    setHoveredElement(element);
   };
 
   const handleMouseLeave = () => {
@@ -214,10 +176,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
       } else {
         setSelectedBusForMarket(busId);
         setSelectedLineForMarket(null); // Clear line selection
-        setMarketPanelPosition({
-          x: elementX,
-          y: elementY,
-        });
       }
     }
   };
@@ -227,7 +185,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     event: React.MouseEvent,
   ) => {
     const svgRect = event.currentTarget.closest("svg")?.getBoundingClientRect();
-    const rect = event.currentTarget.getBoundingClientRect();
 
     if (svgRect) {
       // Position relative to the SVG container - use midpoint of line
@@ -237,21 +194,12 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         const toBus = busesWithDisplayCoords.find((b) => b.id === line.bus2);
 
         if (fromBus && toBus) {
-          const elementX =
-            (fromBus.display_position.x + toBus.display_position.x) / 2;
-          const elementY =
-            (fromBus.display_position.y + toBus.display_position.y) / 2;
-
           // Toggle market panel for this line
           if (selectedLineForMarket === lineId) {
             setSelectedLineForMarket(null);
           } else {
             setSelectedLineForMarket(lineId);
             setSelectedBusForMarket(null); // Clear bus selection
-            setMarketPanelPosition({
-              x: elementX,
-              y: elementY,
-            });
           }
         }
       }
@@ -260,31 +208,19 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
 
   // Helper to get array from either array or repo structure
   const getBusesArray = useCallback(
-    () =>
-      Array.isArray(gameState.buses)
-        ? gameState.buses
-        : gameState.buses?.data || [],
+    () => getDataArray(gameState.buses),
     [gameState.buses],
   );
   const getAssetsArray = useCallback(
-    () =>
-      Array.isArray(gameState.assets)
-        ? gameState.assets
-        : gameState.assets?.data || [],
+    () => getDataArray(gameState.assets),
     [gameState.assets],
   );
   const getTransmissionArray = useCallback(
-    () =>
-      Array.isArray(gameState.transmission)
-        ? gameState.transmission
-        : gameState.transmission?.data || [],
+    () => getDataArray(gameState.transmission),
     [gameState.transmission],
   );
   const getPlayersArray = useCallback(
-    () =>
-      Array.isArray(gameState.players)
-        ? gameState.players
-        : gameState.players?.data || [],
+    () => getDataArray(gameState.players),
     [gameState.players],
   );
 
@@ -318,58 +254,83 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     getBusesArray,
   ]) as BusWithDisplayCoords[];
 
-  // Find bus by ID (with display coordinates)
-  const getBusById = (id: number) =>
-    busesWithDisplayCoords.find((bus) => bus.id === id);
+  // Find bus by ID (with display coordinates) - memoized
+  const getBusById = useCallback(
+    (id: number) => busesWithDisplayCoords.find((bus) => bus.id === id),
+    [busesWithDisplayCoords],
+  );
 
-  // Get assets for a specific bus and calculate their positions
-  const getAssetsForBus = (busId: number) => {
-    const bus = getBusById(busId);
-    if (!bus) return [];
+  // Get assets for a specific bus and calculate their positions (memoized)
+  const getAssetsForBus = useCallback(
+    (busId: number) => {
+      const bus = getBusById(busId);
+      if (!bus) return [];
 
-    const assets = getAssetsArray().filter((asset) => asset.bus === busId);
-    return assets.map((asset, index) => {
-      // Position assets around the bus using display coordinates
-      const offsetRadius = 30;
-      const angleStep = (2 * Math.PI) / Math.max(assets.length, 4);
-      const angle = index * angleStep;
+      const assets: Asset[] = getAssetsArray()
+        .filter((asset: Asset) => asset.bus === busId)
+        .sort(
+          (a: Asset, b: Asset) =>
+            a.birthday * 100 + a.id - (b.birthday * 100 + b.id),
+        );
+      return assets.map((asset, index) => {
+        // Position assets around the bus using display coordinates
+        const offsetRadius = 25;
+        const angleStep = (2 * Math.PI) / 5;
+        const angle = index * angleStep * 2;
 
-      const x = bus.display_position.x + offsetRadius * Math.cos(angle);
-      const y = bus.display_position.y + offsetRadius * Math.sin(angle);
+        const x = bus.display_position.x + offsetRadius * Math.cos(angle);
+        const y = bus.display_position.y + offsetRadius * Math.sin(angle);
 
-      return { asset, position: { x, y } };
-    });
-  };
+        return { asset, position: { x, y } };
+      });
+    },
+    [getBusById, getAssetsArray],
+  );
 
-  // Get player by ID
-  const getPlayerById = (playerId: number) =>
-    getPlayersArray().find((player) => player.id === playerId);
-
-  // Check if asset is purchasable
-  const isAssetPurchasable = (asset: any) => {
-    if (!controlsEnabled) {
-      return false;
+  const loserPlayerFreezer: Asset | null = useMemo(() => {
+    if (!gameState) {
+      return null;
     }
-    return (
-      gameState.phase === GamePhase.CONSTRUCTION &&
-      asset.owner_player === NPC_PLAYER_ID &&
-      asset.minimum_acquisition_price > 0 &&
-      (asset.is_for_sale === true || asset.is_for_sale === undefined)
+    const loser_freezers = gameState.assets.data.filter(
+      (a: Asset) => a.is_freezer && a.owner_player == gameState.losing_player,
     );
-  };
-
-  // Check if transmission line is purchasable
-  const isLinePurchasable = (line: any) => {
-    if (!controlsEnabled) {
-      return false;
+    if (loser_freezers.length == 0) {
+      return null;
     }
-    return (
-      gameState.phase === GamePhase.CONSTRUCTION &&
-      line.owner_player === NPC_PLAYER_ID &&
-      line.minimum_acquisition_price > 0 &&
-      (line.is_for_sale === true || line.is_for_sale === undefined)
-    );
-  };
+    return loser_freezers[0];
+  }, [gameState]);
+
+  const loserPlayerFreezerLocation: Point | null = useMemo(() => {
+    if (!loserPlayerFreezer) {
+      return null;
+    }
+    const assetPositions = getAssetsForBus(loserPlayerFreezer.bus);
+    const myAssetPosition: Point = assetPositions.filter(
+      (a: { asset: Asset; position: any }) =>
+        a.asset.id == loserPlayerFreezer.id,
+    )[0]?.position;
+    return myAssetPosition ?? null;
+  }, [getAssetsForBus, loserPlayerFreezer]);
+
+  // Get player by ID (memoized version)
+  const getPlayerByIdMemoized = useCallback(
+    (playerId: number) => getPlayerById(getPlayersArray(), playerId),
+    [getPlayersArray],
+  );
+
+  // Check if asset is purchasable (memoized version)
+  const checkAssetPurchasable = useCallback(
+    (asset: Asset) =>
+      isAssetPurchasable(asset, gameState.phase, controlsEnabled),
+    [gameState.phase, controlsEnabled],
+  );
+
+  // Check if transmission line is purchasable (memoized version)
+  const checkLinePurchasable = useCallback(
+    (line: TransmissionLine) =>
+      isLinePurchasable(line, gameState.phase, controlsEnabled),
+    [gameState.phase, controlsEnabled],
+  );
 
   // Handle purchase confirmation for assets
   const handleAssetPurchaseRequest = (assetId: number) => {
@@ -379,9 +340,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
         isOpen: true,
         type: "asset",
         id: assetId,
-        title: `${asset.asset_type === "GENERATOR" ? "Gen" : "Load"}${
-          asset.id
-        }`,
+        title: `${asset.asset_type === 0 ? "Gen" : "Load"}${asset.id}`,
         price: asset.minimum_acquisition_price,
       });
     }
@@ -453,176 +412,223 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     : 0;
 
   return (
-    <div
-      className="relative w-full h-[700px] bg-gray-50 rounded-lg border overflow-auto"
-      ref={scrollContainerRef}
-    >
-      {/* View Toggle in top left corner */}
-      <div className="absolute top-2 left-2 z-10">
-        <ViewToggle
-          viewMode={viewMode}
-          onToggle={setViewMode}
-          hasMarketData={hasMarketData}
-        />
+    <div className="relative w-full h-[700px] bg-gray-50 rounded-lg border">
+      {/* Overlay controls container - fixed position at top */}
+      <div className="absolute top-2 left-2 z-20 flex flex-col gap-2">
+        {hasMarketData && (
+          <div className="flex-shrink-0 min-w-[300px]">
+            <ViewToggle viewMode={viewMode} onToggle={setViewMode} />
+          </div>
+        )}
+        <div className="flex flex-col gap-2">
+          {hoveredElement && viewMode === "normal" && (
+            <InfoPanel element={hoveredElement} />
+          )}
+          {selectedBusForMarket &&
+            viewMode === "market" &&
+            gameState.market_summary && (
+              <BusResultsTable
+                busId={selectedBusForMarket}
+                marketSummary={gameState.market_summary}
+                players={getPlayersArray()}
+                onClose={() => setSelectedBusForMarket(null)}
+              />
+            )}
+          {selectedLineForMarket &&
+            viewMode === "market" &&
+            gameState.market_summary && (
+              <TransmissionResultsTable
+                lineId={selectedLineForMarket}
+                marketSummary={gameState.market_summary}
+                onClose={() => setSelectedLineForMarket(null)}
+              />
+            )}
+        </div>
       </div>
 
-      <div className="min-w-[1500px] min-h-[1200px] relative">
-        <svg
-          width="1500"
-          height="1200"
-          viewBox="-50 -50 500 350"
-          className="grid-container"
-          onMouseLeave={handleMouseLeave}
-        >
-          {/* Transmission Lines */}
-          {getTransmissionArray().map((line) => {
-            const owner = getPlayerById(line.owner_player);
-            if (!owner) return null;
-            const isPurchasable = isLinePurchasable(line);
-
-            // Get actual power flow from market summary using parseDataFrame
-            const lineResult =
-              gameState.market_summary?.line_results?.[line.id];
-            let linePower = 0;
-            if (lineResult) {
-              try {
-                const parsedDict = parseDataFrameToDict(lineResult);
-                linePower = parsedDict?.raw_flow ?? 0;
-              } catch (error) {
-                console.warn(`Error parsing line ${line.id} data:`, error);
-              }
-            }
-
-            // Check if player owns this line and we're in sneaky tricks phase
-            const isOwnedByCurrentPlayer =
-              currentPlayer !== undefined &&
-              line.owner_player === currentPlayer.id;
-            const isSneakyTricks = gameState.phase === GamePhase.SNEAKY_TRICKS;
-
-            // Get pending activation state if available, otherwise use game state
-            const pendingLineActive = pendingActivations.lines?.[line.id];
-            const isLineActive =
-              pendingLineActive !== undefined
-                ? pendingLineActive
-                : line.is_open;
-
-            return (
-              <TransmissionLineComponent
-                key={line.id}
-                line={line}
-                buses={busesWithDisplayCoords}
-                owner={owner}
-                onHover={handleElementHover}
-                onLeave={handleMouseLeave}
-                isPurchasable={isPurchasable}
-                onPurchase={handleLinePurchaseRequest}
-                viewMode={viewMode}
-                onClick={
-                  viewMode === "market" ? handleLineClickForMarket : undefined
-                }
-                maxFlow={maxFlow}
-                actualFlow={linePower}
-                showFlowAnimation={true}
-                currentPlayer={currentPlayer}
-                isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
-                isSneakyTricks={isSneakyTricks}
-                isActive={isLineActive}
-                onActivate={handleActivateLineWrapper}
-                onDeactivate={handleDeactivateLineWrapper}
-                controlsEnabled={controlsEnabled}
-              />
-            );
-          })}
-
-          {/* Buses */}
-          {busesWithDisplayCoords.map((bus) => {
-            return (
-              <BusComponent
-                key={bus.id}
-                bus={bus}
-                onHover={handleElementHover}
-                onLeave={handleMouseLeave}
-                onClickProp={
-                  viewMode === "market" ? handleBusClickForMarket : undefined
-                }
-                viewMode={viewMode}
-              />
-            );
-          })}
-
-          {/* Assets */}
-          {busesWithDisplayCoords.map((bus) =>
-            getAssetsForBus(bus.id).map(({ asset, position }) => {
-              const owner = getPlayerById(asset.owner_player);
+      {/* Scrollable content container */}
+      <div className="w-full h-full overflow-auto" ref={scrollContainerRef}>
+        <div className="min-w-[1500px] min-h-[1200px] relative">
+          <svg
+            width="1500"
+            height="1200"
+            viewBox="-50 -50 500 350"
+            className="grid-container"
+            onMouseLeave={handleMouseLeave}
+          >
+            {/* Transmission Lines */}
+            {getTransmissionArray().map((line) => {
+              const owner = getPlayerByIdMemoized(line.owner_player);
               if (!owner) return null;
-              const isPurchasable = isAssetPurchasable(asset);
+              const isPurchasable = checkLinePurchasable(line);
 
-              // Check if player owns this asset and we're in sneaky tricks phase
+              // Get actual power flow from market summary using parseDataFrame
+              const lineResult =
+                gameState.market_summary?.line_results?.[line.id];
+              let linePower = 0;
+              if (lineResult) {
+                try {
+                  const parsedDict = parseDataFrameToDict(lineResult);
+                  linePower = parsedDict?.raw_flow ?? 0;
+                } catch (error) {
+                  console.warn(`Error parsing line ${line.id} data:`, error);
+                }
+              }
+
+              // Check if player owns this line and we're in sneaky tricks phase
+              const isOwnedByCurrentPlayer =
+                currentPlayer !== undefined &&
+                line.owner_player === currentPlayer.id;
               const isSneakyTricks =
                 gameState.phase === GamePhase.SNEAKY_TRICKS;
 
               // Get pending activation state if available, otherwise use game state
-              const pendingAssetActive = pendingActivations.assets?.[asset.id];
-              const isAssetActive =
-                pendingAssetActive !== undefined
-                  ? pendingAssetActive
-                  : asset.is_active;
-              {
-                owner.color;
-              }
+              const pendingLineActive = pendingActivations.lines?.[line.id];
+              const isLineActive =
+                pendingLineActive !== undefined
+                  ? pendingLineActive
+                  : line.is_open;
 
               return (
-                <AssetComponent
-                  key={asset.id}
-                  asset={asset}
-                  bus={bus}
+                <TransmissionLineComponent
+                  key={line.id}
+                  line={line}
+                  buses={busesWithDisplayCoords}
                   owner={owner}
-                  position={position}
                   onHover={handleElementHover}
                   onLeave={handleMouseLeave}
                   isPurchasable={isPurchasable}
-                  onPurchase={handleAssetPurchaseRequest}
-                  currentPlayer={currentPlayer}
+                  onPurchase={handleLinePurchaseRequest}
                   viewMode={viewMode}
+                  onClick={
+                    viewMode === "market" ? handleLineClickForMarket : undefined
+                  }
+                  maxFlow={maxFlow}
+                  actualFlow={linePower}
+                  showFlowAnimation={true}
+                  currentPlayer={currentPlayer}
+                  isOwnedByCurrentPlayer={isOwnedByCurrentPlayer}
                   isSneakyTricks={isSneakyTricks}
-                  isActive={isAssetActive}
-                  onActivate={handleActivateAssetWrapper}
-                  onDeactivate={handleDeactivateAssetWrapper}
+                  isActive={isLineActive}
+                  onActivate={handleActivateLineWrapper}
+                  onDeactivate={handleDeactivateLineWrapper}
                   controlsEnabled={controlsEnabled}
                 />
               );
-            }),
-          )}
-        </svg>
+            })}
+
+            {/* Buses */}
+            {busesWithDisplayCoords.map((bus) => {
+              const isMigrationPhase = gameState.phase === GamePhase.MIGRATION;
+              const nAssetsAtBus = gameState.assets.data.filter(
+                (a: Asset) => a.bus == bus.id,
+              ).length;
+              const hasSpace = nAssetsAtBus < bus.max_assets;
+              const canMigrate =
+                isMigrationPhase &&
+                bus.id != loserPlayerFreezer?.bus &&
+                hasSpace;
+
+              const handleBusMouseEnter = (
+                element: HoverableElement,
+                event: React.MouseEvent,
+              ) => {
+                // Track hovered bus for migration arrow
+                if (canMigrate && controlsEnabled && isMigrationPhase) {
+                  setHoveredMigrateBus(bus.id);
+                }
+
+                // Call the original hover handler
+                handleElementHover(element, event);
+              };
+
+              const handleBusMouseLeave = () => {
+                handleMouseLeave();
+                // Clear hovered bus for migration arrow
+                if (hoveredMigrateBus === bus.id) {
+                  setHoveredMigrateBus(null);
+                }
+              };
+
+              return (
+                <BusComponent
+                  key={bus.id}
+                  bus={bus}
+                  onHover={handleBusMouseEnter}
+                  onLeave={handleBusMouseLeave}
+                  onClickProp={
+                    viewMode === "market"
+                      ? handleBusClickForMarket
+                      : controlsEnabled && canMigrate && onBusClickForMigration
+                        ? (busId, event) => onBusClickForMigration(busId)
+                        : undefined
+                  }
+                  viewMode={viewMode}
+                  controlsEnabled={controlsEnabled}
+                  canMigrate={canMigrate}
+                />
+              );
+            })}
+
+            {/* Assets */}
+            {busesWithDisplayCoords.map((bus) =>
+              getAssetsForBus(bus.id).map(({ asset, position }) => {
+                const owner = getPlayerByIdMemoized(asset.owner_player);
+                if (!owner) return null;
+                const isPurchasable = checkAssetPurchasable(asset);
+
+                // Check if player owns this asset and we're in sneaky tricks phase
+                const isSneakyTricks =
+                  gameState.phase === GamePhase.SNEAKY_TRICKS;
+
+                // Get pending activation state if available, otherwise use game state
+                const pendingAssetActive =
+                  pendingActivations.assets?.[asset.id];
+                const isAssetActive =
+                  pendingAssetActive !== undefined
+                    ? pendingAssetActive
+                    : asset.is_active;
+                {
+                  owner.color;
+                }
+
+                return (
+                  <AssetComponent
+                    key={asset.id}
+                    asset={asset}
+                    bus={bus}
+                    owner={owner}
+                    position={position}
+                    onHover={handleElementHover}
+                    onLeave={handleMouseLeave}
+                    isPurchasable={isPurchasable}
+                    onPurchase={handleAssetPurchaseRequest}
+                    currentPlayer={currentPlayer}
+                    viewMode={viewMode}
+                    isSneakyTricks={isSneakyTricks}
+                    isActive={isAssetActive}
+                    onActivate={handleActivateAssetWrapper}
+                    onDeactivate={handleDeactivateAssetWrapper}
+                    controlsEnabled={controlsEnabled}
+                  />
+                );
+              }),
+            )}
+
+            {/* Migration Arrow - shows when hovering over migrateable bus during migration phase */}
+            {hoveredMigrateBus &&
+              loserPlayerFreezerLocation &&
+              controlsEnabled &&
+              gameState.phase === GamePhase.MIGRATION && (
+                <MigrationArrow
+                  freezerPosition={loserPlayerFreezerLocation}
+                  toBusId={hoveredMigrateBus}
+                  buses={busesWithDisplayCoords}
+                />
+              )}
+          </svg>
+        </div>
       </div>
-
-      {/* Info Panel or Market Results Table */}
-      {hoveredElement && viewMode === "normal" && (
-        <InfoPanel element={hoveredElement} position={hoverPosition} />
-      )}
-
-      {selectedBusForMarket &&
-        viewMode === "market" &&
-        gameState.market_summary && (
-          <BusResultsTable
-            busId={selectedBusForMarket}
-            marketSummary={gameState.market_summary}
-            players={getPlayersArray()}
-            position={marketPanelPosition}
-            onClose={() => setSelectedBusForMarket(null)}
-          />
-        )}
-
-      {selectedLineForMarket &&
-        viewMode === "market" &&
-        gameState.market_summary && (
-          <TransmissionResultsTable
-            lineId={selectedLineForMarket}
-            marketSummary={gameState.market_summary}
-            position={marketPanelPosition}
-            onClose={() => setSelectedLineForMarket(null)}
-          />
-        )}
 
       {/* Purchase Confirmation Dialog */}
       <ConfirmationDialog

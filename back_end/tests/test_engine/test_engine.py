@@ -12,6 +12,7 @@ from src.models.message import (
     BuyRequest,
     BuyResponse,
     FreezerMigrationRequest,
+    FreezerMigrationResponse,
     IceCreamMeltedMessage,
     PlayerNotInTurn,
     PlayerToGameMessage,
@@ -229,30 +230,38 @@ class TestEngine(BaseTest):
         request_migrate_to_current_bus = FreezerMigrationRequest(game_id=game_state.game_id, player_id=losing_player.id, asset_id=freezer_losing_player.id, bus=freezer_current_bus)
         correct_request = FreezerMigrationRequest(game_id=game_state.game_id, player_id=losing_player.id, asset_id=freezer_losing_player.id, bus=bus_with_free_sockets)
 
-        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_non_losing_player)
-        self.assertFalse(responses[0].success)
-        self.assertIn("Only the losing player", responses[0].message)
+        game_state, msgs = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_non_losing_player)
+        response = [m for m in msgs if isinstance(m, FreezerMigrationResponse)][0]
+        self.assertFalse(response.success)
+        self.assertIn("Only the losing player", response.message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_wrong_asset_type)
-        self.assertFalse(responses[0].success)
-        self.assertIn("not a freezer", responses[0].message)
+        game_state, msgs = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_wrong_asset_type)
+        response = [m for m in msgs if isinstance(m, FreezerMigrationResponse)][0]
+        self.assertFalse(response.success)
+        self.assertIn("not a freezer", response.message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_wrong_freezer)
-        self.assertFalse(responses[0].success)
-        self.assertIn("your own freezer", responses[0].message)
+        game_state, msgs = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_wrong_freezer)
+        response = [m for m in msgs if isinstance(m, FreezerMigrationResponse)][0]
+        self.assertFalse(response.success)
+        self.assertIn("your own freezer", response.message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_full_bus)
-        self.assertFalse(responses[0].success)
-        self.assertIn("does not have free sockets.", responses[0].message)
+        game_state, msgs = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_full_bus)
+        response = [m for m in msgs if isinstance(m, FreezerMigrationResponse)][0]
+        self.assertFalse(response.success)
+        self.assertIn("does not have free sockets.", response.message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_migrate_to_current_bus)
-        self.assertFalse(responses[0].success)
-        self.assertIn("already at the bus", responses[0].message)
+        game_state, msgs = Engine.handle_freezer_migration_message(game_state=game_state, msg=request_migrate_to_current_bus)
+        response = [m for m in msgs if isinstance(m, FreezerMigrationResponse)][0]
+        self.assertFalse(response.success)
+        self.assertIn("already at the bus", response.message)
 
-        game_state, responses = Engine.handle_freezer_migration_message(game_state=game_state, msg=correct_request)
-        self.assertTrue(responses[0].success, responses[0].message)
-        self.assertTrue("Successfully migrated freezer", responses[0].message)
-        self.assertEqual(game_state.assets[correct_request.asset_id].bus, correct_request.bus)
+        game_state, msgs = Engine.handle_freezer_migration_message(game_state=game_state, msg=correct_request)
+        response = [m for m in msgs if isinstance(m, FreezerMigrationResponse)][0]
+        self.assertTrue(response.success, response.message)
+        self.assertTrue("Successfully migrated freezer", response.message)
+        asset_id = correct_request.asset_id
+        assert asset_id is not None
+        self.assertEqual(game_state.assets[asset_id].bus, correct_request.bus)
 
     def test_post_clearing_book_keeping(self):
         game_maker = GameStateMaker()

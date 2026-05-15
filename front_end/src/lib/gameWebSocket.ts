@@ -224,6 +224,21 @@ export class GameWebSocketClient {
     this.send("end_turn", {}, playerId);
   }
 
+  public freezerMigrationRequest(
+    assetId: number | null,
+    busId: number,
+    playerId: number,
+  ): void {
+    this.send(
+      "freezer_migration_request",
+      {
+        asset_id: assetId,
+        bus: busId,
+      },
+      playerId,
+    );
+  }
+
   public requestGameState(playerId: number): void {
     console.log("🎯 Requesting initial game state...");
     this.send("get_game_state", {}, playerId);
@@ -322,7 +337,7 @@ export function useGameWebSocket(
         if (msg.message_type === "GameUpdate") {
           console.log("=== GAME UPDATE ===");
           // Validate the structure
-          const gameStateData: GameState = msg.data.game_state;
+          const gameStateData: GameState = msg.data;
           console.log("Current phase: " + gameStateData.phase);
           setGameState(gameStateData);
         } else {
