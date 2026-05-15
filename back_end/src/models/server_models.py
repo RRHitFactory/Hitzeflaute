@@ -13,11 +13,12 @@ from types import MappingProxyType
 
 from pydantic import BaseModel
 
-from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
+from src.models.ids import AssetId, BusId, GameId, PlayerId, TransmissionId
 from src.models.message import (
     ActivationUpdateRequest,
     BuyRequest,
     EndTurn,
+    FreezerMigrationRequest,
     GameToPlayerMessage,
     PlayerToGameMessage,
     UpdateBatchBidsRequest,
@@ -67,6 +68,7 @@ class WebsocketMessage(BaseModel):
             BuyRequest: self._to_buy_request,
             ActivationUpdateRequest: self._to_activation_update_request,
             EndTurn: self._to_end_turn,
+            FreezerMigrationRequest: self._to_freezer_migrate,
         }
         name_func_mapping = {c.get_camel_case_name(): func for c, func in mapping.items()}
         func = name_func_mapping.get(self.message_type)
@@ -102,6 +104,9 @@ class WebsocketMessage(BaseModel):
             game_id=self.game_id_obj,
             player_id=self.player_id_obj,
         )
+
+    def _to_freezer_migrate(self) -> FreezerMigrationRequest:
+        return FreezerMigrationRequest(game_id=self.game_id_obj, player_id=self.player_id_obj, asset_id=None, bus=BusId(self.data["bus"]))
 
     @classmethod
     def from_py_message(cls, msg: GameToPlayerMessage) -> "WebsocketMessage":

@@ -7,7 +7,6 @@ interface BusResultsTableProps {
   busId: number;
   marketSummary: MarketCouplingSummary;
   players: Player[];
-  position: { x: number; y: number };
   onClose: () => void;
 }
 
@@ -15,24 +14,9 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
   busId,
   marketSummary,
   players,
-  position,
   onClose,
 }) => {
-  // Calculate positioning to avoid going off-screen
   const panelWidth = 300;
-  const panelHeight = 250; // Taller panel to fit all content
-  const offset = 15;
-
-  let left = position.x + offset;
-  let top = position.y - panelHeight / 2; // Center on click position
-
-  // Adjust vertical position if it would go off-screen
-  if (top < 0) {
-    top = 10;
-  } else if (top + panelHeight > 400) {
-    // SVG viewBox height - position higher to ensure full visibility
-    top = 400 - panelHeight - 20;
-  }
 
   // Get bus results from market summary
   const busResults = marketSummary.bus_results[busId.toString()];
@@ -169,10 +153,8 @@ const BusResultsTable: React.FC<BusResultsTableProps> = ({
 
   return (
     <div
-      className="absolute z-20 bg-white border border-gray-200 rounded-lg shadow-xl p-3 market-results-panel pointer-events-auto"
+      className="bg-white border border-gray-200 rounded-lg shadow-xl p-3 market-results-panel pointer-events-auto"
       style={{
-        left: `${left}px`,
-        top: `${top}px`,
         width: `${panelWidth}px`,
         fontSize: "12px",
       }}

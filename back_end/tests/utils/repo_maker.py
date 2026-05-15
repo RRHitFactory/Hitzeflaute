@@ -391,7 +391,6 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
 
     def _make_dc(
         self,
-        transmission: TransmissionInfo | None = None,
         owner: PlayerId | None = None,
         buses: tuple[BusId, BusId] | None = None,
         reactance: float | None = None,

@@ -21,6 +21,7 @@ class Phase(IntEnum):
     SNEAKY_TRICKS = 1
     BIDDING = 2
     DA_AUCTION = 3
+    MIGRATION = 4
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}.{self.name}>"
@@ -69,6 +70,13 @@ class GameState:
     @cached_property
     def is_hotseat(self) -> bool:
         return self.game_settings.turn_type == "hotseat"
+
+    def get_players_with_updated_turns_for_new_phase(self, new_phase: Phase) -> PlayerRepo:
+        if self.is_hotseat or new_phase.is_one_by_one:
+            players = self.players.start_first_player_turn()
+        else:
+            players = self.players.start_all_turns()
+        return players
 
     def commit_pending_state(self) -> Self:
         assets = self.assets

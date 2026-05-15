@@ -1,6 +1,6 @@
 "use client";
 
-import { BusWithDisplayCoords, HoverableElement, Player } from "@/types/game";
+import { BusWithDisplayCoords, HoverableElement } from "@/types/game";
 import React from "react";
 
 interface BusProps {
@@ -9,6 +9,8 @@ interface BusProps {
   onLeave: () => void;
   onClickProp?: (busId: number, event: React.MouseEvent) => void;
   viewMode?: "normal" | "market";
+  controlsEnabled?: boolean;
+  canMigrate: boolean;
 }
 
 const BusComponent: React.FC<BusProps> = ({
@@ -17,15 +19,17 @@ const BusComponent: React.FC<BusProps> = ({
   onLeave,
   onClickProp,
   viewMode = "normal",
+  controlsEnabled = false,
+  canMigrate,
 }) => {
   const handleMouseEnter = (event: React.MouseEvent) => {
     if (viewMode === "normal") {
+      const title = canMigrate ? `Migrate to Bus${bus.id}` : ` Bus${bus.id}`;
       onHover(
         {
           type: "bus",
           id: bus.id,
-          title: `Bus${bus.id}`,
-          data: {},
+          title: title,
         },
         event,
       );
@@ -36,7 +40,6 @@ const BusComponent: React.FC<BusProps> = ({
           type: "bus",
           id: bus.id,
           title: `Bus${bus.id}`,
-          data: {},
         },
         event,
       );
@@ -69,6 +72,19 @@ const BusComponent: React.FC<BusProps> = ({
         rx="2"
         pointerEvents="none"
       />
+      {/* Yellow glow for migration phase */}
+      {canMigrate && controlsEnabled && (
+        <rect
+          x={bus.display_position.x ? bus.display_position.x - 22 : bus.x - 22}
+          y={bus.display_position.y ? bus.display_position.y - 10 : bus.y - 10}
+          width={44}
+          height={20}
+          fill="#FFFF00"
+          opacity="0.3"
+          rx="4"
+          pointerEvents="none"
+        />
+      )}
     </g>
   );
 };

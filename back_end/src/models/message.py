@@ -75,9 +75,12 @@ T_Id = TypeVar("T_Id", bound=AssetId | TransmissionId)
 @dataclass(frozen=True, repr=False)
 class ConcludePhase(InternalMessage):
     phase: Phase
+    force_new_phase: Phase | None = None
 
     @property
     def new_phase(self) -> Phase:
+        if self.force_new_phase is not None:
+            return self.force_new_phase
         return self.phase.get_next()
 
 
@@ -168,15 +171,15 @@ class FreezerMigrationResponse(GameToPlayerMessage):
 
 @dataclass(frozen=True, repr=False)
 class FreezerMigrationRequest(PlayerToGameMessage):
-    asset_id: AssetId
+    asset_id: AssetId | None
     bus: BusId
 
-    def make_response(self, success: bool, message: str) -> FreezerMigrationResponse:
+    def make_response(self, success: bool, message: str, asset_id: AssetId) -> FreezerMigrationResponse:
         return FreezerMigrationResponse(
             game_id=self.game_id,
             player_id=self.player_id,
             success=success,
-            asset_id=self.asset_id,
+            asset_id=asset_id,
             message=message,
         )
 

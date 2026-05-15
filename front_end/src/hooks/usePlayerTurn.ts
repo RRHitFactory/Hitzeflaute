@@ -1,4 +1,4 @@
-import { GameState, getPhaseInfo, Player } from "@/types/game";
+import { GameState, getPhaseInfo, PhaseInfo, Player } from "@/types/game";
 import { useEffect, useMemo, useState } from "react";
 
 export function usePlayerTurn(
@@ -12,22 +12,21 @@ export function usePlayerTurn(
     return typeof window !== "undefined" && gameId;
   }, [gameId]);
 
+  const phase: PhaseInfo | undefined = useMemo(() => {
+    if (!pageReady) {
+      return;
+    }
+    if (!gameState) {
+      return;
+    }
+    return getPhaseInfo(gameState.phase);
+  }, [pageReady, gameState]);
+
   const isHotSeatMode: boolean = useMemo(() => {
     if (!pageReady) return true; // Default to hotseat if we don't know
     if (!gameState?.game_settings) return true;
     return gameState.game_settings.turn_type == "hotseat";
   }, [gameState?.game_settings, pageReady]);
-
-  const phaseIsOneByOne = useMemo(() => {
-    if (pageReady && gameState?.phase) {
-      if (isHotSeatMode) {
-        return true;
-      } else {
-        return getPhaseInfo(gameState.phase).one_by_one;
-      }
-    }
-    return true;
-  }, [pageReady, gameState?.phase, isHotSeatMode]);
 
   // Get the local player ID from localStorage (only for online mode)
   const cookiePlayerId: number | null = useMemo(() => {
@@ -49,11 +48,13 @@ export function usePlayerTurn(
       : gameState.players?.data || [];
 
     // Find the player with is_having_turn flag
-    return playersArray.filter((p: Player) => p.is_having_turn);
+    console.log(playersArray);
+    const aps = playersArray.filter((p: Player) => p.is_having_turn);
+    console.log(aps);
+    return aps;
   }, [pageReady, gameState]);
 
   const activePlayerIds: number[] = useMemo(() => {
-    // For hotseat, take the first active player from the list
     if (activePlayers.length === 0) {
       return [];
     }
@@ -61,7 +62,6 @@ export function usePlayerTurn(
   }, [activePlayers]);
 
   const firstActivePlayerId: number | null = useMemo(() => {
-    // For hotseat, take the first active player from the list
     if (activePlayerIds.length === 0) {
       return null;
     }
@@ -103,7 +103,7 @@ export function usePlayerTurn(
       return true;
     }
     // Otherwise it is online multiplayer
-    if (phaseIsOneByOne) {
+    if (phase?.one_by_one) {
       return currentPlayerId == firstActivePlayerId;
     } else {
       return activePlayerIds.includes(currentPlayerId);
@@ -113,7 +113,7 @@ export function usePlayerTurn(
     isHotSeatMode,
     firstActivePlayerId,
     activePlayerIds,
-    phaseIsOneByOne,
+    phase,
   ]);
 
   const waitingForPlayers: Player[] = useMemo(() => {
@@ -129,7 +129,7 @@ export function usePlayerTurn(
       return;
     }
     setControlsEnabled(isCurrentPlayersTurn);
-  }, [currentPlayerId, isCurrentPlayersTurn]);
+  }, [currentPlayerId, isCurrentPlayersTurn, phase]);
 
   return {
     cookiePlayerId: cookiePlayerId,

@@ -36,7 +36,7 @@ class TestGameState(BaseTest):
             msg="GameState.update() got an unexpected keyword argument 'game_id'",
         ):
             # Keyword arguments are not allowed
-            game_state_2.update(game_id=game_state_1.game_id) # type: ignore 
+            game_state_2.update(game_id=game_state_1.game_id)  # type: ignore
 
         repeated_attributes = [dict_vars["players"], dict_vars["players"]]
         with self.assertRaises(
