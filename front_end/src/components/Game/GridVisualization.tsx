@@ -9,6 +9,7 @@ import {
   mapBackendToDisplay,
   NPC_PLAYER_ID,
   Player,
+  Point,
 } from "@/types/game";
 import React, {
   useCallback,
@@ -26,6 +27,38 @@ import InfoPanel from "./InfoPanel";
 import TransmissionLineComponent from "./TransmissionLine";
 import TransmissionResultsTable from "./TransmissionResultsTable";
 import { parseDataFrameToDict } from "./utils";
+
+interface MigrationArrowProps {
+  freezerPosition: Point;
+  toBusId: number;
+  buses: BusWithDisplayCoords[];
+}
+
+const MigrationArrow: React.FC<MigrationArrowProps> = ({
+  freezerPosition,
+  toBusId,
+  buses,
+}) => {
+  const toBus = buses.find((b) => b.id === toBusId);
+
+  if (!toBus) {
+    return null;
+  }
+
+  return (
+    <line
+      x1={freezerPosition.x}
+      y1={freezerPosition.y}
+      x2={toBus.display_position.x}
+      y2={toBus.display_position.y}
+      stroke="#FFFF00"
+      strokeWidth="3"
+      strokeOpacity="0.8"
+      markerEnd="url(#migration-arrowhead)"
+      pointerEvents="none"
+    />
+  );
+};
 
 interface GridVisualizationProps {
   gameState: GameState;
@@ -78,6 +111,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
   const [selectedLineForMarket, setSelectedLineForMarket] = useState<
     number | null
   >(null);
+  const [hoveredMigrateBus, setHoveredMigrateBus] = useState<number | null>(
+    null,
+  );
   const [confirmationDialog, setConfirmationDialog] = useState<{
     isOpen: boolean;
     type: "asset" | "line";
@@ -86,19 +122,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     price: number;
   }>({ isOpen: false, type: "asset", id: -1, title: "", price: 0 });
   const [viewMode, setViewMode] = useState<"normal" | "market">("normal");
-
-  const loserPlayerBus: number | null = useMemo(() => {
-    if (!gameState) {
-      return null;
-    }
-    const loser_freezers = gameState.assets.data.filter(
-      (a: Asset) => a.is_freezer && a.owner_player == gameState.losing_player,
-    );
-    if (loser_freezers.length == 0) {
-      return null;
-    }
-    return loser_freezers[0].bus;
-  }, [gameState]);
 
   // Wrapper functions for activation that update hover state
   const handleActivateAssetWrapper = useCallback(
@@ -326,6 +349,31 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     });
   };
 
+  const loserPlayerFreezer: Asset | null = useMemo(() => {
+    if (!gameState) {
+      return null;
+    }
+    const loser_freezers = gameState.assets.data.filter(
+      (a: Asset) => a.is_freezer && a.owner_player == gameState.losing_player,
+    );
+    if (loser_freezers.length == 0) {
+      return null;
+    }
+    return loser_freezers[0];
+  }, [gameState]);
+
+  const loserPlayerFreezerLocation: Point | null = useMemo(() => {
+    if (!loserPlayerFreezer) {
+      return null;
+    }
+    const assetPositions = getAssetsForBus(loserPlayerFreezer.bus);
+    const myAssetPosition: Point = assetPositions.filter(
+      (a: { asset: Asset; position: any }) =>
+        a.asset.id == loserPlayerFreezer.id,
+    )[0].position;
+    return myAssetPosition;
+  }, [gameState]);
+
   // Get player by ID
   const getPlayerById = (playerId: number) =>
     getPlayersArray().find((player) => player.id === playerId);
@@ -551,14 +599,37 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               ).length;
               const hasSpace = nAssetsAtBus < bus.max_assets;
               const canMigrate =
-                isMigrationPhase && bus.id != loserPlayerBus && hasSpace;
+                isMigrationPhase &&
+                bus.id != loserPlayerFreezer?.bus &&
+                hasSpace;
+
+              const handleBusMouseEnter = (
+                element: HoverableElement,
+                event: React.MouseEvent,
+              ) => {
+                // Track hovered bus for migration arrow
+                if (canMigrate && controlsEnabled && isMigrationPhase) {
+                  setHoveredMigrateBus(bus.id);
+                }
+
+                // Call the original hover handler
+                handleElementHover(element, event);
+              };
+
+              const handleBusMouseLeave = () => {
+                handleMouseLeave();
+                // Clear hovered bus for migration arrow
+                if (hoveredMigrateBus === bus.id) {
+                  setHoveredMigrateBus(null);
+                }
+              };
 
               return (
                 <BusComponent
                   key={bus.id}
                   bus={bus}
-                  onHover={handleElementHover}
-                  onLeave={handleMouseLeave}
+                  onHover={handleBusMouseEnter}
+                  onLeave={handleBusMouseLeave}
                   onClickProp={
                     viewMode === "market"
                       ? handleBusClickForMarket
@@ -617,6 +688,36 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 );
               }),
             )}
+
+            {/* Arrow head definition (always present but only used when needed) */}
+            <defs>
+              <marker
+                id="migration-arrowhead"
+                markerWidth="10"
+                markerHeight="7"
+                refX="9"
+                refY="3.5"
+                orient="auto"
+              >
+                <polygon
+                  points="0 0, 10 3.5, 0 7"
+                  fill="#FFFF00"
+                  opacity="0.8"
+                />
+              </marker>
+            </defs>
+
+            {/* Migration Arrow - shows when hovering over migrateable bus during migration phase */}
+            {hoveredMigrateBus &&
+              loserPlayerFreezerLocation &&
+              controlsEnabled &&
+              gameState.phase === GamePhase.MIGRATION && (
+                <MigrationArrow
+                  freezerPosition={loserPlayerFreezerLocation}
+                  toBusId={hoveredMigrateBus}
+                  buses={busesWithDisplayCoords}
+                />
+              )}
           </svg>
         </div>
       </div>
