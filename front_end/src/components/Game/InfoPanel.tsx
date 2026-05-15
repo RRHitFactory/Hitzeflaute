@@ -1,11 +1,11 @@
 "use client";
 
-import { HoverableElement, Position } from "@/types/game";
+import { HoverableElement, Point } from "@/types/game";
 import React from "react";
 
 interface InfoPanelProps {
   element: HoverableElement;
-  position?: Position;
+  position?: Point;
   scrollContainer?: HTMLDivElement | null;
 }
 

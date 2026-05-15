@@ -321,9 +321,7 @@ function GameContent() {
             <div className="lg:hidden order-1">
               <GameControls
                 gameState={gameState}
-                gameId={gameId?.toString() || null}
                 currentPlayer={currentPlayer}
-                isConnected={isConnected}
                 onEndTurn={handleEndTurn}
                 hasInsufficientFunds={hasInsufficientFunds}
                 controlsEnabled={controlsEnabled}
@@ -349,9 +347,7 @@ function GameContent() {
             <div className="hidden lg:block">
               <GameControls
                 gameState={gameState}
-                gameId={gameId?.toString() || null}
                 currentPlayer={currentPlayer}
-                isConnected={isConnected}
                 onEndTurn={handleEndTurn}
                 hasInsufficientFunds={hasInsufficientFunds}
                 controlsEnabled={controlsEnabled}

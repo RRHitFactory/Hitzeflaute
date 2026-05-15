@@ -250,7 +250,7 @@ class Engine:
         if not is_asset_owner:
             return fail("You can only move your own freezer.")
 
-        new_assets = game_state.assets.migrate_asset(asset_id=asset_id, new_bus_id=msg.bus)
+        new_assets = game_state.assets.migrate_asset(asset_id=asset_id, new_bus_id=msg.bus, round=game_state.game_round)
         new_game_state = game_state.update(new_assets)
         message = f"Successfully migrated freezer {asset_id} from bus {freezer_current_bus} to bus {msg.bus}."
         success_msg = msg.make_response(success=True, message=message, asset_id=asset_id)

@@ -7,13 +7,8 @@ export interface Bus {
   color: string;
 }
 
-export interface Position {
-  x: number;
-  y: number;
-}
-
 export interface BusWithDisplayCoords extends Bus {
-  display_position: Position;
+  display_position: Point;
 }
 
 export interface TransmissionLine {
@@ -285,7 +280,6 @@ export interface GameSettings {
   min_bid_price: number;
   max_bid_price: number;
   initial_funds: number;
-  max_connections_per_bus: number;
   map_area: Shape;
   [key: string]: any; // Allow for additional settings
 }

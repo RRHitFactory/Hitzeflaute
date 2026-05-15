@@ -310,12 +310,14 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
     const bus = getBusById(busId);
     if (!bus) return [];
 
-    const assets = getAssetsArray().filter((asset) => asset.bus === busId);
+    const assets: Asset[] = getAssetsArray()
+      .filter((asset: Asset) => asset.bus === busId)
+      .sort((a: Asset) => a.birthday * 100 + a.id);
     return assets.map((asset, index) => {
       // Position assets around the bus using display coordinates
-      const offsetRadius = 30;
-      const angleStep = (2 * Math.PI) / Math.max(assets.length, 4);
-      const angle = index * angleStep;
+      const offsetRadius = 25;
+      const angleStep = (2 * Math.PI) / 5;
+      const angle = index * angleStep * 2;
 
       const x = bus.display_position.x + offsetRadius * Math.cos(angle);
       const y = bus.display_position.y + offsetRadius * Math.sin(angle);
@@ -544,7 +546,12 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
             {/* Buses */}
             {busesWithDisplayCoords.map((bus) => {
               const isMigrationPhase = gameState.phase === GamePhase.MIGRATION;
-              const canMigrate = isMigrationPhase && bus.id != loserPlayerBus;
+              const nAssetsAtBus = gameState.assets.data.filter(
+                (a: Asset) => a.bus == bus.id,
+              ).length;
+              const hasSpace = nAssetsAtBus < bus.max_assets;
+              const canMigrate =
+                isMigrationPhase && bus.id != loserPlayerBus && hasSpace;
 
               return (
                 <BusComponent
