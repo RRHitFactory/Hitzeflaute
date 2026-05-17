@@ -91,7 +91,6 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
         assert isinstance(x, int)
         reduced_df = self.df.filter(pl.col("id") == int(x))
         if not len(reduced_df):
-            a = 2
             raise KeyError(f"Element with id {x} not found in {self.__class__.__name__}")
         simple_dict = [r for r in reduced_df.iter_rows(named=True)][0]
         return self.obj_type.from_simple_dict(simple_dict)
