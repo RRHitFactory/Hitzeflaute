@@ -4,7 +4,7 @@ from typing import Self
 import numpy as np
 import pandas as pd
 
-from src.models.assets import AssetRepo
+from src.models.assets import AssetPolarRepo
 from src.models.buses import BusPolarRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
@@ -29,7 +29,7 @@ class MarketResultMaker:
         cls,
         player_repo: PlayerRepo | None = None,
         bus_repo: BusPolarRepo | None = None,
-        asset_repo: AssetRepo | None = None,
+        asset_repo: AssetPolarRepo | None = None,
         transmission_repo: TransmissionRepo | None = None,
         n_random_congested_transmissions: int = 0,
         n_players_with_no_power_for_ice_cream: int = 0,
@@ -64,7 +64,7 @@ class MarketResultMaker:
         self,
         player_repo: PlayerRepo,
         bus_repo: BusPolarRepo,
-        asset_repo: AssetRepo,
+        asset_repo: AssetPolarRepo,
         transmission_repo: TransmissionRepo,
     ) -> None:
         self.player_repo = player_repo
@@ -148,7 +148,7 @@ class GameStateMaker:
         self.phase: Phase | None = None
         self.player_repo: PlayerRepo | None = None
         self.bus_repo: BusPolarRepo | None = None
-        self.asset_repo: AssetRepo | None = None
+        self.asset_repo: AssetPolarRepo | None = None
         self.transmission_repo: TransmissionRepo | None = None
         self.market_coupling_result: MarketCouplingResult | None = None
         self.pending_state: PendingState | None = None
@@ -173,7 +173,7 @@ class GameStateMaker:
         self.bus_repo = bus_repo
         return self
 
-    def add_asset_repo(self, asset_repo: AssetRepo) -> Self:
+    def add_asset_repo(self, asset_repo: AssetPolarRepo) -> Self:
         self.asset_repo = asset_repo
         return self
 

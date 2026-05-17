@@ -3,7 +3,7 @@ from enum import IntEnum
 from functools import cached_property, lru_cache
 from typing import Self
 
-from src.models.assets import AssetInfo, AssetRepo
+from src.models.assets import AssetInfo, AssetPolarRepo
 from src.models.buses import BusFullException, BusPolarRepo
 from src.models.game_settings import GameSettings
 from src.models.ids import BusId, GameId, PlayerId, Round
@@ -42,7 +42,7 @@ class Phase(IntEnum):
         return Phase(next_index)
 
 
-type GameStateAttributes = Phase | PlayerRepo | BusPolarRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
+type GameStateAttributes = Phase | PlayerRepo | BusPolarRepo | AssetPolarRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
 
 
 @dataclass(frozen=True)
@@ -52,7 +52,7 @@ class GameState:
     phase: Phase
     players: PlayerRepo
     buses: BusPolarRepo
-    assets: AssetRepo
+    assets: AssetPolarRepo
     transmission: TransmissionRepo
     market_coupling_result: MarketCouplingResult | None
     game_round: Round = Round(1)
@@ -173,7 +173,7 @@ class GameState:
             phase=un_simplify_type(x=simple_dict["phase"], t=Phase),
             players=PlayerRepo.from_simple_dict(simple_dict["players"]),
             buses=BusPolarRepo.from_simple_dict(simple_dict["buses"]),
-            assets=AssetRepo.from_simple_dict(simple_dict["assets"]),
+            assets=AssetPolarRepo.from_simple_dict(simple_dict["assets"]),
             transmission=TransmissionRepo.from_simple_dict(simple_dict["transmission"]),
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
             game_round=Round(simple_dict["game_round"]),

@@ -3,13 +3,13 @@ from itertools import count
 from typing import Literal, Self, TypeVar
 
 import numpy as np
-from src.models.data.polar_repo import PolarRepo
 
-from src.models.assets import AssetInfo, AssetRepo, AssetType
+from src.models.assets import AssetInfo, AssetPolarRepo, AssetType
 from src.models.buses import Bus, BusPolarRepo, BusSocketManager
 from src.models.colors import Color
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
+from src.models.data.polar_repo import PolarRepo
 from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionInfo, TransmissionRepo
@@ -136,14 +136,14 @@ class PlayerRepoMaker(RepoMaker[PlayerRepo, Player]):
             self.dcs.append(Player.make_npc())
 
 
-class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
+class AssetRepoMaker(RepoMaker[AssetPolarRepo, AssetInfo]):
     @classmethod
     def make_quick(
         cls,
         n_normal_assets: int = 3,
         players: list[PlayerId] | PlayerRepo | None = None,
         bus_repo: BusPolarRepo | None = None,
-    ) -> AssetRepo:
+    ) -> AssetPolarRepo:
         return cls(players=players, bus_repo=bus_repo).add_n_random(n_normal_assets).add_asset(owner=PlayerId.get_npc(), is_for_sale=True).make()
 
     def __init__(
@@ -296,8 +296,8 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             is_active=is_active,
         )
 
-    def _get_repo_type(self) -> type[AssetRepo]:
-        return AssetRepo
+    def _get_repo_type(self) -> type[AssetPolarRepo]:
+        return AssetPolarRepo
 
 
 class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):

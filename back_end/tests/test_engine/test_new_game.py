@@ -1,4 +1,4 @@
-from src.models.assets import AssetInfo, AssetRepo
+from src.models.assets import AssetInfo, AssetPolarRepo
 from src.models.buses import Bus, BusPolarRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
@@ -29,7 +29,7 @@ class TestGameInitializer(BaseTest):
         n_playing = sum([1 for p in game_state.players.human_players if p.is_having_turn])
         self.assertEqual(n_playing, 1)  # Only one player should have the turn
 
-        self.assertIsInstance(game_state.assets, AssetRepo)
+        self.assertIsInstance(game_state.assets, AssetPolarRepo)
         self.assertIsInstance(game_state.buses, BusPolarRepo)
         self.assertIsInstance(game_state.transmission, TransmissionRepo)
 

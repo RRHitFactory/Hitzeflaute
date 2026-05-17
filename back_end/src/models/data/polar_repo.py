@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterable
+from collections.abc import Generator, Iterable
 from typing import Any, ClassVar, Self
 
 import dataframely as dy
@@ -11,7 +11,7 @@ from src.tools.typing import IntId
 
 
 class PrSchema(dy.Schema):
-    id = dy.UInt8(primary_key=True)
+    id = dy.Int8(primary_key=True)
 
 
 class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
@@ -28,7 +28,7 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
             return
         schema, obj_type, int_type = cls.get_schema()
         assert issubclass(schema, dy.Schema)
-        assert isinstance(obj_type, LightDc)
+        assert issubclass(obj_type, LightDc)
         assert issubclass(int_type, IntId)
 
         dy_schema_columns = schema.columns()
@@ -40,6 +40,10 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
         self._validate_schema()
 
         schema, obj_type, int_type = self.get_schema()
+        self.schema = schema
+        self.obj_type = obj_type
+        self.int_type = int_type
+
         if quick:
             assert isinstance(x, pl.DataFrame)
             df = self.schema.cast(x)
@@ -49,11 +53,7 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
             else:
                 df = x
             df = schema.validate(df, cast=True)
-
         self.df = df
-        self.schema = schema
-        self.obj_type = obj_type
-        self.int_type = int_type
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__} ({len(self.df)} rows)>"
@@ -69,6 +69,10 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
         else:
             assert isinstance(other, self.obj_type)
             other_df = self.schema.validate(pl.DataFrame(data=other.to_simple_dict()), cast=True)
+        # Do a quick check for unique ids, then skip main validation
+        my_ids = self.df["id"].to_list()
+        new_ids = other_df["id"].to_list()
+        assert len(set(my_ids + new_ids)) == len(my_ids) + len(new_ids), "Ids are not unique"
         return self._make_quick(x=pl.concat([self.df, other_df]))
 
     def __len__(self) -> int:
@@ -79,12 +83,15 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
             return False
         return self.df.equals(other.df)
 
+    def __iter__(self) -> Generator[T_Obj, None, None]:
+        for r in self.df.iter_rows(named=True):
+            yield self.obj_type.from_simple_dict(r)
+
     def __getitem__(self, x: int | T_Int) -> T_Obj:
-        if isinstance(x, IntId):
-            x = x.as_int()
         assert isinstance(x, int)
-        reduced_df = self.df.filter(pl.col("id") == x)
+        reduced_df = self.df.filter(pl.col("id") == int(x))
         if not len(reduced_df):
+            a = 2
             raise KeyError(f"Element with id {x} not found in {self.__class__.__name__}")
         simple_dict = [r for r in reduced_df.iter_rows(named=True)][0]
         return self.obj_type.from_simple_dict(simple_dict)
@@ -99,26 +106,33 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
         max_id: int = self.df["id"].max()  # type: ignore
         return self.int_type(max_id + 1)
 
+    # GET
+    def get_multiple[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, ids: list[T_Int]) -> T_PolarRepo:
+        return self._filter(pl.col("id").is_in([int(y) for y in ids]))
+
     # UPDATE
     def update_frame[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, df: pl.DataFrame) -> T_PolarRepo:
         return self.__class__(x=df)
 
-    def update_ikv[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, id: T_Int, key: str, value: Any) -> T_PolarRepo:
-        v = simplify_type(value)
-        return self.update_ik_expr(id=id, key=key, expr=pl.lit(v))
+    def update_key_value[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, id: T_Int, key: str, value: Any) -> T_PolarRepo:
+        return self.update_key_values(id=id, key_values={key: value})
 
-    def update_ik_expr[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, id: T_Int, key: str, expr: pl.Expr) -> T_PolarRepo:
-        df = self.df.with_columns(pl.when(pl.col("id") == int(id)).then(expr).otherwise(pl.col(key)).alias(key))
-        return self.update_frame(df)
+    def update_key_values[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, id: T_Int | list[T_Int], key_values: dict[str, Any]) -> T_PolarRepo:
+        key_exprs = {k: pl.lit(simplify_type(v)) for k, v in key_values.items()}
+        return self.update_key_expressions(id=id, key_exprs=key_exprs)
+
+    def update_key_expressions[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, id: T_Int | list[T_Int], key_exprs: dict[str, pl.Expr]) -> T_PolarRepo:
+        if isinstance(id, list):
+            condition = pl.col("id").is_in([int(i) for i in id])
+        else:
+            condition = pl.col("id") == int(id)
+        exprs = [pl.when(condition).then(e).otherwise(pl.col(k)).alias(k) for k, e in key_exprs.items()]
+        df = self.df.with_columns(*exprs)
+        return self._make_quick(df)
 
     # DELETE
     def drop_by_ids[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, ids: Iterable[T_Int]) -> T_PolarRepo:
-        def simplify(x: int | IntId):
-            if isinstance(x, IntId):
-                return x.as_int()
-            return x
-
-        return self._drop_items(pl.col("id").is_in([simplify(y) for y in ids]))
+        return self._drop_items(pl.col("id").is_in([int(y) for y in ids]))
 
     def drop_one[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, id: T_Int) -> T_PolarRepo:
         return self.drop_by_ids([id])

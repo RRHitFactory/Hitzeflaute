@@ -4,7 +4,7 @@ from itertools import combinations, count
 
 import numpy as np
 
-from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
+from src.models.assets import AssetId, AssetInfo, AssetPolarRepo, AssetType
 from src.models.buses import Bus, BusPolarRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
 from src.models.game_settings import GameSettings, TurnType
@@ -221,9 +221,9 @@ class GameInitializer:
         for bus_id, top in zip(bus_ids, topos):
             buses.append(Bus(id=bus_id, x=top.x, y=top.y))
 
-        return BusPolarRepo._make_quick(buses)
+        return BusPolarRepo(buses)
 
-    def _create_asset_repo(self, player_repo: PlayerRepo, bus_repo: BusPolarRepo) -> AssetRepo:
+    def _create_asset_repo(self, player_repo: PlayerRepo, bus_repo: BusPolarRepo) -> AssetPolarRepo:
         assets: list[AssetInfo] = []
 
         def asset_id_iterator(start: int = 1) -> Generator[AssetId, None, None]:
@@ -280,7 +280,7 @@ class GameInitializer:
             asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0), except_freezer=True)
             assets.append(asset)
 
-        return AssetRepo(assets)
+        return AssetPolarRepo(assets)
 
     def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusPolarRepo) -> TransmissionRepo:
         topology = TransmissionTopologyMaker.make_spiderweb(bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players)

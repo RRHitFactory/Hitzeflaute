@@ -1,4 +1,4 @@
-from src.models.assets import AssetInfo, AssetRepo, AssetType
+from src.models.assets import AssetInfo, AssetPolarRepo, AssetType
 from src.models.ids import AssetId, BusId
 from src.models.player import PlayerId
 from tests.base_test import BaseTest
@@ -8,7 +8,7 @@ from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker
 class TestAssets(BaseTest):
     def test_make_repo(self) -> None:
         repo = AssetRepoMaker.make_quick()
-        self.assertIsInstance(repo, AssetRepo)
+        self.assertIsInstance(repo, AssetPolarRepo)
 
     def test_query_player_assets(self) -> None:
         player_ids = [PlayerId(1), PlayerId(2)]

@@ -1,4 +1,5 @@
 import numpy as np
+import polars as pl
 
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.models.assets import AssetType
@@ -105,18 +106,11 @@ class TestMarketCoupling(BaseTest):
 
         for mtu in market_result.bus_prices.index:
             for bus in game_state.buses:
-                bus_price = market_result.bus_prices.loc[mtu, bus.id]
-                assets_in_bus = game_state.assets._filter({"bus": bus.id})
-                generators_in_or_at_the_money = assets_in_bus._filter(
-                    lambda x: x["bid_price"] <= bus_price,
-                    "and",
-                    {"asset_type": AssetType.GENERATOR},
-                ).asset_ids
-                loads_in_or_at_the_money = assets_in_bus._filter(
-                    lambda x: x["bid_price"] >= bus_price,
-                    "and",
-                    {"asset_type": AssetType.LOAD},
-                ).asset_ids
+                bus_price: float = market_result.bus_prices.loc[mtu, bus.id]  # type: ignore
+                assets_in_bus = game_state.assets.get_all_assets_at_bus(bus_id=bus.id)
+                generators_in_or_at_the_money = assets_in_bus.df.filter(pl.col("bid_price") <= bus_price, pl.col("asset_type") == AssetType.GENERATOR.value)["id"].to_list()
+                loads_in_or_at_the_money = assets_in_bus.df.filter(pl.col("bid_price") >= bus_price, pl.col("asset_type") == AssetType.LOAD.value)["id"].to_list()
+
                 asset_dispatch = market_result.assets_dispatch.loc[mtu]
 
                 small_generation = 0.5  # Define a threshold for small generation to avoid floating point issues
@@ -133,8 +127,8 @@ class TestMarketCoupling(BaseTest):
         market_result = MarketCouplingCalculator.run(game_state)
 
         for mtu in market_result.assets_dispatch.index:
-            total_generation = market_result.assets_dispatch.loc[mtu][game_state.assets._filter({"asset_type": AssetType.GENERATOR}).asset_ids].sum()
-            total_load = market_result.assets_dispatch.loc[mtu][game_state.assets._filter({"asset_type": AssetType.LOAD}).asset_ids].sum()
+            total_generation = market_result.assets_dispatch.loc[mtu][game_state.assets.only_generators.asset_ids].sum()
+            total_load = market_result.assets_dispatch.loc[mtu][game_state.assets.only_loads.asset_ids].sum()
 
             self.assertAlmostEqual(total_generation, total_load, places=5)
 

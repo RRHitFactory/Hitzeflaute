@@ -1,6 +1,6 @@
 import numpy as np
 
-from src.models.assets import AssetRepo
+from src.models.assets import AssetPolarRepo
 from src.models.game_state import GameState
 from src.models.ids import AssetId, PlayerId, TransmissionId
 from src.models.message import (
@@ -26,13 +26,13 @@ class Referee:
     # BEFORE MARKET COUPLING
     @classmethod
     def validate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
-        purchase_repo: AssetRepo | TransmissionRepo
+        purchase_repo: AssetPolarRepo | TransmissionRepo
         purchase_repo_ids: list[AssetId] | list[TransmissionId]
 
         if isinstance(purchase_id, AssetId):
             purchase_type = "asset"
             purchase_repo = gs.assets
-            assert isinstance(purchase_repo, AssetRepo)
+            assert isinstance(purchase_repo, AssetPolarRepo)
             purchase_repo_ids = purchase_repo.asset_ids
 
         elif isinstance(purchase_id, TransmissionId):
@@ -170,30 +170,25 @@ class Referee:
         gs: GameState,
     ) -> tuple[GameState, list[AssetWornMessage]]:
         asset_repo = gs.assets
-        wearable_assets = gs.assets._filter({"is_freezer": False})
-        melted_ids: list[AssetId] = []
-
-        for asset in wearable_assets:
-            if asset.health == 0:
-                continue
-            asset_repo = asset_repo.wear_asset(asset_id=asset.id)
-            melted_ids.append(asset.id)
+        melted_ids = asset_repo.get_wearable_asset_ids()
+        asset_repo = asset_repo.wear_assets(melted_ids)
 
         new_gs = gs.update(asset_repo)
 
-        warn_asset_messages = [
-            AssetWornMessage(
+        warn_asset_messages: list[AssetWornMessage] = []
+        for asset_id in melted_ids:
+            asset = new_gs.assets[asset_id]
+            msg = AssetWornMessage(
                 game_id=new_gs.game_id,
-                player_id=new_gs.assets[asset_id].owner_player,
+                player_id=asset.owner_player,
                 asset_id=asset_id,
                 message=(
-                    f"Asset {asset_id} has worn with time, it can only operate during the next {new_gs.assets[asset_id].health} rounds."
-                    if new_gs.assets[asset_id].health > 0
+                    f"Asset {asset_id} has worn with time, it can only operate during the next {asset.health} rounds."
+                    if asset.health > 0
                     else f"Asset {asset_id} has worn with time and is no longer operational."
                 ),
             )
-            for asset_id in melted_ids
-        ]
+            warn_asset_messages.append(msg)
 
         return new_gs, warn_asset_messages
 

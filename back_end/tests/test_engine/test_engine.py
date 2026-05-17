@@ -1,5 +1,7 @@
 from types import MappingProxyType
 
+import polars as pl
+
 from src.engine.engine import Engine
 from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color
@@ -74,8 +76,8 @@ class TestEngine(BaseTest):
         player_repo += rich_player
         game_state = GameStateMaker().add_player_repo(player_repo).add_phase(Phase.CONSTRUCTION).make()
 
-        is_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": True}).asset_ids
-        not_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": False}).asset_ids
+        is_for_sale_ids = game_state.assets._filter(pl.col("is_for_sale")).asset_ids
+        not_for_sale_ids = game_state.assets._filter(~pl.col("is_for_sale")).asset_ids
 
         msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=AssetId(-5))
         self.assert_fails_with(game_state=game_state, request=msg, x="asset")
@@ -175,7 +177,7 @@ class TestEngine(BaseTest):
 
         player = player_repo.human_players[0]
         my_generator = AssetInfo(id=AssetId(100), owner_player=player.id, asset_type=AssetType.GENERATOR, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=True)
-        asset_repo = asset_repo.add(my_generator)
+        asset_repo = asset_repo + my_generator
 
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.SNEAKY_TRICKS).make()
         game_state = game_state.start_all_turns()

@@ -4,7 +4,7 @@ import warnings
 import pandas as pd
 import pypsa
 
-from src.models.assets import AssetId, AssetRepo
+from src.models.assets import AssetId, AssetPolarRepo
 from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
@@ -138,7 +138,7 @@ class MarketCouplingCalculator:
         return df
 
     @classmethod
-    def get_assets_dispatch(cls, network: pypsa.Network, assets: AssetRepo) -> pd.DataFrame:
+    def get_assets_dispatch(cls, network: pypsa.Network, assets: AssetPolarRepo) -> pd.DataFrame:
         # Note that all values are positive. For generators this means production, for loads it means consumption.
         df = cls._tidy_df(df=network.generators_t.p, column_name="Asset").abs()
         # Add zero dispatch to inactive assets

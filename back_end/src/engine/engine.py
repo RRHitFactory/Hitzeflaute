@@ -242,7 +242,8 @@ class Engine:
         if freezer_is_already_there:
             return fail("The freezer is already at the bus you are trying to move to.")
 
-        bus_has_sockets = game_state.buses[msg.bus].max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
+        max_assets = game_state.game_settings.max_assets_per_bus
+        bus_has_sockets = max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
         if not bus_has_sockets:
             return fail("The bus you are trying to move to does not have free sockets.")
 
