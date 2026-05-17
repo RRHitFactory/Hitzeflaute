@@ -151,10 +151,12 @@ class TestMarketCoupling(BaseTest):
 
                 p1: float = market_result.bus_prices.loc[mtu, transmission.bus1]  # type: ignore
                 p2: float = market_result.bus_prices.loc[mtu, transmission.bus2]  # type: ignore
-                if np.isclose(abs(flow), abs(transmission.capacity)):
-                    self.assertGreater(abs(p2 - p1), 0)
-                else:
-                    self.assertAlmostEqual(p1, p2, places=0)
+                at_capacity = np.isclose(abs(flow), transmission.capacity)
+                spread = abs(p1 - p2)
+                if spread > 0:
+                    self.assertTrue(at_capacity)
+                if not at_capacity:
+                    self.assertEqual(spread, 0)
 
     def test_all_assets_and_transmission_appear_in_results(self) -> None:
         game_state = self.create_game_state()
