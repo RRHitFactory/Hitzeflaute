@@ -421,9 +421,6 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
           </div>
         )}
         <div className="flex flex-col gap-2">
-          {hoveredElement && viewMode === "normal" && (
-            <InfoPanel element={hoveredElement} />
-          )}
           {selectedBusForMarket &&
             viewMode === "market" &&
             gameState.market_summary && (
@@ -443,6 +440,9 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 onClose={() => setSelectedLineForMarket(null)}
               />
             )}
+          {hoveredElement && (
+            <InfoPanel element={hoveredElement} />
+          )}
         </div>
       </div>
 
@@ -527,6 +527,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
               const canMigrate =
                 isMigrationPhase &&
                 bus.id != loserPlayerFreezer?.bus &&
+                viewMode == "normal" &&
                 hasSpace;
 
               const handleBusMouseEnter = (
@@ -619,6 +620,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
             {hoveredMigrateBus &&
               loserPlayerFreezerLocation &&
               controlsEnabled &&
+              viewMode == "normal" &&
               gameState.phase === GamePhase.MIGRATION && (
                 <MigrationArrow
                   freezerPosition={loserPlayerFreezerLocation}
