@@ -152,7 +152,7 @@ class TestMarketCoupling(BaseTest):
                 p1: float = market_result.bus_prices.loc[mtu, transmission.bus1]  # type: ignore
                 p2: float = market_result.bus_prices.loc[mtu, transmission.bus2]  # type: ignore
                 if np.isclose(abs(flow), abs(transmission.capacity)):
-                    self.assertGreaterEqual(p2 - p1, 0)
+                    self.assertGreater(abs(p2 - p1), 0)
                 else:
                     self.assertAlmostEqual(p1, p2, places=0)
 
