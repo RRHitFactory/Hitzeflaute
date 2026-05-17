@@ -440,9 +440,7 @@ const GridVisualization: React.FC<GridVisualizationProps> = ({
                 onClose={() => setSelectedLineForMarket(null)}
               />
             )}
-          {hoveredElement && (
-            <InfoPanel element={hoveredElement} />
-          )}
+          {hoveredElement && <InfoPanel element={hoveredElement} />}
         </div>
       </div>
 
