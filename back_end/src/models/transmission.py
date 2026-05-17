@@ -33,6 +33,14 @@ class TransmissionInfo(LightDc):
     def is_closed(self) -> bool:
         return self.is_active
 
+    @property
+    def is_link(self) -> bool:
+        return self.line_or_link == "Link"
+
+    @property
+    def is_line(self) -> bool:
+        return not self.is_link
+
     def __post_init__(self) -> None:
         assert self.bus2 > self.bus1, f"bus2 must be greater than bus1. Got {self.bus2} and {self.bus1}"
         assert self.reactance > 0, f"Reactance must be positive. Got {self.reactance}"

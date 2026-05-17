@@ -1,40 +1,32 @@
-from dataclasses import replace
-from typing import Protocol, runtime_checkable
-
 import pandas as pd
 
 from src.engine.finance import FinanceCalculator
+from src.engine.referee import Referee
 from src.models.game_state import GameState
 from src.models.ids import AssetId, BusId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
-from src.models.message import Message
-from src.models.pending_state import PendingState
+from src.tools.serialization import SimpleDict
 
 
-@runtime_checkable
-class HasGameState(Protocol):
-    game_state: GameState
-
-
-def reduce_message[T: Message](msg: T) -> T:
-    if not isinstance(msg, HasGameState):
-        return msg
-    return replace(msg, game_state=reduce_game_state(msg.game_state))
-
-
-def reduce_game_state(game_state: GameState) -> GameState:
+def prepare_game_state_for_front_end(game_state: GameState) -> SimpleDict:
     """
     Makes the game state more compact before passing to the front end. Also hide the pending state as it is private.
     """
-    if game_state.market_coupling_result is None:
-        return game_state
+    gs_dict = game_state.to_simple_dict()
+    gs_dict["market_coupling_result"] = None
+    gs_dict["pending_state"] = None
+    loser = Referee.get_losing_player(gs=game_state)
+    gs_dict["losing_player"] = int(loser)
 
-    bus_results = {bus: reduce_one_bus(game_state=game_state, coupling_result=game_state.market_coupling_result, bus_id=bus) for bus in game_state.buses.bus_ids}
+    if game_state.market_coupling_result is not None:
+        bus_results = {bus: reduce_one_bus(game_state=game_state, coupling_result=game_state.market_coupling_result, bus_id=bus) for bus in game_state.buses.bus_ids}
 
-    line_results = {line: reduce_one_line(game_state=game_state, coupling_result=game_state.market_coupling_result, line_id=line) for line in game_state.transmission.transmission_ids}
-    pnl = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=game_state.market_coupling_result)
-    market_summary = MarketCouplingSummary(bus_results=bus_results, line_results=line_results, pnl=pnl)
-    return replace(game_state, market_summary=market_summary, market_coupling_result=None, pending_state=PendingState())
+        line_results = {line: reduce_one_line(game_state=game_state, coupling_result=game_state.market_coupling_result, line_id=line) for line in game_state.transmission.transmission_ids}
+        pnl = FinanceCalculator.compute_cashflows_after_power_delivery(game_state=game_state, market_coupling_result=game_state.market_coupling_result)
+        market_summary = MarketCouplingSummary(bus_results=bus_results, line_results=line_results, pnl=pnl)
+        gs_dict["market_summary"] = market_summary.to_simple_dict()
+
+    return gs_dict
 
 
 def reduce_one_line(game_state: GameState, coupling_result: MarketCouplingResult, line_id: TransmissionId) -> pd.DataFrame:
@@ -58,12 +50,13 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
     """
     Reduces the game state by removing unnecessary data for a single bus
     """
-    bus_assets = game_state.assets.get_all_assets_at_bus(bus_id=bus_id)
-    gens = bus_assets.only_generators
-    loads = bus_assets.only_loads
+    bus_asset_ids = coupling_result.assets_locations.get(bus_id, [])
+    assets = game_state.assets.get_multiple(bus_asset_ids)
+    gens = assets.only_generators
+    loads = assets.only_loads
 
-    total_dispatch = coupling_result.assets_dispatch.sum()
-    dispatch_dict: dict[AssetId, float] = {AssetId(k): v for k, v in total_dispatch.to_dict().items()}
+    total_dispatch_dict: dict[int, float] = coupling_result.assets_dispatch.sum().to_dict()  # type: ignore
+    dispatch_dict: dict[AssetId, float] = {AssetId(k): v for k, v in total_dispatch_dict.items()}
 
     def make_gen_row(asset_id: AssetId) -> dict[str, str | float]:
         asset = gens[asset_id]
@@ -82,7 +75,6 @@ def reduce_one_bus(game_state: GameState, coupling_result: MarketCouplingResult,
             "marginal_price": asset.marginal_cost,
             "bid_price": asset.bid_price,
         }
-
 
     load_df = pd.DataFrame([make_load_row(asset_id) for asset_id in loads.asset_ids])
 

@@ -21,9 +21,9 @@ class Message(ABC, SerializableDcSimple):
         return str(self)
 
 
-
 @dataclass(frozen=True, repr=False)
-class InternalMessage(Message, ABC): ... # A message from the game to itself
+class InternalMessage(Message, ABC): ...  # A message from the game to itself
+
 
 @dataclass(frozen=True, repr=False)
 class PlayerToGameMessage(Message, ABC):
@@ -51,6 +51,11 @@ class PlayerToGameMessage(Message, ABC):
 
 
 @dataclass(frozen=True, repr=False)
+class GameUpdate(Message):
+    game_state: GameState
+
+
+@dataclass(frozen=True, repr=False)
 class GameToPlayerMessage(Message, ABC):
     player_id: PlayerId
     message: str
@@ -70,19 +75,17 @@ T_Id = TypeVar("T_Id", bound=AssetId | TransmissionId)
 @dataclass(frozen=True, repr=False)
 class ConcludePhase(InternalMessage):
     phase: Phase
+    force_new_phase: Phase | None = None
 
     @property
     def new_phase(self) -> Phase:
+        if self.force_new_phase is not None:
+            return self.force_new_phase
         return self.phase.get_next()
 
 
 @dataclass(frozen=True, repr=False)
 class ClearAuction(InternalMessage): ...
-
-
-@dataclass(frozen=True, repr=False)
-class GameUpdate(GameToPlayerMessage):
-    game_state: GameState
 
 
 @dataclass(frozen=True, repr=False)
@@ -168,15 +171,15 @@ class FreezerMigrationResponse(GameToPlayerMessage):
 
 @dataclass(frozen=True, repr=False)
 class FreezerMigrationRequest(PlayerToGameMessage):
-    asset_id: AssetId
+    asset_id: AssetId | None
     bus: BusId
 
-    def make_response(self, success: bool, message: str) -> FreezerMigrationResponse:
+    def make_response(self, success: bool, message: str, asset_id: AssetId) -> FreezerMigrationResponse:
         return FreezerMigrationResponse(
             game_id=self.game_id,
             player_id=self.player_id,
             success=success,
-            asset_id=self.asset_id,
+            asset_id=asset_id,
             message=message,
         )
 

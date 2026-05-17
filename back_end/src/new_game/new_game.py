@@ -7,7 +7,7 @@ import numpy as np
 from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusPolarRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
-from src.models.game_settings import GameSettings
+from src.models.game_settings import GameSettings, TurnType
 from src.models.game_state import GameState, Phase
 from src.models.geometry import Point, Shape
 from src.models.ids import BusId, GameId, PlayerId, Round
@@ -158,12 +158,7 @@ class GameInitializer:
         """
         self.settings = settings
 
-    def create_new_game(
-        self,
-        game_id: GameId,
-        player_names: list[str],
-        player_colors: list[Color] | None = None,
-    ) -> GameState:
+    def create_new_game(self, game_id: GameId, player_names: list[str], player_colors: list[Color] | None = None, turn_type: TurnType = "hotseat") -> GameState:
         """
         Create a new game state with the given game ID and settings.
         :param game_id: Unique identifier for the game.
@@ -181,21 +176,11 @@ class GameInitializer:
         transmission_repo = self._create_transmission_repo(player_repo=player_repo, bus_repo=bus_repo)
 
         new_game = GameState(
-            game_id=game_id,
-            game_settings=self.settings,
-            phase=Phase(0),
-            players=player_repo,
-            buses=bus_repo,
-            assets=assets_repo,
-            transmission=transmission_repo,
-            market_coupling_result=None,
+            game_id=game_id, game_settings=self.settings, phase=Phase(0), players=player_repo, buses=bus_repo, assets=assets_repo, transmission=transmission_repo, market_coupling_result=None
         )
-        if Phase(0).is_turn_based:
-            new_game = new_game.update(new_game.players.start_first_player_turn())
-        else:
-            new_game = new_game.update(new_game.players.start_all_turns())
 
-        return new_game
+        new_player_repo = new_game.get_players_with_updated_turns_for_new_phase(new_phase=Phase(0))
+        return new_game.update(new_player_repo)
 
     def _create_player_repo(self, names: list[str], colors: list[Color]) -> PlayerRepo:
         assert len(names) == len(colors), "Number of player names and colors must match"

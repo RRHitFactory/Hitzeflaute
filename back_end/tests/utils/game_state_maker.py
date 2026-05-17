@@ -14,6 +14,7 @@ from src.models.pending_state import PendingState
 from src.models.player import PlayerRepo
 from src.models.transmission import TransmissionRepo
 from src.tools.random_choice import random_choice, random_choice_multi
+from tests.utils.misc import get_asset_locations
 from tests.utils.repo_maker import (
     AssetRepoMaker,
     BusRepoMaker,
@@ -136,11 +137,8 @@ class MarketResultMaker:
             else:
                 assets_dispatch.loc[:, freezer.id.as_int()] = 0.0
 
-        return MarketCouplingResult(
-            bus_prices=bus_prices,
-            transmission_flows=transmission_flows,
-            assets_dispatch=assets_dispatch,
-        )
+        asset_locations = get_asset_locations(assets=self.asset_repo, bus_ids=self.bus_repo.bus_ids)
+        return MarketCouplingResult(bus_prices=bus_prices, transmission_flows=transmission_flows, assets_dispatch=assets_dispatch, asset_locations=asset_locations)
 
 
 class GameStateMaker:

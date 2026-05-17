@@ -1,8 +1,12 @@
 from src.engine.referee import Referee
+from src.models.assets import AssetInfo, AssetRepo, AssetType
+from src.models.colors import Color
 from src.models.game_state import GameState, Phase
-from src.models.ids import PlayerId
+from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import IceCreamMeltedMessage
+from src.models.player import Player, PlayerRepo
+from src.models.transmission import TransmissionInfo
 from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker, PlayerRepoMaker, TransmissionRepoMaker
@@ -35,6 +39,25 @@ class TestReferee(BaseTest):
         game_state = game_state.update(Phase.DA_AUCTION, market_coupling_result)
 
         return game_state, market_coupling_result
+
+    def test_get_loser(self) -> None:
+        player_repo = PlayerRepo(
+            dcs=[
+                Player(id=PlayerId.get_npc(), name="npc", trigram="NPC", money=0, color=Color("black"), is_having_turn=False),
+                Player(id=PlayerId(1), name="winner", trigram="trigram", money=0, color=Color("black"), is_having_turn=False),
+                Player(id=PlayerId(2), name="middle", trigram="trigram", money=2000, color=Color("black"), is_having_turn=False),
+                Player(id=PlayerId(3), name="loser", trigram="trigram", money=1000, color=Color("black"), is_having_turn=False),
+            ]
+        )
+
+        def make_freezer(p: int, health: int) -> AssetInfo:
+            return AssetInfo(id=AssetId(p), owner_player=PlayerId(p), asset_type=AssetType.LOAD, bus=BusId(p), power_expected=0.0, power_std=0.0, is_freezer=True, health=health)
+
+        asset_repo = AssetRepo(dcs=[make_freezer(p=1, health=5), make_freezer(p=2, health=4), make_freezer(p=3, health=4)])
+        game_state = GameStateMaker().add_player_repo(player_repo).add_asset_repo(asset_repo).make()
+
+        loser = Referee.get_losing_player(gs=game_state)
+        self.assertEqual(loser, PlayerId(3))
 
     def test_melt_ice_creams(self) -> None:
         n_melted = 2
@@ -119,6 +142,10 @@ class TestReferee(BaseTest):
 
     def test_validate_purchase(self):
         game_state, market_result = self.create_game_state_and_market_coupling_result()
+        for_sale_line = TransmissionInfo(
+            id=TransmissionId(200), owner_player=PlayerId.get_npc(), bus1=BusId(1), bus2=BusId(2), reactance=2.0, capacity=100.0, is_for_sale=True, minimum_acquisition_price=100.0
+        )
+        game_state = game_state.update(game_state.transmission + for_sale_line)
 
         # make the first player go in debt
         poor_player = game_state.players[0]

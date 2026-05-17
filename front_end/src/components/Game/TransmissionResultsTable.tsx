@@ -2,36 +2,20 @@
 
 import { MarketCouplingSummary } from "@/types/game";
 import React from "react";
-import { parseDataFrameToDict, formatNumber } from "./utils";
+import { formatNumber, parseDataFrameToDict } from "./utils";
 
 interface TransmissionResultsTableProps {
   lineId: number;
   marketSummary: MarketCouplingSummary;
-  position: { x: number; y: number };
   onClose: () => void;
 }
 
 const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
   lineId,
   marketSummary,
-  position,
   onClose,
 }) => {
-  // Calculate positioning to avoid going off-screen
   const panelWidth = 300;
-  const panelHeight = 200; // Tall enough to fit transmission line content
-  const offset = 15;
-
-  let left = position.x + offset;
-  let top = position.y - panelHeight / 2; // Center on click position
-
-  // Adjust vertical position if it would go off-screen
-  if (top < 0) {
-    top = 10;
-  } else if (top + panelHeight > 400) {
-    // SVG viewBox height - position higher to ensure full visibility
-    top = 400 - panelHeight - 20;
-  }
 
   // Get line results from market summary
   const lineResults = marketSummary.line_results[lineId.toString()];
@@ -42,22 +26,23 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
 
   // Parse the line results using parseDataFrameToDict
   const parsedLineDict = parseDataFrameToDict(lineResults);
+  const hasFlow = parseFloat(parsedLineDict["flow"]) != 0;
 
   // Define the order of fields to display
-  const fieldOrder = [
-    "health",
-    "capacity",
-    "flow",
-    "direction",
-    "price_spread",
-  ];
+
+  const getFieldOrder = () => {
+    if (hasFlow) {
+      return ["health", "capacity", "flow", "direction", "price_spread"];
+    } else {
+      return ["health", "capacity", "flow"];
+    }
+  };
+  const fieldOrder = getFieldOrder();
 
   return (
     <div
-      className="absolute z-20 bg-white border border-gray-200 rounded-lg shadow-xl p-3 market-results-panel pointer-events-auto"
+      className="bg-white border border-gray-200 rounded-lg shadow-xl p-3 market-results-panel pointer-events-auto"
       style={{
-        left: `${left}px`,
-        top: `${top}px`,
         width: `${panelWidth}px`,
         fontSize: "12px",
       }}
@@ -80,9 +65,6 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
           <tbody>
             {fieldOrder.map((field, index) => {
               const hasField = parsedLineDict.hasOwnProperty(field);
-              console.log(
-                `Field ${field}: hasField=${hasField}, value=${hasField ? parsedLineDict[field] : "N/A"}`,
-              );
 
               if (!hasField) return null;
 
@@ -110,10 +92,6 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
                 displayValue = isNaN(numericValue)
                   ? String(value)
                   : `${formatNumber(numericValue, 2)} €/MWh`;
-
-                console.log(
-                  `Price spread: ${numericValue}, display: ${displayValue}, negative: ${numericValue < 0}`,
-                );
               } else {
                 // Default formatting for other values
                 displayValue =
@@ -132,10 +110,6 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
               const priceSpreadClass = isNegativePriceSpread
                 ? "text-red-600 font-bold"
                 : "text-gray-900 font-bold";
-
-              console.log(
-                `Field ${field} styling: negative=${isNegativePriceSpread}, class=${priceSpreadClass}`,
-              );
 
               return (
                 <tr key={index} className="border-t border-gray-100">

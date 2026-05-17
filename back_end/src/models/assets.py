@@ -11,7 +11,7 @@ from randcraft.random_variable import RandomVariable
 
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
-from src.models.ids import AssetId, BusId, PlayerId
+from src.models.ids import AssetId, BusId, PlayerId, Round
 from src.tools.serialization import simplify_type
 
 
@@ -275,9 +275,10 @@ class AssetRepo(LdcRepo[AssetInfo]):
         df.loc[asset_ids, "bid_price"] = prices
         return self.update_frame(df)
 
-    def migrate_asset(self, asset_id: AssetId, new_bus_id: BusId) -> "AssetRepo":
+    def migrate_asset(self, asset_id: AssetId, new_bus_id: BusId, round: Round) -> "AssetRepo":
         df = self.df
-        df.loc[asset_id, "bus"] = simplify_type(new_bus_id)
+        df.loc[asset_id, "bus"] = int(new_bus_id)
+        df.loc[asset_id, "birthday"] = int(round)  # Treat as a new asset for layouting purposes
         return self.update_frame(df)
 
     def _decrease_health(self, asset_id: AssetId) -> "AssetRepo":

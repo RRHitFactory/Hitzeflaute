@@ -1,10 +1,11 @@
+import threading
 from typing import Protocol, runtime_checkable
 
 from src.app.game_repo.base import BaseGameStateRepo
 from src.engine.engine import Engine
-from src.models.game_settings import GameSettings
+from src.models.game_settings import GameSettings, TurnType
 from src.models.game_state import GameState
-from src.models.ids import GameId, PlayerId
+from src.models.ids import GameId
 from src.models.message import (
     GameToPlayerMessage,
     GameUpdate,
@@ -19,47 +20,41 @@ from src.new_game.new_game import GameInitializer
 class FrontEndMessageHandler(Protocol):
     # A generic stub for the front end implementation
     async def handle_player_messages(self, msgs: list[GameToPlayerMessage]) -> None: ...
+    async def broadcast_to_players(self, game_id: GameId, message: GameUpdate) -> None: ...
 
 
 class GameManager:
-    def __init__(
-        self,
-        game_repo: BaseGameStateRepo,
-        game_engine: Engine,
-        front_end_interface: FrontEndMessageHandler,
-    ) -> None:
+    _lock = threading.Lock()
+
+    def __init__(self, game_repo: BaseGameStateRepo, game_engine: Engine, front_end: FrontEndMessageHandler) -> None:
         assert isinstance(game_repo, BaseGameStateRepo)
-        assert isinstance(front_end_interface, FrontEndMessageHandler)
+        assert isinstance(front_end, FrontEndMessageHandler)
         self.game_repo = game_repo
         self.game_engine = game_engine
-        self.front_end = front_end_interface
+        self.front_end = front_end
 
-    async def update_players(self, game_id: GameId, players: list[PlayerId]) -> None:
-        game_state = self.game_repo.get_game_state(game_id)
-        game_update_messages = [GameUpdate(game_id=game_id, player_id=p, game_state=game_state, message="") for p in players]
-        await self.front_end.handle_player_messages(msgs=game_update_messages)  # type: ignore
+    async def update_players(self, game_id: GameId) -> None:
+        game_state = self.game_repo.read(game_id)
+        await self.front_end.broadcast_to_players(game_id=game_id, message=GameUpdate(game_id=game_id, game_state=game_state))
 
     async def handle_player_message(self, game_id: GameId, msg: PlayerToGameMessage) -> None:
         # TODO Make this atomic
-        game_state = self.game_repo.get_game_state(game_id)
-        updated_game_state = await self._handle_message(game_id=game_id, game_state=game_state, msg=msg)
-        self.game_repo.update_game_state(updated_game_state)
+        with self._lock:
+            game_state = self.game_repo.read(game_id)
+            updated_game_state = await self._handle_message(game_id=game_id, game_state=game_state, msg=msg)
+            self.game_repo.update(updated_game_state)
 
     async def _handle_message(self, game_id: GameId, game_state: GameState, msg: ToGameMessage) -> GameState:
-        print(f"Handling message: {msg}")
-        print(msg)
-
         gs, messages = self.game_engine.handle_message(game_state=game_state, msg=msg)
 
         msgs_to_players = [e for e in messages if isinstance(e, GameToPlayerMessage)]
         msgs_to_self = [e for e in messages if isinstance(e, InternalMessage)]
 
-        ids = gs.players.human_player_ids
-        game_update_messages = [GameUpdate(game_id=game_id, player_id=p, game_state=gs, message="") for p in ids]
+        if len(msgs_to_players):
+            print(f"Sending msgs to player: {[m for m in msgs_to_players]}")
+            await self.front_end.handle_player_messages(msgs=msgs_to_players)
 
-        to_player_msgs = msgs_to_players + game_update_messages
-        print(f"Sending msgs to player: {[m for m in to_player_msgs]}")
-        await self.front_end.handle_player_messages(msgs=to_player_msgs)
+        await self.front_end.broadcast_to_players(game_id=game_id, message=GameUpdate(game_id=game_id, game_state=gs))
 
         if not len(msgs_to_self):
             return gs
@@ -70,10 +65,11 @@ class GameManager:
         return await self._handle_message(game_id=game_id, game_state=gs, msg=msg_to_self)
 
     @classmethod
-    def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str]) -> GameId:
-        game_id = game_repo.generate_game_id()
-        settings = GameSettings()
+    def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str], turn_type: TurnType, game_id: GameId | None = None) -> GameId:
+        if game_id is None:
+            game_id = game_repo.reserve_game_id()
+        settings = GameSettings(turn_type=turn_type)
         game_initializer = GameInitializer(settings=settings)
         new_game_state = game_initializer.create_new_game(game_id=game_id, player_names=player_names)
-        game_repo.add_game_state(game=new_game_state)
+        game_repo.create(game=new_game_state)
         return game_id
