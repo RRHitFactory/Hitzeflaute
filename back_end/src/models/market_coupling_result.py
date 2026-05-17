@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Self
 
 import pandas as pd
@@ -14,10 +15,12 @@ class MarketCouplingResult:
         bus_prices: pd.DataFrame,
         transmission_flows: pd.DataFrame,
         assets_dispatch: pd.DataFrame,
+        asset_locations: dict[BusId, list[AssetId]],  # Preserve the location of the assets at the time of the auction
     ) -> None:
         self._bus_prices = bus_prices
         self._transmission_flows = transmission_flows
         self._assets_dispatch = assets_dispatch
+        self._asset_locations = asset_locations
 
         self._validate()
 
@@ -43,7 +46,7 @@ class MarketCouplingResult:
         else:
             assets_dispatch = self._assets_dispatch
 
-        return MarketCouplingResult(bus_prices=bus_prices, transmission_flows=transmission_flows, assets_dispatch=assets_dispatch)
+        return MarketCouplingResult(bus_prices=bus_prices, transmission_flows=transmission_flows, assets_dispatch=assets_dispatch, asset_locations=self._asset_locations)
 
     def _validate(self) -> None:
         assert self.market_time_units.name == "time", f"Expected time index to have name 'time', but got '{self.market_time_units.name}'"
@@ -93,7 +96,6 @@ class MarketCouplingResult:
         * Columns: Transmission IDs (as ints)
         * Values: Flows
         """
-        # TODO add another cached property that contains congestion rents?
         return self._transmission_flows.copy()
 
     @property
@@ -106,11 +108,16 @@ class MarketCouplingResult:
         """
         return self._assets_dispatch.copy()
 
+    @property
+    def assets_locations(self) -> MappingProxyType[BusId, list[AssetId]]:
+        return MappingProxyType(self._asset_locations)
+
     def to_simple_dict(self) -> SimpleDict:
         simple_dict = {
             "bus_prices": dataframe_to_dict(self._bus_prices),
             "transmission_flows": dataframe_to_dict(self._transmission_flows),
             "assets_dispatch": dataframe_to_dict(self._assets_dispatch),
+            "asset_locations": {int(k): [int(a) for a in v] for k, v in self.assets_locations.items()},
         }
         return simple_dict  # type: ignore
 
@@ -125,10 +132,14 @@ class MarketCouplingResult:
             df.columns = df.columns.map(int)
             return df
 
+        raw_al: dict[str, list[str]] = simple_dict["asset_locations"]  # type: ignore
+        asset_locations = {BusId(k): [AssetId(a) for a in v] for k, v in raw_al.items()}
+
         return cls(
             bus_prices=get_one(key="bus_prices", column_index_name="Bus"),
             transmission_flows=get_one(key="transmission_flows", column_index_name="Line"),
             assets_dispatch=get_one(key="assets_dispatch", column_index_name="Asset"),
+            asset_locations=asset_locations,
         )
 
 

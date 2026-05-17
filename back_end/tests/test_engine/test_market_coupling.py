@@ -14,17 +14,24 @@ from tests.utils.repo_maker import (
 
 class TestMarketCoupling(BaseTest):
     @staticmethod
-    def create_game_state():
+    def create_game_state(all_link: bool = False):
         game_maker = GameStateMaker()
 
         player_repo = PlayerRepoMaker().make_quick(2)
         bus_repo = BusRepoMaker.make_quick(n_buses=0, players=player_repo)
         asset_maker = AssetRepoMaker(players=player_repo.human_player_ids, bus_repo=bus_repo)
 
+        cheap_bus = bus_repo[1].id
+        expensive_bus = bus_repo[0].id
+
         transmission_maker = TransmissionRepoMaker(players=player_repo.human_player_ids, buses=bus_repo)
-        transmission_maker.add_transmission(is_active=False)
-        transmission_maker.add_transmission(line_or_link="Link")
-        transmission_maker.add_n_random(1)
+        if all_link:
+            transmission_maker.add_transmission(line_or_link="Link", buses=(expensive_bus, cheap_bus))
+            transmission_maker.add_transmission(line_or_link="Link", buses=(expensive_bus, cheap_bus))
+        else:
+            transmission_maker.add_transmission(is_active=False)
+            transmission_maker.add_transmission(line_or_link="Link")
+            transmission_maker.add_n_random(1)
 
         # add generators
         for bid_price in [10.0, 20.0, 30.0, 80.0]:
@@ -33,7 +40,7 @@ class TestMarketCoupling(BaseTest):
                 cat="Generator",
                 power_std=0,
                 bid_price=bid_price,
-                bus=bus_repo[0].id,
+                bus=cheap_bus,
                 is_active=True,
             )
             # expensive bus
@@ -41,7 +48,7 @@ class TestMarketCoupling(BaseTest):
                 cat="Generator",
                 power_std=0,
                 bid_price=bid_price * 3,
-                bus=bus_repo[1].id,
+                bus=expensive_bus,
                 is_active=True,
             )
             # inactive generator
@@ -49,7 +56,7 @@ class TestMarketCoupling(BaseTest):
                 cat="Generator",
                 power_std=0,
                 bid_price=bid_price * 3,
-                bus=bus_repo[1].id,
+                bus=expensive_bus,
                 is_active=False,
             )
 
@@ -60,7 +67,7 @@ class TestMarketCoupling(BaseTest):
                 bid_price=100,
                 power_std=0,
                 owner=player.id,
-                bus=bus_repo[1].id,
+                bus=expensive_bus,
                 is_active=True,
             )
             asset_maker.add_asset(
@@ -68,7 +75,7 @@ class TestMarketCoupling(BaseTest):
                 bid_price=100,
                 power_std=0,
                 owner=player.id,
-                bus=bus_repo[1].id,
+                bus=expensive_bus,
                 is_active=True,
             )
 
@@ -85,6 +92,12 @@ class TestMarketCoupling(BaseTest):
         self.assertGreaterEqual(market_result.assets_dispatch.shape[0], 1)
         self.assertGreaterEqual(market_result.bus_prices.shape[0], 1)
         self.assertGreaterEqual(market_result.transmission_flows.shape[0], 1)
+
+    def test_links_are_bidirectional(self) -> None:
+        game_state = self.create_game_state(all_link=True)
+        market_result = MarketCouplingCalculator.run(game_state)
+        total_flows: float = market_result.transmission_flows.abs().sum().sum()
+        self.assertGreater(total_flows, 0)
 
     def test_no_paradoxically_accepted_assets(self) -> None:
         game_state = self.create_game_state()
@@ -138,10 +151,12 @@ class TestMarketCoupling(BaseTest):
 
                 p1: float = market_result.bus_prices.loc[mtu, transmission.bus1]  # type: ignore
                 p2: float = market_result.bus_prices.loc[mtu, transmission.bus2]  # type: ignore
-                if np.isclose(abs(flow), abs(transmission.capacity)):
-                    self.assertGreaterEqual(p2 - p1, 0)
-                else:
-                    self.assertAlmostEqual(p1, p2, places=0)
+                at_capacity = np.isclose(abs(flow), transmission.capacity)
+                spread = abs(p1 - p2)
+                if spread > 0:
+                    self.assertTrue(at_capacity)
+                if not at_capacity:
+                    self.assertEqual(spread, 0)
 
     def test_all_assets_and_transmission_appear_in_results(self) -> None:
         game_state = self.create_game_state()

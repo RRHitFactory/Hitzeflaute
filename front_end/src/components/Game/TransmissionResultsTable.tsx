@@ -2,7 +2,7 @@
 
 import { MarketCouplingSummary } from "@/types/game";
 import React from "react";
-import { parseDataFrameToDict, formatNumber } from "./utils";
+import { formatNumber, parseDataFrameToDict } from "./utils";
 
 interface TransmissionResultsTableProps {
   lineId: number;
@@ -26,15 +26,18 @@ const TransmissionResultsTable: React.FC<TransmissionResultsTableProps> = ({
 
   // Parse the line results using parseDataFrameToDict
   const parsedLineDict = parseDataFrameToDict(lineResults);
+  const hasFlow = parseFloat(parsedLineDict["flow"]) != 0;
 
   // Define the order of fields to display
-  const fieldOrder = [
-    "health",
-    "capacity",
-    "flow",
-    "direction",
-    "price_spread",
-  ];
+
+  const getFieldOrder = () => {
+    if (hasFlow) {
+      return ["health", "capacity", "flow", "direction", "price_spread"];
+    } else {
+      return ["health", "capacity", "flow"];
+    }
+  };
+  const fieldOrder = getFieldOrder();
 
   return (
     <div

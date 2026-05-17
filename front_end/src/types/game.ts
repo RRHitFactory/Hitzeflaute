@@ -150,7 +150,7 @@ export const GAME_PHASE_INFO: Record<GamePhaseValue, PhaseInfo> = {
     id: GamePhase.MIGRATION,
     name: "MIGRATION",
     displayName: "Migration",
-    color: "bg-green-200 text-black border border-red-400",
+    color: "bg-red-200 text-black border border-red-400",
     description: "Move your ice-cream truck",
     one_by_one: true,
   },
