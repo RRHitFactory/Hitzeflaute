@@ -160,7 +160,7 @@ const BiddingTable: React.FC<BiddingTableProps> = ({
                   <td className="px-3 py-2">
                     <input
                       type="number"
-                      step="0.01"
+                      step="1"
                       min="0"
                       value={currentBidPrice}
                       onChange={(e) => handleBidChange(asset.id, e)}
