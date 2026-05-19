@@ -199,13 +199,10 @@ class Referee:
     def eliminate_players(
         gs: GameState,
     ) -> tuple[GameState, list[PlayerId]]:
-        eliminated_player_ids = []
+        alive_human_ids = gs.players.alive_human_ids
+        remaining_ice_creams = gs.assets.get_remaining_ice_creams_multi(alive_human_ids)
+        eliminated_player_ids = [p for p, i in zip(alive_human_ids, remaining_ice_creams) if i == 0]
 
-        for player in gs.players.only_alive.human_players:
-            remaining_ice_creams = gs.assets.get_remaining_ice_creams(player.id)
-            if remaining_ice_creams > 0:
-                continue
-            eliminated_player_ids.append(player.id)
         if not len(eliminated_player_ids):
             return gs, []
 
@@ -219,11 +216,17 @@ class Referee:
     @staticmethod
     def get_losing_player(gs: GameState) -> PlayerId:
         """The losing player has the least remaining ice creams. Player money is used as a tie-breaker."""
-        players_df = gs.players.only_human.only_alive.df
-        players_df["remaining_ice_creams"] = players_df.apply(lambda row: gs.assets.get_remaining_ice_creams(row.name), axis=1)
-        players_df = players_df.sort_values(["remaining_ice_creams", "money"], ascending=True)
-        losing_player_id = PlayerId(players_df.index[0])
-        return losing_player_id
+
+        alive_human_ids = gs.players.alive_human_ids
+        assert len(alive_human_ids) > 0, "Everyone is dead"
+
+        money = gs.players.df.loc[alive_human_ids, "money"].to_list()
+        ice_cream = gs.assets.get_remaining_ice_creams_multi(alive_human_ids)
+
+        tuples = [(i, m, p) for i, m, p in zip(ice_cream, money, alive_human_ids)]
+
+        loser = sorted(tuples)[0]
+        return loser[2]
 
     @staticmethod
     def check_game_over(gs: GameState) -> tuple[bool, list[PlayerId]]:

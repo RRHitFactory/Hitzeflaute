@@ -95,7 +95,11 @@ class Engine:
         market_result = MarketCouplingCalculator.run(game_state=gs)
 
         gs, new_msgs = cls._run_post_clearing_book_keeping(game_state=gs, market_result=market_result)
+        if gs.game_over:
+            return gs, new_msgs
+
         melted_ice_cream_players = [m.player_id for m in new_msgs if isinstance(m, IceCreamMeltedMessage)]
+
         loser = Referee.get_losing_player(gs=gs)
         if loser in melted_ice_cream_players:
             # Someone is having a really bad day. Let's help them out.
@@ -295,6 +299,9 @@ class Engine:
         if len(eliminated_players) or len(winners) or game_over:
             big_event = BigEvent(game_id=game_state.game_id, game_over=game_over, dead_players=eliminated_players, winners=winners)
             msgs = msgs + [big_event]
+
+        if game_over:
+            game_state = game_state.update(game_over)
 
         return game_state, msgs
 

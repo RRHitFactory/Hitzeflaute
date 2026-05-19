@@ -37,6 +37,7 @@ class PlayerRepo(LdcRepo[Player]):
         return Player
 
     # GET
+
     @property
     def player_ids(self) -> list[PlayerId]:
         return [PlayerId(x) for x in self.df.index.tolist()]
@@ -48,6 +49,12 @@ class PlayerRepo(LdcRepo[Player]):
     @cached_property
     def human_player_ids(self) -> list[PlayerId]:
         return [p for p in self.player_ids if p != PlayerId.get_npc()]
+
+    @property
+    def alive_human_ids(self) -> list[PlayerId]:
+        df = self.df.loc[self.human_player_ids, :]
+        index = df.loc[df["still_alive"]].index
+        return [PlayerId(x) for x in index.tolist()]
 
     @cached_property
     def n_human_players(self) -> int:

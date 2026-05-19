@@ -141,16 +141,33 @@ function GameContent() {
 
       if (isHotseatMode) {
         // In hotseat mode, show animation for each eliminated player
-        deadPlayers.forEach((playerId) => {
-          const eliminatedPlayer = gameState?.players.data.find(
-            (p) => p.id === playerId,
-          );
-          setWinLossAnimation({
-            isOpen: true,
-            type: "loss",
-            playerName: eliminatedPlayer?.name || `Player ${playerId}`,
-          });
+        // Only show one at a time - the first one
+        const firstPlayerId = deadPlayers[0];
+        const eliminatedPlayer = gameState?.players.data.find(
+          (p) => p.id === firstPlayerId,
+        );
+        setWinLossAnimation({
+          isOpen: true,
+          type: "loss",
+          playerName: eliminatedPlayer?.name || `Player ${firstPlayerId}`,
         });
+        
+        // Remove the first player from the dead players array for next processing
+        if (deadPlayers.length > 1) {
+          setMessageQueue((prev) => [
+            {
+              ...msg,
+              data: {
+                ...msg.data,
+                dead_players: deadPlayers.slice(1)
+              }
+            },
+            ...prev.slice(1)
+          ]);
+        } else {
+          // Remove the processed message from the queue
+          setMessageQueue((prev) => prev.slice(1));
+        }
       } else {
         // In online mode, only show if current player was eliminated
         if (currentPlayer?.id && deadPlayers.includes(currentPlayer.id)) {
@@ -159,18 +176,37 @@ function GameContent() {
             type: "loss",
             playerName: undefined, // "You lost"
           });
+          // Remove the processed message from the queue
+          setMessageQueue((prev) => prev.slice(1));
         } else {
           // Show notification for other players being eliminated
-          deadPlayers.forEach((playerId) => {
-            const eliminatedPlayer = gameState?.players.data.find(
-              (p) => p.id === playerId,
-            );
-            setWinLossAnimation({
-              isOpen: true,
-              type: "loss",
-              playerName: eliminatedPlayer?.name || `Player ${playerId}`,
-            });
+          // Only show one at a time - the first one
+          const firstPlayerId = deadPlayers[0];
+          const eliminatedPlayer = gameState?.players.data.find(
+            (p) => p.id === firstPlayerId,
+          );
+          setWinLossAnimation({
+            isOpen: true,
+            type: "loss",
+            playerName: eliminatedPlayer?.name || `Player ${firstPlayerId}`,
           });
+          
+          // Remove the first player from the dead players array for next processing
+          if (deadPlayers.length > 1) {
+            setMessageQueue((prev) => [
+              {
+                ...msg,
+                data: {
+                  ...msg.data,
+                  dead_players: deadPlayers.slice(1)
+                }
+              },
+              ...prev.slice(1)
+            ]);
+          } else {
+            // Remove the processed message from the queue
+            setMessageQueue((prev) => prev.slice(1));
+          }
         }
       }
     } else if (msg.message_type === "GameOver") {
@@ -212,6 +248,8 @@ function GameContent() {
           }
         }
       }
+      // Remove the processed message from the queue
+      setMessageQueue((prev) => prev.slice(1));
     } else if (msg.message_type === "EveryoneLost") {
       console.log("=== EVERYONE LOST ===");
 
@@ -221,10 +259,10 @@ function GameContent() {
         type: "loss",
         playerName: "Everyone", // "Everyone lost!"
       });
+      
+      // Remove the processed message from the queue
+      setMessageQueue((prev) => prev.slice(1));
     }
-
-    // Remove the processed message from the queue
-    setMessageQueue((prev) => prev.slice(1));
   }, [currentPlayer, gameState, isHotseatMode, messageQueue]);
 
   // State for win/loss animations
@@ -441,7 +479,11 @@ function GameContent() {
         isOpen={winLossAnimation?.isOpen || false}
         type={winLossAnimation?.type || "loss"}
         playerName={winLossAnimation?.playerName}
-        onClose={() => setWinLossAnimation(null)}
+        onClose={() => {
+          setWinLossAnimation(null);
+          // Trigger re-processing of the queue by forcing a state update
+          setMessageQueue((prev) => [...prev]);
+        }}
       />
 
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">

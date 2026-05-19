@@ -42,7 +42,7 @@ class Phase(IntEnum):
         return Phase(next_index)
 
 
-type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
+type GameStateAttributes = bool | Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
 
 
 @dataclass(frozen=True)
@@ -57,6 +57,7 @@ class GameState:
     market_coupling_result: MarketCouplingResult | None
     game_round: Round = Round(1)
     pending_state: PendingState = PendingState()  # A record of actions that cannot be made public yet
+    game_over: bool = False
 
     def __post_init__(self) -> None:
         assert isinstance(self.game_round, Round), f"game_round must be of type Round. Got {type(self.game_round)}"
@@ -152,6 +153,7 @@ class GameState:
             "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
             "game_round": self.game_round,
             "pending_state": self.pending_state.to_simple_dict(),
+            "game_over": self.game_over,
         }
 
     @classmethod
@@ -175,4 +177,5 @@ class GameState:
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
             game_round=Round(simple_dict["game_round"]),
             pending_state=PendingState.from_simple_dict(simple_dict["pending_state"]),
+            game_over=simple_dict["game_over"],
         )
