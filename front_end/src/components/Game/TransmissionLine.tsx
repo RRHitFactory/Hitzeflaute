@@ -193,8 +193,8 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
   const perpAngle = lineAngle + Math.PI / 2; // Perpendicular angle
   const perpVector: Point = { x: Math.cos(perpAngle), y: Math.sin(perpAngle) };
 
-  // Add slight curve by offsetting the middle point
-  const curveOffset = 0.1;
+  // For AC lines: Add slight curve by offsetting the middle point; For DC links, do not add the curve.
+  const curveOffset = line.line_or_link === "Line" ? 0.25 : 0.0;
   const offsetX = baseVector.y * curveOffset;
   const offsetY = -baseVector.x * curveOffset;
 
