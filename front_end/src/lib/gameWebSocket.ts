@@ -341,7 +341,6 @@ export function useGameWebSocket(
           console.log("Current phase: " + gameStateData.phase);
           setGameState(gameStateData);
         } else {
-          console.log("=== UNKNOWN MESSAGE TYPE ===");
           console.log("Message type:", msg.message_type);
           console.log("Raw message data:", JSON.stringify(msg, null, 2));
         }

@@ -208,9 +208,13 @@ class Referee:
             remaining_ice_creams = gs.assets.get_remaining_ice_creams(player.id)
             if remaining_ice_creams > 0:
                 continue
-            else:
-                new_gs = new_gs.update(new_gs.players.eliminate_player(player.id))
-                eliminated_player_ids.append(player.id)
+            eliminated_player_ids.append(player.id)
+        if not len(eliminated_player_ids):
+            return gs, []
+
+        assets = gs.assets.eliminate_players(eliminated_player_ids)
+        tranmission = gs.transmission.eliminate_players(eliminated_player_ids)
+        new_gs = new_gs.update(assets, tranmission)
 
         return new_gs, [
             PlayerEliminatedMessage(

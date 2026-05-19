@@ -125,6 +125,13 @@ class AssetRepo(LdcRepo[AssetInfo]):
         df.loc[asset_id, "is_for_sale"] = False
         return self.update_frame(df)
 
+    def eliminate_players(self, players: list[PlayerId]) -> "AssetRepo":
+        # Return all their assets to the npc
+        df = self.df
+        int_players = [int(p) for p in players]
+        df.loc[df["owner_player"].apply(lambda x: x in int_players), "owner_player"] = int(PlayerId.get_npc())
+        return self.update_frame(df)
+
     def update_bids(self, bids: MappingProxyType[AssetId, float]) -> "AssetRepo":
         df = self.df
         asset_ids = list(bids.keys())

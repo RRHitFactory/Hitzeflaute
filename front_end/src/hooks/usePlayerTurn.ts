@@ -48,9 +48,7 @@ export function usePlayerTurn(
       : gameState.players?.data || [];
 
     // Find the player with is_having_turn flag
-    console.log(playersArray);
     const aps = playersArray.filter((p: Player) => p.is_having_turn);
-    console.log(aps);
     return aps;
   }, [pageReady, gameState]);
 
@@ -100,7 +98,7 @@ export function usePlayerTurn(
       return false;
     }
     if (isHotSeatMode) {
-      return true;
+      return activePlayerIds.includes(currentPlayerId);
     }
     // Otherwise it is online multiplayer
     if (phase?.one_by_one) {

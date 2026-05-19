@@ -11,7 +11,7 @@ class GameSettings:
     turn_type: TurnType = "hotseat"
     n_buses: int = 5
     max_rounds: int = 20
-    n_init_ice_cream: int = 5
+    n_init_ice_cream: int = 1
     n_init_assets: int = 10
     n_init_non_freezer_loads: int = 4
     min_bid_price: float = -1000

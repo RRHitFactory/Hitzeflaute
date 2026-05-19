@@ -263,7 +263,12 @@ class Engine:
         msg: EndTurn,
     ) -> tuple[GameState, list[ConcludePhase]]:
         players = game_state.players
-        if game_state.is_hotseat or game_state.phase.is_one_by_one:
+
+        cycle_turn = game_state.is_hotseat or game_state.phase.is_one_by_one
+        if game_state.phase is Phase.MIGRATION:
+            cycle_turn = False
+
+        if cycle_turn:
             players = players.cycle_turn()
         else:
             players = players.end_turn(player_id=msg.player_id)
