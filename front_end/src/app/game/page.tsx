@@ -7,20 +7,10 @@ import GameControls from "@/components/UI/GameControls";
 import PlayerTable from "@/components/UI/PlayerTable";
 import WinLossAnimation from "@/components/UI/WinLossAnimation";
 import { usePlayerTurn } from "@/hooks/usePlayerTurn";
-import GameWebSocketClient, {
-  useGameWebSocket,
-  type WebSocketMessage,
-} from "@/lib/gameWebSocket";
-import { GamePhase, Player, GameUpdate } from "@/types/game";
+import GameWebSocketClient, { useGameWebSocket } from "@/lib/gameWebSocket";
+import { GamePhase, Player } from "@/types/game";
 import { useSearchParams } from "next/navigation";
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -40,72 +30,6 @@ function GameContent() {
   // State for effective player ID - starts with NPC, switches to cookiePlayerId for online mode
   const [websocketPlayerId, setWebSocketPlayerId] = useState<number>(-1);
 
-  // Message queue for win/loss messages
-  type WinLossMessage = {
-    message_type: "PlayersEliminated" | "GameOver" | "EveryoneLost";
-    data: {
-      dead_players?: number[];
-      winners?: number[];
-    };
-  };
-  const [messageQueue, setMessageQueue] = useState<WinLossMessage[]>([]);
-
-  // Basic message handler that doesn't depend on hooks
-  const basicHandleMessage = useCallback((msg: WebSocketMessage) => {
-    console.log("=== WebSocket Message Received ===");
-    console.log("Received message of type " + msg.message_type);
-
-    if (msg.message_type === "error") {
-      console.error("=== SERVER ERROR ===");
-      console.error(msg.data);
-      setError(msg.data || "Unknown server error");
-    } else if (msg.message_type === "GameUpdate") {
-      // Check for win/loss conditions in the game update
-      const gameUpdate: GameUpdate = msg.data;
-      
-      // Check if game is over
-      if (gameUpdate.game_over) {
-        console.log("=== GAME OVER DETECTED ===");
-        console.log("Winners:", gameUpdate.winners);
-        console.log("Dead players:", gameUpdate.dead_players);
-        
-        // Queue win/loss information for processing
-        if (gameUpdate.winners.length > 0) {
-          // Someone won
-          setMessageQueue(prev => [...prev, {
-            message_type: "GameOver",
-            data: {
-              winners: gameUpdate.winners,
-              dead_players: gameUpdate.dead_players
-            }
-          }]);
-        } else {
-          // No winners means everyone lost
-          setMessageQueue(prev => [...prev, {
-            message_type: "EveryoneLost",
-            data: {}
-          }]);
-        }
-      }
-      
-      // Check for newly eliminated players
-      if (gameUpdate.dead_players && gameUpdate.dead_players.length > 0) {
-        console.log("=== PLAYERS ELIMINATED ===");
-        console.log("Dead players:", gameUpdate.dead_players);
-        
-        // Queue elimination information
-        setMessageQueue(prev => [...prev, {
-          message_type: "PlayersEliminated",
-          data: {
-            dead_players: gameUpdate.dead_players
-          }
-        }]);
-      }
-    }
-
-    console.log("=== End WebSocket Message Processing ===");
-  }, []);
-
   const handleError = useCallback((error: any) => {
     console.error("WebSocket error:", error);
     // Only show error if we've successfully connected before (not initial connection error)
@@ -124,9 +48,9 @@ function GameContent() {
     client: wsClient,
     connectionState,
     gameState,
+    gameUpdateInfo,
     isConnected,
   } = useGameWebSocket(gameId || -1, websocketPlayerId, {
-    onMessage: basicHandleMessage,
     onError: handleError,
     onClose: handleClose,
   });
@@ -141,34 +65,90 @@ function GameContent() {
     setControlsEnabled,
   } = usePlayerTurn(gameState, gameId);
 
-  // State for win/loss animations
-  const [winLossAnimation, setWinLossAnimation] = useState<{
-    isOpen: boolean;
-    type: "win" | "loss";
-    playerName?: string;
-  } | null>(null);
+  // Message queue for win/loss messages
+  type WinLossMessage = {
+    message_type: "PlayersEliminated" | "GameOver" | "EveryoneLost";
+    data: {
+      dead_players?: number[];
+      winners?: number[];
+    };
+  };
+  const [messageQueue, setMessageQueue] = useState<WinLossMessage[]>([]);
+
+  // Process game update info when it changes
+  useEffect(() => {
+    if (!gameUpdateInfo) return;
+
+    // Check if game is over
+    if (gameUpdateInfo.game_over) {
+      console.log("=== GAME OVER DETECTED ===");
+      console.log("Winners:", gameUpdateInfo.winners);
+      console.log("Dead players:", gameUpdateInfo.dead_players);
+
+      if (gameUpdateInfo.winners && gameUpdateInfo.winners.length > 0) {
+        // Someone won
+        setMessageQueue((prev) => [
+          ...prev,
+          {
+            message_type: "GameOver",
+            data: {
+              winners: gameUpdateInfo.winners,
+              dead_players: gameUpdateInfo.dead_players,
+            },
+          },
+        ]);
+      } else {
+        // No winners means everyone lost
+        setMessageQueue((prev) => [
+          ...prev,
+          {
+            message_type: "EveryoneLost",
+            data: {},
+          },
+        ]);
+      }
+    }
+
+    // Check for eliminated players (these are always newly eliminated in this update)
+    if (gameUpdateInfo.dead_players && gameUpdateInfo.dead_players.length > 0) {
+      console.log("=== PLAYERS ELIMINATED ===");
+      console.log("Eliminated players:", gameUpdateInfo.dead_players);
+
+      setMessageQueue((prev) => [
+        ...prev,
+        {
+          message_type: "PlayersEliminated",
+          data: {
+            dead_players: gameUpdateInfo.dead_players,
+          },
+        },
+      ]);
+    }
+  }, [gameUpdateInfo]);
 
   // Process message queue when dependencies are available
   useEffect(() => {
     if (!gameState || messageQueue.length === 0) return;
 
     const msg = messageQueue[0]; // Process the first message in the queue
-    
+
     if (msg.message_type === "PlayersEliminated") {
       console.log("=== PROCESSING PLAYER ELIMINATIONS ===");
       console.log("Eliminated players:", msg.data.dead_players);
-      
+
       // Show loss animation for each eliminated player (important for hotseat mode)
       const deadPlayers = msg.data.dead_players || [];
-      
+
       if (isHotseatMode) {
         // In hotseat mode, show animation for each eliminated player
-        deadPlayers.forEach(playerId => {
-          const eliminatedPlayer = gameState?.players.data.find(p => p.id === playerId);
+        deadPlayers.forEach((playerId) => {
+          const eliminatedPlayer = gameState?.players.data.find(
+            (p) => p.id === playerId,
+          );
           setWinLossAnimation({
             isOpen: true,
             type: "loss",
-            playerName: eliminatedPlayer?.name || `Player ${playerId}`
+            playerName: eliminatedPlayer?.name || `Player ${playerId}`,
           });
         });
       } else {
@@ -177,16 +157,18 @@ function GameContent() {
           setWinLossAnimation({
             isOpen: true,
             type: "loss",
-            playerName: undefined // "You lost"
+            playerName: undefined, // "You lost"
           });
         } else {
           // Show notification for other players being eliminated
-          deadPlayers.forEach(playerId => {
-            const eliminatedPlayer = gameState?.players.data.find(p => p.id === playerId);
+          deadPlayers.forEach((playerId) => {
+            const eliminatedPlayer = gameState?.players.data.find(
+              (p) => p.id === playerId,
+            );
             setWinLossAnimation({
               isOpen: true,
               type: "loss",
-              playerName: eliminatedPlayer?.name || `Player ${playerId}`
+              playerName: eliminatedPlayer?.name || `Player ${playerId}`,
             });
           });
         }
@@ -194,18 +176,20 @@ function GameContent() {
     } else if (msg.message_type === "GameOver") {
       console.log("=== PROCESSING GAME OVER ===");
       console.log("Winners:", msg.data.winners);
-      
+
       const winners = msg.data.winners || [];
-      
+
       if (winners.length > 0) {
         // Someone won
         if (isHotseatMode) {
           // In hotseat mode, show the winner name
-          const winner = gameState?.players.data.find(p => winners.includes(p.id));
+          const winner = gameState?.players.data.find((p) =>
+            winners.includes(p.id),
+          );
           setWinLossAnimation({
             isOpen: true,
             type: "win",
-            playerName: winner?.name || `Player ${winners[0]}`
+            playerName: winner?.name || `Player ${winners[0]}`,
           });
         } else {
           // In online mode, check if current player won
@@ -213,33 +197,42 @@ function GameContent() {
             setWinLossAnimation({
               isOpen: true,
               type: "win",
-              playerName: undefined // "You win!"
+              playerName: undefined, // "You win!"
             });
           } else {
             // Show who won to other players
-            const winner = gameState?.players.data.find(p => winners.includes(p.id));
+            const winner = gameState?.players.data.find((p) =>
+              winners.includes(p.id),
+            );
             setWinLossAnimation({
               isOpen: true,
               type: "win",
-              playerName: winner?.name || `Player ${winners[0]}`
+              playerName: winner?.name || `Player ${winners[0]}`,
             });
           }
         }
       }
     } else if (msg.message_type === "EveryoneLost") {
       console.log("=== EVERYONE LOST ===");
-      
+
       // Game ended with no winner (all eliminated)
       setWinLossAnimation({
         isOpen: true,
         type: "loss",
-        playerName: "Everyone" // "Everyone lost!"
+        playerName: "Everyone", // "Everyone lost!"
       });
     }
 
     // Remove the processed message from the queue
-    setMessageQueue(prev => prev.slice(1));
+    setMessageQueue((prev) => prev.slice(1));
   }, [currentPlayer, gameState, isHotseatMode, messageQueue]);
+
+  // State for win/loss animations
+  const [winLossAnimation, setWinLossAnimation] = useState<{
+    isOpen: boolean;
+    type: "win" | "loss";
+    playerName?: string;
+  } | null>(null);
 
   // After getting the first gameState, check if it's online mode and switch to cookiePlayerId
   useEffect(() => {

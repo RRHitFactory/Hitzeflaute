@@ -61,7 +61,10 @@ class GameWebSocketConnectionManager:
 
         gu_dict = prepare_game_update_for_front_end(message)
 
+        print("Brodacasting")
+
         for player_id, websocket in list(self.active_connections[game_id].items()):
+            print(f"Sending message to  {player_id}")
             try:
                 ws_message = WebsocketMessage(game_id=game_id, player_id=player_id, message_type=message.__class__.__name__, data=gu_dict)
                 await websocket.send_text(ws_message.to_string())

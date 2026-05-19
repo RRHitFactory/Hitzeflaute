@@ -134,6 +134,12 @@ class PlayerRepo(LdcRepo[Player]):
         df.loc[player_id, "still_alive"] = False
         return self.update_frame(df)
 
+    def eliminate_players(self, player_ids: list[PlayerId]) -> Self:
+        df = self.df
+        int_ids = [int(p) for p in player_ids]
+        df.loc[int_ids, "still_alive"] = False
+        return self.update_frame(df)
+
     # DELETE
     def delete_player(self, player_id: PlayerId) -> Self:
         return self.drop_one(player_id)

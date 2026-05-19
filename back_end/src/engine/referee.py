@@ -199,7 +199,6 @@ class Referee:
     def eliminate_players(
         gs: GameState,
     ) -> tuple[GameState, list[PlayerId]]:
-        new_gs = gs
         eliminated_player_ids = []
 
         for player in gs.players.only_alive.human_players:
@@ -212,7 +211,8 @@ class Referee:
 
         assets = gs.assets.eliminate_players(eliminated_player_ids)
         tranmission = gs.transmission.eliminate_players(eliminated_player_ids)
-        new_gs = new_gs.update(assets, tranmission)
+        players = gs.players.eliminate_players(eliminated_player_ids)
+        new_gs = gs.update(assets, tranmission, players)
 
         return new_gs, eliminated_player_ids
 
