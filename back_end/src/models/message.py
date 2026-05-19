@@ -57,6 +57,10 @@ class GameUpdate(Message):
     dead_players: list[PlayerId] = field(default_factory=list)
     winners: list[PlayerId] = field(default_factory=list)
 
+    def __post_init__(self) -> None:
+        if len(self.winners):
+            assert self.game_over
+
 
 @dataclass(frozen=True, repr=False)
 class BigEvent(Message):

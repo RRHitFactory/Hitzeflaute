@@ -5,7 +5,17 @@ from src.engine.referee import Referee
 from src.models.game_state import GameState
 from src.models.ids import AssetId, BusId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
+from src.models.message import GameUpdate
 from src.tools.serialization import SimpleDict
+
+
+def prepare_game_update_for_front_end(game_update: GameUpdate) -> SimpleDict:
+    return {
+        "game_state": prepare_game_state_for_front_end(game_state=game_update.game_state),
+        "game_over": game_update.game_over,
+        "dead_players": [int(p) for p in game_update.dead_players],
+        "winners": [int(p) for p in game_update.winners],
+    }
 
 
 def prepare_game_state_for_front_end(game_state: GameState) -> SimpleDict:

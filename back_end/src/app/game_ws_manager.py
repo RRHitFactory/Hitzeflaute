@@ -1,6 +1,6 @@
 from fastapi import WebSocket
 
-from src.app.prepare_gs import prepare_game_state_for_front_end
+from src.app.prepare_gs import prepare_game_update_for_front_end
 from src.app.routes.logging import console_logger, log_exception_with_traceback
 from src.models.ids import GameId, PlayerId
 from src.models.message import GameToPlayerMessage, GameUpdate
@@ -59,11 +59,11 @@ class GameWebSocketConnectionManager:
             console_logger.info(f"No active connections for game {game_id}")
             return
 
-        data = prepare_game_state_for_front_end(message.game_state)
+        gu_dict = prepare_game_update_for_front_end(message)
 
         for player_id, websocket in list(self.active_connections[game_id].items()):
             try:
-                ws_message = WebsocketMessage(game_id=game_id, player_id=player_id, message_type=message.__class__.__name__, data=data)
+                ws_message = WebsocketMessage(game_id=game_id, player_id=player_id, message_type=message.__class__.__name__, data=gu_dict)
                 await websocket.send_text(ws_message.to_string())
                 console_logger.info(f"Broadcast to player {player_id} in lobby {game_id}")
             except Exception as e:
