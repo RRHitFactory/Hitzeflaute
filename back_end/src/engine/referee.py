@@ -6,10 +6,8 @@ from src.models.ids import AssetId, PlayerId, TransmissionId
 from src.models.message import (
     AssetWornMessage,
     BuyResponse,
-    GameOverMessage,
     IceCreamMeltedMessage,
     LoadsDeactivatedMessage,
-    PlayerEliminatedMessage,
     T_Id,
     TransmissionWornMessage,
 )
@@ -200,7 +198,7 @@ class Referee:
     @staticmethod
     def eliminate_players(
         gs: GameState,
-    ) -> tuple[GameState, list[PlayerEliminatedMessage]]:
+    ) -> tuple[GameState, list[PlayerId]]:
         new_gs = gs
         eliminated_player_ids = []
 
@@ -216,14 +214,7 @@ class Referee:
         tranmission = gs.transmission.eliminate_players(eliminated_player_ids)
         new_gs = new_gs.update(assets, tranmission)
 
-        return new_gs, [
-            PlayerEliminatedMessage(
-                game_id=new_gs.game_id,
-                player_id=player_id,
-                message=f"Player {player_id} has been eliminated from the game as they have no remaining ice creams.",
-            )
-            for player_id in eliminated_player_ids
-        ]
+        return new_gs, eliminated_player_ids
 
     @staticmethod
     def get_losing_player(gs: GameState) -> PlayerId:
@@ -235,28 +226,11 @@ class Referee:
         return losing_player_id
 
     @staticmethod
-    def check_game_over(gs: GameState) -> tuple[GameState, list[GameOverMessage]]:
-        n_players_alive = len(gs.players.only_alive.human_players)
+    def check_game_over(gs: GameState) -> tuple[bool, list[PlayerId]]:
+        alive_humans = [p.id for p in gs.players.only_alive.human_players]
+        n_players_alive = len(alive_humans)
+        if n_players_alive > 1:
+            return False, []
         if n_players_alive == 1:
-            winner = gs.players.only_alive.human_players[0]
-            return gs, [
-                GameOverMessage(
-                    game_id=gs.game_id,
-                    player_id=player_id,
-                    winner_id=winner.id,
-                    message=f"Player {winner.id} <{winner.name}> has won the game!",
-                )
-                for player_id in gs.players.human_player_ids
-            ]
-        elif n_players_alive == 0:
-            return gs, [
-                GameOverMessage(
-                    game_id=gs.game_id,
-                    player_id=player_id,
-                    winner_id=None,
-                    message="All players have been eliminated. The game is over.",
-                )
-                for player_id in gs.players.human_player_ids
-            ]
-        else:
-            return gs, []
+            return True, alive_humans
+        return True, []

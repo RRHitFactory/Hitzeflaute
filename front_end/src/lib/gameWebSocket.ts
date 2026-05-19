@@ -1,8 +1,8 @@
 "use client";
 
-import { GameState } from "@/types/game";
-import { useEffect, useRef, useState } from "react";
 import { BACKEND_HOST } from "@/config/apiConfig";
+import { GameState, GameUpdate } from "@/types/game";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * WebSocket client for PowerFlowGame
@@ -337,7 +337,8 @@ export function useGameWebSocket(
         if (msg.message_type === "GameUpdate") {
           console.log("=== GAME UPDATE ===");
           // Validate the structure
-          const gameStateData: GameState = msg.data;
+          const gameUpdate: GameUpdate = msg.data
+          const gameStateData: GameState = gameUpdate.game_state
           console.log("Current phase: " + gameStateData.phase);
           setGameState(gameStateData);
         } else {

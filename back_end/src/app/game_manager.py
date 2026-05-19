@@ -7,6 +7,7 @@ from src.models.game_settings import GameSettings, TurnType
 from src.models.game_state import GameState
 from src.models.ids import GameId
 from src.models.message import (
+    BigEvent,
     GameToPlayerMessage,
     GameUpdate,
     InternalMessage,
@@ -48,13 +49,21 @@ class GameManager:
         gs, messages = self.game_engine.handle_message(game_state=game_state, msg=msg)
 
         msgs_to_players = [e for e in messages if isinstance(e, GameToPlayerMessage)]
-        msgs_to_self = [e for e in messages if isinstance(e, InternalMessage)]
-
         if len(msgs_to_players):
             print(f"Sending msgs to player: {[m for m in msgs_to_players]}")
             await self.front_end.handle_player_messages(msgs=msgs_to_players)
 
-        await self.front_end.broadcast_to_players(game_id=game_id, message=GameUpdate(game_id=game_id, game_state=gs))
+        big_events = [e for e in messages if isinstance(e, BigEvent)]
+        msgs_to_self = [e for e in messages if isinstance(e, InternalMessage)]
+
+        if len(big_events):
+            assert len(big_events) == 1
+            be = big_events[0]
+            game_update = GameUpdate(game_id=game_id, game_state=game_state, game_over=be.game_over, dead_players=be.dead_players, winners=be.winners)
+        else:
+            game_update = GameUpdate(game_id=game_id, game_state=game_state)
+
+        await self.front_end.broadcast_to_players(game_id=game_id, message=game_update)
 
         if not len(msgs_to_self):
             return gs

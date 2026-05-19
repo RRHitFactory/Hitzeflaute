@@ -260,6 +260,13 @@ export interface GameState {
   losing_player: number;
 }
 
+export interface GameUpdate {
+  game_state: GameState;
+  game_over: boolean;
+  dead_players: number[];
+  winners: number[];
+}
+
 export interface Point {
   x: number;
   y: number;

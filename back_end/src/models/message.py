@@ -1,5 +1,5 @@
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import TypeVar
 
@@ -53,6 +53,16 @@ class PlayerToGameMessage(Message, ABC):
 @dataclass(frozen=True, repr=False)
 class GameUpdate(Message):
     game_state: GameState
+    game_over: bool = False
+    dead_players: list[PlayerId] = field(default_factory=list)
+    winners: list[PlayerId] = field(default_factory=list)
+
+
+@dataclass(frozen=True, repr=False)
+class BigEvent(Message):
+    game_over: bool
+    dead_players: list[PlayerId]
+    winners: list[PlayerId]
 
 
 @dataclass(frozen=True, repr=False)
@@ -227,13 +237,3 @@ class TransmissionWornMessage(GameToPlayerMessage):
 @dataclass(frozen=True, repr=False)
 class LoadsDeactivatedMessage(GameToPlayerMessage):
     asset_ids: list[AssetId]
-
-
-@dataclass(frozen=True, repr=False)
-class PlayerEliminatedMessage(GameToPlayerMessage):
-    pass
-
-
-@dataclass(frozen=True, repr=False)
-class GameOverMessage(GameToPlayerMessage):
-    winner_id: PlayerId | None
