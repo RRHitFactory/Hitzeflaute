@@ -8,6 +8,7 @@ import {
   TransmissionLine,
 } from "@/types/game";
 import React from "react";
+import { formatNumber } from "./utils";
 
 interface TransmissionLineProps {
   line: TransmissionLine;
@@ -71,6 +72,9 @@ const TransmissionLineComponent: React.FC<TransmissionLineProps> = ({
     }
 
     data["Supply Mode"] = line.line_or_link === "Line" ? "AC" : "DC";
+    data["Capacity"] = `${formatNumber(line.capacity, 1)} MW`;
+    data["Connects"] = `Bus${line.bus1} - Bus${line.bus2}`;
+    data["Reactance"] = `${formatNumber(line.reactance, 1)} Ω`;
     data["Status"] = displayActive ? "CLOSED" : "OPEN";
 
     return data;
