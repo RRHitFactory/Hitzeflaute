@@ -14,6 +14,7 @@ from src.models.message import (
     ActivationUpdateRequest,
     AssetBuiltMessage,
     AuctionClearedMessage,
+    BigEvent,
     BuyRequest,
     BuyResponse,
     ClearAuction,
@@ -94,7 +95,11 @@ class Engine:
         market_result = MarketCouplingCalculator.run(game_state=gs)
 
         gs, new_msgs = cls._run_post_clearing_book_keeping(game_state=gs, market_result=market_result)
+        if gs.game_over:
+            return gs, new_msgs
+
         melted_ice_cream_players = [m.player_id for m in new_msgs if isinstance(m, IceCreamMeltedMessage)]
+
         loser = Referee.get_losing_player(gs=gs)
         if loser in melted_ice_cream_players:
             # Someone is having a really bad day. Let's help them out.
@@ -263,7 +268,12 @@ class Engine:
         msg: EndTurn,
     ) -> tuple[GameState, list[ConcludePhase]]:
         players = game_state.players
-        if game_state.is_hotseat or game_state.phase.is_one_by_one:
+
+        cycle_turn = game_state.is_hotseat or game_state.phase.is_one_by_one
+        if game_state.phase is Phase.MIGRATION:
+            cycle_turn = False
+
+        if cycle_turn:
             players = players.cycle_turn()
         else:
             players = players.end_turn(player_id=msg.player_id)
@@ -281,10 +291,17 @@ class Engine:
         game_state, ice_cream_msgs = Referee.melt_ice_creams(game_state)
         game_state, transmission_msgs = Referee.wear_congested_transmission(game_state)
         game_state, asset_msgs = Referee.wear_non_freezer_assets(game_state)
-        game_state, eliminated_player_msgs = Referee.eliminate_players(gs=game_state)
-        game_state, game_over_msg = Referee.check_game_over(gs=game_state)
+        game_state, eliminated_players = Referee.eliminate_players(gs=game_state)
+        game_over, winners = Referee.check_game_over(gs=game_state)
 
-        msgs = msgs_auction_cashflows + ice_cream_msgs + transmission_msgs + asset_msgs + eliminated_player_msgs + game_over_msg
+        msgs = msgs_auction_cashflows + ice_cream_msgs + transmission_msgs + asset_msgs
+
+        if len(eliminated_players) or len(winners) or game_over:
+            big_event = BigEvent(game_id=game_state.game_id, game_over=game_over, dead_players=eliminated_players, winners=winners)
+            msgs += [big_event]  # type: ignore
+
+        if game_over:
+            game_state = game_state.update(game_over, Phase.GAME_OVER)
 
         return game_state, msgs
 

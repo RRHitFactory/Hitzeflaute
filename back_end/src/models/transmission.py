@@ -99,6 +99,13 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         df.loc[transmission_id, "is_active"] = True
         return self.update_frame(df)
 
+    def eliminate_players(self, players: list[PlayerId]) -> Self:
+        # Return all lines assets to the npc
+        df = self.df
+        int_players = [int(p) for p in players]
+        df.loc[df["owner_player"].apply(lambda x: x in int_players), "owner_player"] = int(PlayerId.get_npc())
+        return self.update_frame(df)
+
     def update_activations(self, activations: MappingProxyType[TransmissionId, bool]) -> Self:
         df = self.df
         actives = [k.as_int() for k, v in activations.items() if v]

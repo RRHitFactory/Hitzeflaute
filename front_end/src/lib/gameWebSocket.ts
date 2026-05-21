@@ -1,8 +1,8 @@
 "use client";
 
-import { GameState } from "@/types/game";
-import { useEffect, useRef, useState } from "react";
 import { BACKEND_HOST } from "@/config/apiConfig";
+import { GameState, GameUpdate } from "@/types/game";
+import { useEffect, useRef, useState } from "react";
 
 /**
  * WebSocket client for PowerFlowGame
@@ -307,6 +307,15 @@ export function useGameWebSocket(
   const [connectionState, setConnectionState] =
     useState<string>("DISCONNECTED");
   const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gameUpdateInfo, setGameUpdateInfo] = useState<{
+    game_over: boolean;
+    dead_players: number[];
+    winners: number[];
+  }>({
+    game_over: false,
+    dead_players: [],
+    winners: [],
+  });
 
   // Use a ref to store the latest callbacks without causing re-renders
   const callbacksRef = useRef(callbacks);
@@ -337,11 +346,18 @@ export function useGameWebSocket(
         if (msg.message_type === "GameUpdate") {
           console.log("=== GAME UPDATE ===");
           // Validate the structure
-          const gameStateData: GameState = msg.data;
+          const gameUpdate: GameUpdate = msg.data;
+          console.log(gameUpdate);
+          const gameStateData: GameState = gameUpdate.game_state;
           console.log("Current phase: " + gameStateData.phase);
           setGameState(gameStateData);
+          // Also store win/loss information
+          setGameUpdateInfo({
+            game_over: gameUpdate.game_over,
+            dead_players: gameUpdate.dead_players,
+            winners: gameUpdate.winners,
+          });
         } else {
-          console.log("=== UNKNOWN MESSAGE TYPE ===");
           console.log("Message type:", msg.message_type);
           console.log("Raw message data:", JSON.stringify(msg, null, 2));
         }
@@ -377,6 +393,7 @@ export function useGameWebSocket(
     client,
     connectionState,
     gameState,
+    gameUpdateInfo,
     isConnected: client?.isConnected() || false,
   };
 }

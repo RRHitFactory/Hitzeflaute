@@ -107,8 +107,13 @@ class AssetRepo(LdcRepo[AssetInfo]):
         return assets.as_objs()[0]  # TODO: to make the game more fun, players should be allowed to have multiple freezers
 
     def get_remaining_ice_creams(self, player_id: PlayerId) -> int:
-        freezers = self.get_all_for_player(player_id).only_freezers
-        return freezers.df.health.sum()
+        return self.get_remaining_ice_creams_multi([player_id])[0]
+
+    def get_remaining_ice_creams_multi(self, player_ids: list[PlayerId]) -> list[int]:
+        int_ids = [int(p) for p in player_ids]
+        df = self.df
+        df = df.loc[df["is_freezer"], ["owner_player", "health"]]
+        return df.groupby("owner_player").sum().loc[int_ids, "health"].to_list()  # type: ignore
 
     def get_total_generation_capacity(self) -> float:
         generators = self.only_generators.only_active
@@ -123,6 +128,13 @@ class AssetRepo(LdcRepo[AssetInfo]):
         df = self.df
         df.loc[asset_id, "owner_player"] = simplify_type(new_owner)
         df.loc[asset_id, "is_for_sale"] = False
+        return self.update_frame(df)
+
+    def eliminate_players(self, players: list[PlayerId]) -> "AssetRepo":
+        # Return all their assets to the npc
+        df = self.df
+        int_players = [int(p) for p in players]
+        df.loc[df["owner_player"].apply(lambda x: x in int_players), "owner_player"] = int(PlayerId.get_npc())
         return self.update_frame(df)
 
     def update_bids(self, bids: MappingProxyType[AssetId, float]) -> "AssetRepo":

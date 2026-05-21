@@ -86,6 +86,7 @@ export const GamePhase = {
   BIDDING: 2,
   DA_AUCTION: 3,
   MIGRATION: 4,
+  GAME_OVER: 5,
 } as const;
 
 // Type for phase values (can be integer from backend)
@@ -98,6 +99,7 @@ export const GamePhaseName = {
   [GamePhase.BIDDING]: "BIDDING",
   [GamePhase.DA_AUCTION]: "DA_AUCTION",
   [GamePhase.MIGRATION]: "MIGRATION",
+  [GamePhase.GAME_OVER]: "GAME_OVER",
 } as const;
 
 export type GamePhaseNameValue = (typeof GamePhaseName)[GamePhaseValue];
@@ -152,6 +154,14 @@ export const GAME_PHASE_INFO: Record<GamePhaseValue, PhaseInfo> = {
     displayName: "Migration",
     color: "bg-red-200 text-black border border-red-400",
     description: "Move your ice-cream truck",
+    one_by_one: true,
+  },
+  [GamePhase.GAME_OVER]: {
+    id: GamePhase.GAME_OVER,
+    name: "GAME_OVER",
+    displayName: "Game over",
+    color: "bg-red-200 text-black border border-red-400",
+    description: "",
     one_by_one: true,
   },
 };
@@ -258,6 +268,14 @@ export interface GameState {
   players: { class: string; data: Player[] }; // Can be array or repo structure from backend
   market_summary: MarketCouplingSummary | null;
   losing_player: number;
+  game_over: boolean;
+}
+
+export interface GameUpdate {
+  game_state: GameState;
+  game_over: boolean;
+  dead_players: number[];
+  winners: number[];
 }
 
 export interface Point {

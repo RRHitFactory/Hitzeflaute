@@ -37,6 +37,7 @@ class PlayerRepo(LdcRepo[Player]):
         return Player
 
     # GET
+
     @property
     def player_ids(self) -> list[PlayerId]:
         return [PlayerId(x) for x in self.df.index.tolist()]
@@ -48,6 +49,12 @@ class PlayerRepo(LdcRepo[Player]):
     @cached_property
     def human_player_ids(self) -> list[PlayerId]:
         return [p for p in self.player_ids if p != PlayerId.get_npc()]
+
+    @property
+    def alive_human_ids(self) -> list[PlayerId]:
+        df = self.df.loc[self.human_player_ids, :]
+        index = df.loc[df["still_alive"]].index
+        return [PlayerId(x) for x in index.tolist()]
 
     @cached_property
     def n_human_players(self) -> int:
@@ -99,10 +106,11 @@ class PlayerRepo(LdcRepo[Player]):
         return self._set_turn(player_id, False)
 
     def start_turn(self, player_id: PlayerId | list[PlayerId]) -> Self:
+        assert player_id in self.alive_human_ids
         return self._set_turn(player_id, True)
 
     def start_all_turns(self) -> Self:
-        return self._set_turn(self.human_player_ids, True)
+        return self._set_turn(self.alive_human_ids, True)
 
     def end_all_turns(self) -> Self:
         return self._set_turn(self.human_player_ids, False)
@@ -110,7 +118,7 @@ class PlayerRepo(LdcRepo[Player]):
     def start_first_player_turn(self) -> Self:
         df = self.df
         df.loc[:, "is_having_turn"] = False
-        df.loc[self.human_player_ids[0], "is_having_turn"] = True
+        df.loc[self.alive_human_ids[0], "is_having_turn"] = True
         return self.update_frame(df)
 
     def cycle_turn(self) -> Self:
@@ -120,8 +128,8 @@ class PlayerRepo(LdcRepo[Player]):
 
         df = self.df
         df.loc[current_player, "is_having_turn"] = False
-        human_ids = self.human_player_ids
-        next_index = human_ids.index(current_players[0]) + 1
+        human_ids = self.alive_human_ids
+        next_index = human_ids.index(current_player) + 1
         if next_index >= len(human_ids):
             return self.update_frame(df)
 
@@ -132,6 +140,12 @@ class PlayerRepo(LdcRepo[Player]):
     def eliminate_player(self, player_id: PlayerId) -> Self:
         df = self.df
         df.loc[player_id, "still_alive"] = False
+        return self.update_frame(df)
+
+    def eliminate_players(self, player_ids: list[PlayerId]) -> Self:
+        df = self.df
+        int_ids = [int(p) for p in player_ids]
+        df.loc[int_ids, "still_alive"] = False
         return self.update_frame(df)
 
     # DELETE

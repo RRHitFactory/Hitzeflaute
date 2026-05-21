@@ -5,7 +5,17 @@ from src.engine.referee import Referee
 from src.models.game_state import GameState
 from src.models.ids import AssetId, BusId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
+from src.models.message import GameUpdate
 from src.tools.serialization import SimpleDict
+
+
+def prepare_game_update_for_front_end(game_update: GameUpdate) -> SimpleDict:
+    return {
+        "game_state": prepare_game_state_for_front_end(game_state=game_update.game_state),
+        "game_over": game_update.game_over,
+        "dead_players": [int(p) for p in game_update.dead_players],
+        "winners": [int(p) for p in game_update.winners],
+    }
 
 
 def prepare_game_state_for_front_end(game_state: GameState) -> SimpleDict:
@@ -15,8 +25,9 @@ def prepare_game_state_for_front_end(game_state: GameState) -> SimpleDict:
     gs_dict = game_state.to_simple_dict()
     gs_dict["market_coupling_result"] = None
     gs_dict["pending_state"] = None
-    loser = Referee.get_losing_player(gs=game_state)
-    gs_dict["losing_player"] = int(loser)
+    if not game_state.game_over:
+        loser = Referee.get_losing_player(gs=game_state)
+        gs_dict["losing_player"] = int(loser)
 
     if game_state.market_coupling_result is not None:
         bus_results = {bus: reduce_one_bus(game_state=game_state, coupling_result=game_state.market_coupling_result, bus_id=bus) for bus in game_state.buses.bus_ids}
