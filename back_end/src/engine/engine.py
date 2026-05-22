@@ -107,7 +107,7 @@ class Engine:
         else:
             next_phase = Phase(0)
 
-        conclude_phase = ConcludePhase(game_id=gs.game_id, phase=gs.phase, force_new_phase=next_phase)
+        conclude_phase = ConcludePhase(game_id=gs.game_id, phase=gs.phase, new_phase=next_phase)
         return gs, [*msgs_load_deactivation, *new_msgs, conclude_phase]
 
     @classmethod
@@ -225,7 +225,7 @@ class Engine:
         game_state: GameState,
         msg: FreezerMigrationRequest,
     ) -> tuple[GameState, Sequence[FreezerMigrationResponse | ConcludePhase]]:
-        cp_message = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)
+        cp_message = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase, new_phase=Phase.CONSTRUCTION)
         asset_id = msg.asset_id
         if asset_id is None:
             asset_id = game_state.assets.get_freezer_for_player(msg.player_id).id
@@ -281,7 +281,8 @@ class Engine:
         game_state = game_state.update(players)
         if game_state.players.are_all_players_finished():
             game_state = game_state.commit_pending_state()
-            return game_state, [ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)]
+            new_phase = {Phase.CONSTRUCTION: Phase.SNEAKY_TRICKS, Phase.SNEAKY_TRICKS: Phase.BIDDING, Phase.BIDDING: Phase.DA_AUCTION, Phase.MIGRATION: Phase.CONSTRUCTION}[game_state.phase]
+            return game_state, [ConcludePhase(game_id=game_state.game_id, phase=game_state.phase, new_phase=new_phase)]
         else:
             return game_state, []
 

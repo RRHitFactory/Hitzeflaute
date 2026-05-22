@@ -89,13 +89,7 @@ T_Id = TypeVar("T_Id", bound=AssetId | TransmissionId)
 @dataclass(frozen=True, repr=False)
 class ConcludePhase(InternalMessage):
     phase: Phase
-    force_new_phase: Phase | None = None
-
-    @property
-    def new_phase(self) -> Phase:
-        if self.force_new_phase is not None:
-            return self.force_new_phase
-        return self.phase.get_next()
+    new_phase: Phase
 
 
 @dataclass(frozen=True, repr=False)

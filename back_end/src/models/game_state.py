@@ -38,14 +38,6 @@ class Phase(IntEnum):
     def nice_name(self) -> str:
         return self.name.replace("_", " ").lower()
 
-    def get_next(self) -> "Phase":
-        if self in [Phase.DA_AUCTION, Phase.GAME_OVER]:
-            raise ValueError(f"Cannot get next phase for {self}")
-        if self is Phase.MIGRATION:
-            return Phase.CONSTRUCTION
-        next_index = self.value + 1
-        return Phase(next_index)
-
 
 type GameStateAttributes = bool | Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
 

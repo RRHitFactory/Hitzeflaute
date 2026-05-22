@@ -220,7 +220,7 @@ class Referee:
         alive_human_ids = gs.players.alive_human_ids
         assert len(alive_human_ids) > 0, "Everyone is dead"
 
-        money = gs.players.df.loc[alive_human_ids, "money"].to_list()
+        money = gs.players.get_money_for_players(alive_human_ids)
         ice_cream = gs.assets.get_remaining_ice_creams_multi(alive_human_ids)
 
         tuples = [(i, m, p) for i, m, p in zip(ice_cream, money, alive_human_ids)]
