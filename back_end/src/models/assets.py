@@ -5,13 +5,13 @@ from types import MappingProxyType
 
 import dataframely as dy
 import polars as pl
-from back_end.src.tools.polar import reorder
 from randcraft import make_dirac, make_uniform
 from randcraft.random_variable import RandomVariable
 
 from src.ids import AssetId, BusId, PlayerId, Round
 from src.models.data.light_dc import LightDc
 from src.models.data.polar_repo import PolarRepo
+from src.tools.polar import reorder
 
 
 class AssetType(IntEnum):
