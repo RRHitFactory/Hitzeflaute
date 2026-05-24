@@ -9,6 +9,12 @@ from src.new_game.trigram_maker import make_trigrams
 from tests.base_test import BaseTest
 
 
+def get_cartesian_product_of_topologies():
+    bus_topologies = ["line", "grid", "random", "regular_polygon", "layered_polygon"]
+    transmission_topologies = ["sequential", "random", "grid", "spiderweb"]
+    return [(bt, tt) for bt in bus_topologies for tt in transmission_topologies]
+
+
 class TestGameInitializer(BaseTest):
     def setUp(self) -> None:
         self.game_id = GameId(1)
@@ -51,6 +57,21 @@ class TestGameInitializer(BaseTest):
                 0,
                 f"Bus {bus_id} should be connected",
             )
+
+    def _change_settings(self, **kwargs) -> GameSettings:
+        settings_dict = self.settings.to_simple_dict()
+        settings_dict.update(kwargs)
+        return GameSettings.from_simple_dict(settings_dict)
+
+    def test_create_new_game_with_custom_topologies(self):
+        for bus_topo, transmission_topo in get_cartesian_product_of_topologies():
+            custom_settings = self._change_settings(bus_topology=bus_topo, transmission_topology=transmission_topo)
+            game_initializer = GameInitializer(settings=custom_settings)
+            try:
+                gs = game_initializer.create_new_game(game_id=self.game_id, player_names=self.player_names)
+                self.assertEqual(len(gs.buses), custom_settings.n_buses)
+            except Exception:
+                self.assertTrue(False, f"Failed to create game with bus topology {bus_topo} and transmission topology {transmission_topo}")
 
     def test_trigram(self) -> None:
         names = ["Sergio Zambrano", "Roman Cantu", "Giancarlo Marzano", "Alberte Bouso", "Robbie Muir"]

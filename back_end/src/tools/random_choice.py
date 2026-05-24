@@ -19,6 +19,12 @@ def random_choice[T](x: list[T], generator: Generator | None = None) -> T:
     return random_choice_multi(x=x, size=1, generator=generator)[0]
 
 
+def shuffle[T](x: list[T], generator: Generator | None = None) -> list[T]:
+    if generator is None:
+        generator = np.random.default_rng()
+    return random_choice_multi(x, len(x), generator=generator, replace=False)
+
+
 def sample_boolean(p_true: float, generator: Generator | None = None) -> bool:
     if generator is None:
         generator = np.random.default_rng()

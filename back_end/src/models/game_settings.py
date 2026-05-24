@@ -4,11 +4,15 @@ from typing import Literal, Self
 from src.models.geometry import Point, Shape, ShapeType
 
 type TurnType = Literal["hotseat", "online"]
+type BusTopology = Literal["line", "grid", "random", "regular_polygon", "layered_polygon"]
+type TransmissionTopology = Literal["sequential", "random", "grid", "spiderweb"]
 
 
 @dataclass(frozen=True)
 class GameSettings:
     turn_type: TurnType = "hotseat"
+    bus_topology: BusTopology = "layered_polygon"
+    transmission_topology: TransmissionTopology = "spiderweb"
     n_buses: int = 5
     max_rounds: int = 20
     n_init_ice_cream: int = 5
@@ -30,6 +34,8 @@ class GameSettings:
         """Convert the game settings to a simple dictionary."""
         return {
             "turn_type": self.turn_type,
+            "bus_topology": self.bus_topology,
+            "transmission_topology": self.transmission_topology,
             "n_buses": self.n_buses,
             "max_rounds": self.max_rounds,
             "n_init_ice_cream": self.n_init_ice_cream,
@@ -48,6 +54,8 @@ class GameSettings:
         """Create a GameSettings instance from a simple dictionary."""
         return cls(
             turn_type=simple_dict["turn_type"],
+            bus_topology=simple_dict["bus_topology"],
+            transmission_topology=simple_dict["transmission_topology"],
             n_buses=simple_dict["n_buses"],
             max_rounds=simple_dict["max_rounds"],
             n_init_ice_cream=simple_dict["n_init_ice_cream"],
