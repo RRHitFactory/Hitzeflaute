@@ -3,8 +3,8 @@ from collections.abc import Generator
 from itertools import combinations, count
 
 import numpy as np
-from src.ids import BusId, GameId, PlayerId, Round
 
+from src.ids import BusId, GameId, PlayerId, Round
 from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors

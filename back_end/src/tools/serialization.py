@@ -5,6 +5,7 @@ from typing import Any, Protocol, Self, get_args, get_origin, runtime_checkable
 
 import pandas as pd
 import polars as pl
+
 from src.ids import IntId
 
 type Primitive = int | float | str | bool

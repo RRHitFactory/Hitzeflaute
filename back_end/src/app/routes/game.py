@@ -1,6 +1,5 @@
 import json
 
-from src.ids import GameId, PlayerId
 from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, status
 
 from src.app.game_manager import GameManager
@@ -8,6 +7,7 @@ from src.app.game_repo.base import BaseGameStateRepo
 from src.app.game_ws_manager import GameWebSocketConnectionManager
 from src.app.prepare_gs import prepare_game_state_for_front_end
 from src.app.routes.logging import log_exception_with_traceback
+from src.ids import GameId, PlayerId
 from src.models.message import GameUpdate
 from src.models.server_models import (
     CreateGameRequest,
