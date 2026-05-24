@@ -143,6 +143,9 @@ class PlayerRepo(PolarRepo[PlayerRepoSchema, Player, PlayerId]):
     def eliminate_player(self, player_id: PlayerId) -> Self:
         return self.update_key_value(id=player_id, key="still_alive", value=False)
 
+    def eliminate_players(self, player_ids: list[PlayerId]) -> Self:
+        return self.update_key_values(id=player_ids, key_values={"still_alive": False})
+
     # DELETE
     def delete_player(self, player_id: PlayerId) -> Self:
         return self.drop_one(player_id)

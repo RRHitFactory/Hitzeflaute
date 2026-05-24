@@ -5,6 +5,7 @@ from types import MappingProxyType
 
 import dataframely as dy
 import polars as pl
+from back_end.src.tools.polar import reorder
 from randcraft import make_dirac, make_uniform
 from randcraft.random_variable import RandomVariable
 
@@ -152,6 +153,11 @@ class AssetRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
         filters = [pl.col("owner_player") == int(player_id), is_freezer]
         return self._filter(filters)
 
+    def get_remaining_ice_creams_multi(self, player_ids: list[PlayerId]) -> list[int]:
+        int_ids = [int(id) for id in player_ids]
+        df = self.df.filter(pl.col("id").is_in(player_ids)).select(["id", "health"])
+        return reorder(x=df, ids=int_ids)["health"].to_list()
+
     def get_remaining_ice_creams(self, player_id: PlayerId) -> int:
         return self.get_freezer_for_player(player_id).df["health"].item()
 
@@ -198,6 +204,12 @@ class AssetRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
         actives = [k for k, v in activations.items() if v]
         inactives = [k for k, v in activations.items() if not v]
         return self.update_key_values(id=actives, key_values={"is_active": True}).update_key_values(id=inactives, key_values={"is_active": False})
+
+    def eliminate_players(self, players: list[PlayerId]) -> "AssetRepo":
+        int_ids = [int(p) for p in players]
+        npc_id = int(PlayerId.get_npc())
+        df = self.df.with_columns(pl.when(pl.col("owner_player").is_in(int_ids)).then(pl.lit(npc_id)).otherwise(pl.col("owner_player")))
+        return self._make_quick(x=df)
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> "AssetRepo":

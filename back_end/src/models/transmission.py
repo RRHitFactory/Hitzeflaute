@@ -150,6 +150,12 @@ class TransmissionRepo(PolarRepo[TransmissionRepoSchema, TransmissionInfo, Trans
         else:
             return self.update_key_values(id=transmission_id, key_values={"health": 0, "is_active": False})
 
+    def eliminate_players(self, players: list[PlayerId]) -> Self:
+        int_ids = [int(p) for p in players]
+        npc_id = int(PlayerId.get_npc())
+        df = self.df.with_columns(pl.when(pl.col("owner_player").is_in(int_ids)).then(pl.lit(npc_id)).otherwise(pl.col("owner_player")))
+        return self._make_quick(x=df)
+
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:
         return self._drop_items(pl.col("owner_player") == int(player_id))
