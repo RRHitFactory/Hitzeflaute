@@ -1,4 +1,5 @@
 from src.models.assets import AssetInfo
+from src.models.game_settings import GameSettings
 from src.models.ids import AssetId, BusId, PlayerId, Round
 from src.new_game.loads.load_maker import LoadMaker
 from tests.base_test import BaseTest
@@ -6,7 +7,8 @@ from tests.base_test import BaseTest
 
 class TestLoadMaker(BaseTest):
     def test_make_load(self):
-        load = LoadMaker.make_one(technology_name="residential", asset_id=AssetId(1), bus_id=BusId(1), current_round=Round(0), player_id=PlayerId.get_npc())
+        settings = GameSettings()
+        load = LoadMaker.make_one(technology_name="residential", asset_id=AssetId(1), settings=settings, bus_id=BusId(1), current_round=Round(0), player_id=PlayerId.get_npc())
 
         self.assertIsInstance(load, AssetInfo)
 

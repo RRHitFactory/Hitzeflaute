@@ -2,6 +2,7 @@ import math
 import os
 from pathlib import Path
 
+from src.models.game_settings import GameSettings
 from src.models.ids import BusId, PlayerId, Round, TransmissionId
 from src.models.transmission import TransmissionInfo
 from src.new_game.transmission.tranmission_technology_specs import TransmissionTechnologySpecs
@@ -12,7 +13,7 @@ class TransmissionMaker:
     path = Path(os.path.dirname(__file__))
 
     @classmethod
-    def make_one(cls, transmission_id: TransmissionId, bus1: BusId, bus2: BusId, current_round: Round, technology_name: str | None = None, player_id: PlayerId = PlayerId.get_npc()) -> TransmissionInfo:
+    def make_one(cls, transmission_id: TransmissionId, bus1: BusId, bus2: BusId, current_round: Round, settings: GameSettings, technology_name: str | None = None, player_id: PlayerId = PlayerId.get_npc()) -> TransmissionInfo:
         """Create a load with properties based on the current round."""
         if technology_name is None:
             available_techs = cls.get_available_technologies()
@@ -24,7 +25,7 @@ class TransmissionMaker:
         capacity = tech_specs.capacity.value_at_round(current_round)
         health = math.floor(tech_specs.lifespan.value_at_round(current_round))
 
-        foc = tech_specs.fixed_cost.value_at_round(current_round)
+        foc = tech_specs.fixed_cost.value_at_round(current_round) if settings.enable_fixed_costs else 0.0
         capital_cost = round(tech_specs.capital_cost_per_mw.value_at_round(current_round) * capacity)
 
         line_or_link = tech_specs.line_or_link

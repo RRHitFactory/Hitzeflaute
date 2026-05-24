@@ -3,6 +3,7 @@ import os
 from pathlib import Path
 
 from src.models.assets import AssetInfo, AssetType
+from src.models.game_settings import GameSettings
 from src.models.ids import AssetId, BusId, PlayerId, Round
 from src.new_game.util.technology_specs import TechnologySpecs
 from src.tools.random_choice import random_choice
@@ -12,7 +13,7 @@ class GeneratorMaker:
     path = Path(os.path.dirname(__file__))
 
     @classmethod
-    def make_one(cls, asset_id: AssetId, bus_id: BusId, current_round: Round, technology_name: str | None = None, player_id: PlayerId = PlayerId.get_npc()) -> AssetInfo:
+    def make_one(cls, asset_id: AssetId, bus_id: BusId, current_round: Round, settings: GameSettings, technology_name: str | None = None, player_id: PlayerId = PlayerId.get_npc()) -> AssetInfo:
         """Create a generator with properties based on the current round."""
         if technology_name is None:
             technology_name = random_choice(cls.get_available_technologies())
@@ -22,7 +23,7 @@ class GeneratorMaker:
         power_std = tech_specs.normalised_power_std * capacity
         capital_cost = tech_specs.capital_cost_per_mw.value_at_round(current_round) * capacity
 
-        foc = tech_specs.fixed_cost.value_at_round(current_round)
+        foc = tech_specs.fixed_cost.value_at_round(current_round) if settings.enable_fixed_costs else 0.0
 
         marginal_cost = tech_specs.marginal_cost.value_at_round(current_round)
 

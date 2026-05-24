@@ -34,7 +34,7 @@ class GridExpansion:
 
         asset_maker = LoadMaker() if cls._check_system_adequacy(game_state) else GeneratorMaker()
 
-        new_asset = asset_maker.make_one(asset_id=AssetId(game_state.assets.next_id()), bus_id=socket_manager.get_bus_with_free_socket(use=True), current_round=game_state.game_round, **kwargs)
+        new_asset = asset_maker.make_one(asset_id=AssetId(game_state.assets.next_id()), bus_id=socket_manager.get_bus_with_free_socket(use=True), settings=game_state.game_settings, current_round=game_state.game_round, **kwargs)
 
         new_game_state = game_state.update(game_state.assets + new_asset)
 

@@ -277,13 +277,13 @@ class GameInitializer:
         gen_maker = GeneratorMaker()
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-            asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0))
+            asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, settings=self.settings, current_round=Round(0))
             assets.append(asset)
 
         load_maker = LoadMaker()
         for _ in range(self.settings.n_init_non_freezer_loads):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0), except_freezer=True)
+            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, settings=self.settings, current_round=Round(0), except_freezer=True)
             assets.append(asset)
 
         return AssetRepo(assets)
@@ -311,7 +311,7 @@ class GameInitializer:
             socket_manager.use_socket(bus1)
             socket_manager.use_socket(bus2)
 
-            line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round=Round(0))
+            line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round=Round(0), settings=self.settings)
             lines.append(line)
 
         return TransmissionRepo(lines)

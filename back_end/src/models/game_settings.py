@@ -21,6 +21,7 @@ class GameSettings:
     min_bid_price: float = -1000
     max_bid_price: float = 1000
     initial_funds: int = 10000
+    enable_fixed_costs: bool = False
     probability_of_new_asset: float = 0.2
     probability_of_new_transmission: float = 0.0
     probability_of_new_bus: float = 0.0
@@ -43,6 +44,7 @@ class GameSettings:
             "min_bid_price": self.min_bid_price,
             "max_bid_price": self.max_bid_price,
             "initial_funds": self.initial_funds,
+            "enable_fixed_costs": self.enable_fixed_costs,
             "probability_of_new_asset": self.probability_of_new_asset,
             "probability_of_new_transmission": self.probability_of_new_transmission,
             "probability_of_new_bus": self.probability_of_new_bus,
@@ -63,6 +65,7 @@ class GameSettings:
             min_bid_price=simple_dict["min_bid_price"],
             max_bid_price=simple_dict["max_bid_price"],
             initial_funds=simple_dict["initial_funds"],
+            enable_fixed_costs=simple_dict["enable_fixed_costs"],
             probability_of_new_asset=simple_dict["probability_of_new_asset"],
             probability_of_new_transmission=simple_dict["probability_of_new_transmission"],
             probability_of_new_bus=simple_dict["probability_of_new_bus"],
