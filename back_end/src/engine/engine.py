@@ -223,7 +223,7 @@ class Engine:
         cp_message = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)
         asset_id = msg.asset_id
         if asset_id is None:
-            asset_id = game_state.assets.get_freezer_for_player(msg.player_id).id
+            asset_id = game_state.assets.get_freezer_for_player(msg.player_id).as_obj().id
 
         def fail(reason: str) -> tuple[GameState, Sequence[FreezerMigrationResponse | ConcludePhase]]:
             response = msg.make_response(success=False, message=reason, asset_id=asset_id)

@@ -62,12 +62,12 @@ class TestMarketCoupling(BaseTest):
             )
 
         # add two loads for each player at the expensive bus
-        for player in player_repo.human_players:
+        for player in player_repo.human_player_ids:
             asset_maker.add_asset(
                 cat="Load",
                 bid_price=100,
                 power_std=0,
-                owner=player.id,
+                owner=player,
                 bus=expensive_bus,
                 is_active=True,
             )
@@ -75,7 +75,7 @@ class TestMarketCoupling(BaseTest):
                 cat="Load",
                 bid_price=100,
                 power_std=0,
-                owner=player.id,
+                owner=player,
                 bus=expensive_bus,
                 is_active=True,
             )

@@ -9,7 +9,7 @@ from randcraft import make_dirac, make_uniform
 from randcraft.random_variable import RandomVariable
 
 from src.models.data.light_dc import LightDc
-from src.models.data.polar_repo import PolarRepo, PrSchema
+from src.models.data.polar_repo import PolarRepo
 from src.models.ids import AssetId, BusId, PlayerId, Round
 
 
@@ -61,10 +61,11 @@ class AssetInfo(LightDc):
         return 1 if self.asset_type == AssetType.GENERATOR else -1
 
 
-class AssetRepoSchema(PrSchema):
-    owner_player = dy.Int8()
-    asset_type = dy.UInt8()
-    bus = dy.UInt8()
+class AssetRepoSchema(dy.Schema):
+    id = AssetId._get_dy_column(primary_key=True)
+    owner_player = PlayerId._get_dy_column()
+    asset_type = AssetId._get_dy_column()
+    bus = BusId._get_dy_column()
     power_expected = dy.Float64(min=0.0)
     power_std = dy.Float64(min=0.0)
     is_for_sale = dy.Bool()
@@ -76,7 +77,7 @@ class AssetRepoSchema(PrSchema):
     health = dy.UInt8()
     is_active = dy.Bool()
     birthday = dy.UInt8()
-    technology = dy.String()
+    technology = dy.String(max_length=30)
 
     @dy.rule()
     def valid_asset_type(self) -> pl.Expr:
@@ -87,6 +88,7 @@ is_generator = pl.col("asset_type") == AssetType.GENERATOR.value
 is_load = pl.col("asset_type") == AssetType.LOAD.value
 is_active = pl.col("is_active")
 is_freezer = pl.col("is_freezer")
+is_for_sale = pl.col("is_for_sale")
 
 
 class AssetPolarRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
@@ -123,6 +125,14 @@ class AssetPolarRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
     def only_generators(self) -> "AssetPolarRepo":
         return self._filter(is_generator)
 
+    @property
+    def only_for_sale(self) -> "AssetPolarRepo":
+        return self._filter(is_for_sale)
+
+    @property
+    def not_for_sale(self) -> "AssetPolarRepo":
+        return self._filter(~is_for_sale)
+
     def get_wearable_asset_ids(self) -> list[AssetId]:
         return [AssetId(a) for a in self.df.filter(pl.col("health") > 0, ~pl.col("is_freezer"))["id"].to_list()]
 
@@ -138,14 +148,12 @@ class AssetPolarRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
             filters.append(is_active)
         return self._filter(filters)
 
-    def get_freezer_for_player(self, player_id: PlayerId) -> AssetInfo:
+    def get_freezer_for_player(self, player_id: PlayerId) -> "AssetPolarRepo":
         filters = [pl.col("owner_player") == int(player_id), is_freezer]
-        assets = self._filter(filters)
-        assert len(assets) == 1
-        return assets.as_objs()[0]
+        return self._filter(filters)
 
     def get_remaining_ice_creams(self, player_id: PlayerId) -> int:
-        return self.get_freezer_for_player(player_id).health
+        return self.get_freezer_for_player(player_id).df["health"].item()
 
     def get_total_generation_capacity(self) -> float:
         return self.df.filter(is_generator, is_active)["power_expected"].sum()

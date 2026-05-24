@@ -11,8 +11,8 @@ from src.models.game_settings import GameSettings, TurnType
 from src.models.game_state import GameState, Phase
 from src.models.geometry import Point, Shape
 from src.models.ids import BusId, GameId, PlayerId, Round
-from src.models.player import Player, PlayerRepo
-from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionRepo
+from src.models.player import Player, PlayerPolarRepo
+from src.models.transmission import TransmissionId, TransmissionInfo, TransmissionPolarRepo
 from src.new_game.generators.generator_maker import GeneratorMaker
 from src.new_game.loads.load_maker import LoadMaker
 from src.new_game.transmission.transmission_maker import TransmissionMaker
@@ -182,7 +182,7 @@ class GameInitializer:
         new_player_repo = new_game.get_players_with_updated_turns_for_new_phase(new_phase=Phase(0))
         return new_game.update(new_player_repo)
 
-    def _create_player_repo(self, names: list[str], colors: list[Color]) -> PlayerRepo:
+    def _create_player_repo(self, names: list[str], colors: list[Color]) -> PlayerPolarRepo:
         assert len(names) == len(colors), "Number of player names and colors must match"
         assert len(set(names)) == len(names), "Names must be unique"
         assert all(len(n) >= 1 for n in names), "Names must have at least one letter"
@@ -202,9 +202,9 @@ class GameInitializer:
         ]
         players.append(Player.make_npc())
 
-        return PlayerRepo(players)
+        return PlayerPolarRepo(players)
 
-    def _create_bus_repo(self, player_repo: PlayerRepo) -> BusPolarRepo:
+    def _create_bus_repo(self, player_repo: PlayerPolarRepo) -> BusPolarRepo:
         topology = BusTopologyMaker.make_layered_polygon(
             n_buses=self.settings.n_buses,
             n_buses_per_layer=self.settings.n_buses,
@@ -223,7 +223,7 @@ class GameInitializer:
 
         return BusPolarRepo(buses)
 
-    def _create_asset_repo(self, player_repo: PlayerRepo, bus_repo: BusPolarRepo) -> AssetPolarRepo:
+    def _create_asset_repo(self, player_repo: PlayerPolarRepo, bus_repo: BusPolarRepo) -> AssetPolarRepo:
         assets: list[AssetInfo] = []
 
         def asset_id_iterator(start: int = 1) -> Generator[AssetId, None, None]:
@@ -282,7 +282,7 @@ class GameInitializer:
 
         return AssetPolarRepo(assets)
 
-    def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusPolarRepo) -> TransmissionRepo:
+    def _create_transmission_repo(self, player_repo: PlayerPolarRepo, bus_repo: BusPolarRepo) -> TransmissionPolarRepo:
         topology = TransmissionTopologyMaker.make_spiderweb(bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players)
         self._assert_topology_has_no_islands(buses=bus_repo.bus_ids, topology=topology)
 
@@ -308,7 +308,7 @@ class GameInitializer:
             line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round=Round(0))
             lines.append(line)
 
-        return TransmissionRepo(lines)
+        return TransmissionPolarRepo(lines)
 
     def _assert_topology_has_no_islands(self, buses: list[BusId], topology: Topology) -> None:
         bus_on_the_chain = {b: False for b in buses}

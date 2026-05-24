@@ -5,7 +5,7 @@ from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.pnl import PnlCat, PnlFrame, PnlFrameSchema
-from src.models.transmission import TransmissionId, TransmissionRepo
+from src.models.transmission import TransmissionId, TransmissionPolarRepo
 
 
 class FinanceCalculator:
@@ -31,7 +31,7 @@ class FinanceCalculator:
 
     @staticmethod
     def compute_transmission_cashflow(
-        transmission_repo: TransmissionRepo,
+        transmission_repo: TransmissionPolarRepo,
         transmission_flows: dict[TransmissionId, float],
         bus_prices: dict[BusId, float],
     ) -> PnlFrame:

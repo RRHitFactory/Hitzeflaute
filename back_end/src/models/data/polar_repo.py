@@ -1,20 +1,16 @@
 from abc import ABC, abstractmethod
 from collections.abc import Generator, Iterable
-from typing import Any, ClassVar, Self
+from typing import Any, ClassVar, Self, overload
 
 import dataframely as dy
 import polars as pl
 
 from src.models.data.light_dc import LightDc
+from src.models.ids import IntId
 from src.tools.serialization import FlatDict, simplify_type
-from src.tools.typing import IntId
 
 
-class PrSchema(dy.Schema):
-    id = dy.Int8(primary_key=True)
-
-
-class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
+class PolarRepo[T_Schema: dy.Schema, T_Obj: LightDc, T_Int: int](ABC):
     _validated: ClassVar[bool] = False
 
     # A dataframe-based repo containing an indexed list of light dataclass objects
@@ -34,6 +30,8 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
         dy_schema_columns = schema.columns()
         ldc_schema_fields = obj_type.get_keys()
         assert set(dy_schema_columns) == set(ldc_schema_fields), "Dy schema and object schema mismatch"
+        assert "id" in dy_schema_columns
+        assert isinstance(schema.columns()["id"], int_type._get_dy_column_type())
         cls._validated = True
 
     def __init__(self, x: pl.DataFrame | list[T_Obj], quick: bool = False) -> None:
@@ -87,7 +85,16 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
         for r in self.df.iter_rows(named=True):
             yield self.obj_type.from_simple_dict(r)
 
-    def __getitem__(self, x: int | T_Int) -> T_Obj:
+    @overload
+    def __getitem__(self, x: str) -> list: ...
+
+    @overload
+    def __getitem__(self, x: int | T_Int) -> T_Obj: ...
+
+    def __getitem__(self, x: int | T_Int | str) -> T_Obj | list:
+        # Either select a row by passing an id, or select a column by passing a string
+        if isinstance(x, str):
+            return self.df[x].to_list()
         assert isinstance(x, int)
         reduced_df = self.df.filter(pl.col("id") == int(x))
         if not len(reduced_df):
@@ -146,6 +153,10 @@ class PolarRepo[T_Schema: PrSchema, T_Obj: LightDc, T_Int: int](ABC):
     # CONVERT
     def as_dicts(self) -> list[FlatDict]:
         return [r for r in self.df.iter_rows(named=True)]
+
+    def as_obj(self) -> T_Obj:
+        assert len(self) == 1, "Cannot create single object as there are multiple entries"
+        return self.as_objs()[0]
 
     def as_objs(self) -> list[T_Obj]:
         return [self.obj_type.from_simple_dict(r) for r in self.df.iter_rows(named=True)]

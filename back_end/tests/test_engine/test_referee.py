@@ -7,7 +7,7 @@ from src.models.game_state import GameState, Phase
 from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import IceCreamMeltedMessage
-from src.models.player import Player, PlayerRepo
+from src.models.player import Player, PlayerPolarRepo
 from src.models.transmission import TransmissionInfo
 from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker
@@ -43,12 +43,12 @@ class TestReferee(BaseTest):
         return game_state, market_coupling_result
 
     def test_get_loser(self) -> None:
-        player_repo = PlayerRepo(
-            dcs=[
+        player_repo = PlayerPolarRepo(
+            x=[
                 Player(id=PlayerId.get_npc(), name="npc", trigram="NPC", money=0, color=Color("black"), is_having_turn=False),
-                Player(id=PlayerId(1), name="winner", trigram="trigram", money=0, color=Color("black"), is_having_turn=False),
-                Player(id=PlayerId(2), name="middle", trigram="trigram", money=2000, color=Color("black"), is_having_turn=False),
-                Player(id=PlayerId(3), name="loser", trigram="trigram", money=1000, color=Color("black"), is_having_turn=False),
+                Player(id=PlayerId(1), name="winner", trigram="WIN", money=0, color=Color("black"), is_having_turn=False),
+                Player(id=PlayerId(2), name="middle", trigram="MID", money=2000, color=Color("black"), is_having_turn=False),
+                Player(id=PlayerId(3), name="loser", trigram="LOS", money=1000, color=Color("black"), is_having_turn=False),
             ]
         )
 
@@ -160,7 +160,7 @@ class TestReferee(BaseTest):
         # get the first asset for sale
         asset = game_state.assets._filter([pl.col("is_for_sale"), pl.col("owner_player") == int(PlayerId.get_npc())]).as_objs()[0]
         # get the first transmission for sale
-        transmission = game_state.transmission._filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
+        transmission = game_state.transmission._filter([pl.col("is_for_sale"), pl.col("owner_player") == int(PlayerId.get_npc())]).as_objs()[0]
 
         self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, asset.id)) == 1)
         self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, transmission.id)) == 1)

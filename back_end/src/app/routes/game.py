@@ -131,7 +131,7 @@ def get_game_rest_router(game_repo: BaseGameStateRepo) -> APIRouter:
             for game_id in game_ids:
                 try:
                     game_state = game_repo.read(GameId(int(game_id)))
-                    player_names = [p.name for p in game_state.players.human_players]
+                    player_names = game_state.players.human_player_names
                     games_info.append({"game_id": str(game_id), "players": player_names})
                 except Exception:
                     # If can't load game state, just include id

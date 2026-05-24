@@ -6,7 +6,7 @@ from typing import Any, Protocol, Self, get_args, get_origin, runtime_checkable
 import pandas as pd
 import polars as pl
 
-from src.tools.typing import IntId
+from src.models.ids import IntId
 
 type Primitive = int | float | str | bool
 type FlatDict = dict[str, Primitive]

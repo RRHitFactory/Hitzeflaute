@@ -3,7 +3,7 @@ from dataclasses import dataclass
 import dataframely as dy
 
 from src.models.data.light_dc import LightDc
-from src.models.data.polar_repo import PolarRepo, PrSchema
+from src.models.data.polar_repo import PolarRepo
 from src.models.ids import BusId
 from src.tools.random_choice import random_choice, random_choice_multi
 
@@ -15,7 +15,8 @@ class Bus(LightDc):
     y: float
 
 
-class BusRepoSchema(PrSchema):
+class BusRepoSchema(dy.Schema):
+    id = BusId._get_dy_column(primary_key=True)
     x = dy.Float64()
     y = dy.Float64()
 

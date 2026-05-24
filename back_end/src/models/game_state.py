@@ -9,8 +9,8 @@ from src.models.game_settings import GameSettings
 from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
 from src.models.pending_state import PendingState
-from src.models.player import PlayerRepo
-from src.models.transmission import TransmissionInfo, TransmissionRepo
+from src.models.player import PlayerPolarRepo
+from src.models.transmission import TransmissionInfo, TransmissionPolarRepo
 from src.tools.serialization import simplify_type, un_simplify_type
 
 __all__ = ["Phase", "GameState"]
@@ -42,7 +42,7 @@ class Phase(IntEnum):
         return Phase(next_index)
 
 
-type GameStateAttributes = Phase | PlayerRepo | BusPolarRepo | AssetPolarRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
+type GameStateAttributes = Phase | PlayerPolarRepo | BusPolarRepo | AssetPolarRepo | TransmissionPolarRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
 
 
 @dataclass(frozen=True)
@@ -50,10 +50,10 @@ class GameState:
     game_id: GameId
     game_settings: GameSettings
     phase: Phase
-    players: PlayerRepo
+    players: PlayerPolarRepo
     buses: BusPolarRepo
     assets: AssetPolarRepo
-    transmission: TransmissionRepo
+    transmission: TransmissionPolarRepo
     market_coupling_result: MarketCouplingResult | None
     game_round: Round = Round(1)
     pending_state: PendingState = PendingState()  # A record of actions that cannot be made public yet
@@ -70,7 +70,7 @@ class GameState:
     def is_hotseat(self) -> bool:
         return self.game_settings.turn_type == "hotseat"
 
-    def get_players_with_updated_turns_for_new_phase(self, new_phase: Phase) -> PlayerRepo:
+    def get_players_with_updated_turns_for_new_phase(self, new_phase: Phase) -> PlayerPolarRepo:
         if self.is_hotseat or new_phase.is_one_by_one:
             players = self.players.start_first_player_turn()
         else:
@@ -171,10 +171,10 @@ class GameState:
             game_id=GameId(simple_dict["game_id"]),
             game_settings=GameSettings.from_simple_dict(simple_dict["game_settings"]),
             phase=un_simplify_type(x=simple_dict["phase"], t=Phase),
-            players=PlayerRepo.from_simple_dict(simple_dict["players"]),
+            players=PlayerPolarRepo.from_simple_dict(simple_dict["players"]),
             buses=BusPolarRepo.from_simple_dict(simple_dict["buses"]),
             assets=AssetPolarRepo.from_simple_dict(simple_dict["assets"]),
-            transmission=TransmissionRepo.from_simple_dict(simple_dict["transmission"]),
+            transmission=TransmissionPolarRepo.from_simple_dict(simple_dict["transmission"]),
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
             game_round=Round(simple_dict["game_round"]),
             pending_state=PendingState.from_simple_dict(simple_dict["pending_state"]),

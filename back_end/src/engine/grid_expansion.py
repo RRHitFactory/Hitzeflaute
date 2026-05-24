@@ -41,11 +41,11 @@ class GridExpansion:
         msgs = [
             AssetBuiltMessage(
                 game_id=game_state.game_id,
-                player_id=player.id,
+                player_id=player,
                 message=f"New {new_asset.technology} {new_asset.asset_type} built at bus {new_asset.bus}.",
                 asset_id=new_asset.id,
             )
-            for player in game_state.players.human_players
+            for player in game_state.players.human_player_ids
         ]
         return new_game_state, msgs, [new_asset.id]
 

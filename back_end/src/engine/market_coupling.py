@@ -8,7 +8,7 @@ from src.models.assets import AssetId, AssetPolarRepo
 from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
-from src.models.transmission import TransmissionId, TransmissionRepo
+from src.models.transmission import TransmissionId, TransmissionPolarRepo
 from tests.utils.misc import get_asset_locations
 
 
@@ -129,7 +129,7 @@ class MarketCouplingCalculator:
         return cls._tidy_df(df=network.buses_t.marginal_price, column_name="Bus")
 
     @classmethod
-    def get_transmission_flows(cls, network: pypsa.Network, transmission: TransmissionRepo) -> pd.DataFrame:
+    def get_transmission_flows(cls, network: pypsa.Network, transmission: TransmissionPolarRepo) -> pd.DataFrame:
         df = cls._tidy_df(df=pd.concat([network.lines_t.p0, network.links_t.p0], axis=1), column_name="Line")
         # Add zero flows to open lines
         open_ids = transmission.only_open.transmission_ids

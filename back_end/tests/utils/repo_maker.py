@@ -11,8 +11,8 @@ from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.data.polar_repo import PolarRepo
 from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
-from src.models.player import Player, PlayerRepo
-from src.models.transmission import TransmissionInfo, TransmissionRepo
+from src.models.player import Player, PlayerPolarRepo
+from src.models.transmission import TransmissionInfo, TransmissionPolarRepo
 from src.tools.random_choice import random_choice
 
 T_RepoMaker = TypeVar("T_RepoMaker", bound="RepoMaker")
@@ -53,14 +53,14 @@ class RepoMaker[T_Repo: LdcRepo | PolarRepo, T_LightDc: LightDc]:
 
 class BusRepoMaker(RepoMaker[BusPolarRepo, Bus]):
     @classmethod
-    def make_quick(cls, n_buses: int = 10, players: list[PlayerId] | PlayerRepo | None = None) -> BusPolarRepo:
+    def make_quick(cls, n_buses: int = 10, players: list[PlayerId] | PlayerPolarRepo | None = None) -> BusPolarRepo:
         return cls(players=players).add_n_random(n_buses).make()
 
-    def __init__(self, players: list[PlayerId] | PlayerRepo | None = None) -> None:
+    def __init__(self, players: list[PlayerId] | PlayerPolarRepo | None = None) -> None:
         super().__init__()
         if players is None:
             players = [PlayerId(i) for i in range(3)]
-        elif isinstance(players, PlayerRepo):
+        elif isinstance(players, PlayerPolarRepo):
             players = players.player_ids
         self.player_ids = players
 
@@ -103,9 +103,9 @@ class BusRepoMaker(RepoMaker[BusPolarRepo, Bus]):
                 self.dcs.append(self._make_dc())
 
 
-class PlayerRepoMaker(RepoMaker[PlayerRepo, Player]):
+class PlayerRepoMaker(RepoMaker[PlayerPolarRepo, Player]):
     @classmethod
-    def make_quick(cls, n: int = 3) -> PlayerRepo:
+    def make_quick(cls, n: int = 3) -> PlayerPolarRepo:
         maker = cls()
         return maker.add_n_random(n).make()
 
@@ -126,8 +126,8 @@ class PlayerRepoMaker(RepoMaker[PlayerRepo, Player]):
             is_having_turn=random_choice([False, True]),
         )
 
-    def _get_repo_type(self) -> type[PlayerRepo]:
-        return PlayerRepo
+    def _get_repo_type(self) -> type[PlayerPolarRepo]:
+        return PlayerPolarRepo
 
     def _pre_make_hook(self) -> None:
         # Ensure that there is exactly one bus per non-npc player
@@ -141,20 +141,20 @@ class AssetRepoMaker(RepoMaker[AssetPolarRepo, AssetInfo]):
     def make_quick(
         cls,
         n_normal_assets: int = 3,
-        players: list[PlayerId] | PlayerRepo | None = None,
+        players: list[PlayerId] | PlayerPolarRepo | None = None,
         bus_repo: BusPolarRepo | None = None,
     ) -> AssetPolarRepo:
         return cls(players=players, bus_repo=bus_repo).add_n_random(n_normal_assets).add_asset(owner=PlayerId.get_npc(), is_for_sale=True).make()
 
     def __init__(
         self,
-        players: list[PlayerId] | PlayerRepo | None = None,
+        players: list[PlayerId] | PlayerPolarRepo | None = None,
         bus_repo: BusPolarRepo | None = None,
     ) -> None:
         super().__init__()
         if players is None:
             players = [PlayerId(i) for i in range(3)]
-        elif isinstance(players, PlayerRepo):
+        elif isinstance(players, PlayerPolarRepo):
             players = players.player_ids
 
         if bus_repo is None:
@@ -300,14 +300,14 @@ class AssetRepoMaker(RepoMaker[AssetPolarRepo, AssetInfo]):
         return AssetPolarRepo
 
 
-class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
+class TransmissionRepoMaker(RepoMaker[TransmissionPolarRepo, TransmissionInfo]):
     @classmethod
     def make_quick(
         cls,
         n: int | None = None,
-        players: list[PlayerId] | PlayerRepo | None = None,
+        players: list[PlayerId] | PlayerPolarRepo | None = None,
         buses: BusPolarRepo | None = None,
-    ) -> TransmissionRepo:
+    ) -> TransmissionPolarRepo:
         if n is None:
             assert buses is not None, "Either n or buses must be provided"
             n = min(10, round(5 * len(buses) * 0.4))
@@ -316,13 +316,13 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
 
     def __init__(
         self,
-        players: list[PlayerId] | PlayerRepo | None = None,
+        players: list[PlayerId] | PlayerPolarRepo | None = None,
         buses: BusPolarRepo | None = None,
     ) -> None:
         super().__init__()
         if players is None:
             players = [PlayerId(i) for i in range(3)]
-        elif isinstance(players, PlayerRepo):
+        elif isinstance(players, PlayerPolarRepo):
             players = players.player_ids
 
         if buses is None:
@@ -430,8 +430,8 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
             line_or_link=line_or_link if line_or_link is not None else "Line",
         )
 
-    def _get_repo_type(self) -> type[TransmissionRepo]:
-        return TransmissionRepo
+    def _get_repo_type(self) -> type[TransmissionPolarRepo]:
+        return TransmissionPolarRepo
 
     def _pre_make_hook(self) -> None:
         # Connect islands before making the repo

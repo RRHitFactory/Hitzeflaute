@@ -11,8 +11,8 @@ from src.models.game_state import GameState, Phase
 from src.models.ids import GameId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.pending_state import PendingState
-from src.models.player import PlayerRepo
-from src.models.transmission import TransmissionRepo
+from src.models.player import PlayerPolarRepo
+from src.models.transmission import TransmissionPolarRepo
 from src.tools.random_choice import random_choice, random_choice_multi
 from tests.utils.misc import get_asset_locations
 from tests.utils.repo_maker import (
@@ -27,10 +27,10 @@ class MarketResultMaker:
     @classmethod
     def make_quick(
         cls,
-        player_repo: PlayerRepo | None = None,
+        player_repo: PlayerPolarRepo | None = None,
         bus_repo: BusPolarRepo | None = None,
         asset_repo: AssetPolarRepo | None = None,
-        transmission_repo: TransmissionRepo | None = None,
+        transmission_repo: TransmissionPolarRepo | None = None,
         n_random_congested_transmissions: int = 0,
         n_players_with_no_power_for_ice_cream: int = 0,
     ) -> MarketCouplingResult:
@@ -62,10 +62,10 @@ class MarketResultMaker:
 
     def __init__(
         self,
-        player_repo: PlayerRepo,
+        player_repo: PlayerPolarRepo,
         bus_repo: BusPolarRepo,
         asset_repo: AssetPolarRepo,
-        transmission_repo: TransmissionRepo,
+        transmission_repo: TransmissionPolarRepo,
     ) -> None:
         self.player_repo = player_repo
         self.bus_repo = bus_repo
@@ -130,7 +130,7 @@ class MarketResultMaker:
             players_with_power_for_ice_cream -= set(self._players_with_no_power_for_ice_cream)
 
         for player_id in self.player_repo.human_player_ids:
-            freezer = self.asset_repo.get_freezer_for_player(player_id)
+            freezer = self.asset_repo.get_freezer_for_player(player_id).as_obj()
 
             if player_id in players_with_power_for_ice_cream:
                 assets_dispatch.loc[:, freezer.id.as_int()] = freezer.power_expected
@@ -146,10 +146,10 @@ class GameStateMaker:
         self.game_id: GameId | None = None
         self.game_settings: GameSettings | None = None
         self.phase: Phase | None = None
-        self.player_repo: PlayerRepo | None = None
+        self.player_repo: PlayerPolarRepo | None = None
         self.bus_repo: BusPolarRepo | None = None
         self.asset_repo: AssetPolarRepo | None = None
-        self.transmission_repo: TransmissionRepo | None = None
+        self.transmission_repo: TransmissionPolarRepo | None = None
         self.market_coupling_result: MarketCouplingResult | None = None
         self.pending_state: PendingState | None = None
 
@@ -165,7 +165,7 @@ class GameStateMaker:
         self.phase = phase
         return self
 
-    def add_player_repo(self, player_repo: PlayerRepo) -> Self:
+    def add_player_repo(self, player_repo: PlayerPolarRepo) -> Self:
         self.player_repo = player_repo
         return self
 
@@ -177,7 +177,7 @@ class GameStateMaker:
         self.asset_repo = asset_repo
         return self
 
-    def add_transmission_repo(self, transmission_repo: TransmissionRepo) -> Self:
+    def add_transmission_repo(self, transmission_repo: TransmissionPolarRepo) -> Self:
         self.transmission_repo = transmission_repo
         return self
 
