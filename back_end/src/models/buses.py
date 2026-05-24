@@ -21,7 +21,7 @@ class BusRepoSchema(dy.Schema):
     y = dy.Float64()
 
 
-class BusPolarRepo(PolarRepo[BusRepoSchema, Bus, BusId]):
+class BusRepo(PolarRepo[BusRepoSchema, Bus, BusId]):
     @classmethod
     def get_schema(cls) -> tuple[type[BusRepoSchema], type[Bus], type[BusId]]:
         return BusRepoSchema, Bus, BusId

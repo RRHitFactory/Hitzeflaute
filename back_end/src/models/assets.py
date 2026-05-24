@@ -91,7 +91,7 @@ is_freezer = pl.col("is_freezer")
 is_for_sale = pl.col("is_for_sale")
 
 
-class AssetPolarRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
+class AssetRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
     @classmethod
     def get_schema(cls) -> tuple[type[AssetRepoSchema], type[AssetInfo], type[AssetId]]:
         return AssetRepoSchema, AssetInfo, AssetId
@@ -102,53 +102,53 @@ class AssetPolarRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
         return [AssetId(x) for x in self.df["id"].to_list()]
 
     @property
-    def only_active(self) -> "AssetPolarRepo":
+    def only_active(self) -> "AssetRepo":
         return self._filter(is_active)
 
     @property
-    def only_inactive(self) -> "AssetPolarRepo":
+    def only_inactive(self) -> "AssetRepo":
         return self._filter(~is_active)
 
     @property
-    def only_freezers(self) -> "AssetPolarRepo":
+    def only_freezers(self) -> "AssetRepo":
         return self._filter(is_freezer)
 
     @property
-    def not_freezers(self) -> "AssetPolarRepo":
+    def not_freezers(self) -> "AssetRepo":
         return self._filter(~is_freezer)
 
     @property
-    def only_loads(self) -> "AssetPolarRepo":
+    def only_loads(self) -> "AssetRepo":
         return self._filter(is_load)
 
     @property
-    def only_generators(self) -> "AssetPolarRepo":
+    def only_generators(self) -> "AssetRepo":
         return self._filter(is_generator)
 
     @property
-    def only_for_sale(self) -> "AssetPolarRepo":
+    def only_for_sale(self) -> "AssetRepo":
         return self._filter(is_for_sale)
 
     @property
-    def not_for_sale(self) -> "AssetPolarRepo":
+    def not_for_sale(self) -> "AssetRepo":
         return self._filter(~is_for_sale)
 
     def get_wearable_asset_ids(self) -> list[AssetId]:
         return [AssetId(a) for a in self.df.filter(pl.col("health") > 0, ~pl.col("is_freezer"))["id"].to_list()]
 
-    def get_all_assets_at_bus(self, bus_id: BusId, only_active: bool = False) -> "AssetPolarRepo":
+    def get_all_assets_at_bus(self, bus_id: BusId, only_active: bool = False) -> "AssetRepo":
         filters = [pl.col("bus") == bus_id]
         if only_active:
             filters.append(is_active)
         return self._filter(filters)
 
-    def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> "AssetPolarRepo":
+    def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> "AssetRepo":
         filters = [pl.col("owner_player") == int(player_id)]
         if only_active:
             filters.append(is_active)
         return self._filter(filters)
 
-    def get_freezer_for_player(self, player_id: PlayerId) -> "AssetPolarRepo":
+    def get_freezer_for_player(self, player_id: PlayerId) -> "AssetRepo":
         filters = [pl.col("owner_player") == int(player_id), is_freezer]
         return self._filter(filters)
 
@@ -165,40 +165,40 @@ class AssetPolarRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
         return self.df.filter(pl.col("id") == int(asset_id)).limit(1)["freezer"].item()
 
     # UPDATE
-    def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> "AssetPolarRepo":
+    def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> "AssetRepo":
         return self.update_key_values(id=asset_id, key_values={"owner_player": int(new_owner), "is_for_sale": False})
 
-    def update_bids(self, bids: MappingProxyType[AssetId, float]) -> "AssetPolarRepo":
+    def update_bids(self, bids: MappingProxyType[AssetId, float]) -> "AssetRepo":
         df = self.df
         bid_df = pl.DataFrame({"id": list(bids.keys()), "new_bid": list(bids.values())})
         updated_df = df.join(bid_df, on="id", how="left").with_columns(pl.coalesce("new_bid", "bid_price").alias("bid_price")).drop("new_bid")
         return self.update_frame(updated_df)
 
-    def migrate_asset(self, asset_id: AssetId, new_bus_id: BusId, round: Round) -> "AssetPolarRepo":
+    def migrate_asset(self, asset_id: AssetId, new_bus_id: BusId, round: Round) -> "AssetRepo":
         return self.update_key_values(id=asset_id, key_values={"bus": int(new_bus_id), "birthday": int(round)})
 
-    def _decrease_health(self, asset_ids: list[AssetId]) -> "AssetPolarRepo":
+    def _decrease_health(self, asset_ids: list[AssetId]) -> "AssetRepo":
         df = self.df.with_columns(pl.when(pl.col("id").is_in(asset_ids)).then((pl.col("health") - 1).clip(lower_bound=0).alias("health")).otherwise(pl.col("health"))).with_columns(
             (pl.col("health") > 0).alias("is_alive")
         )
         return self._make_quick(df)
 
-    def melt_ice_cream(self, asset_id: AssetId) -> "AssetPolarRepo":
+    def melt_ice_cream(self, asset_id: AssetId) -> "AssetRepo":
         assert len(self.df.filter(pl.col("id") == int(asset_id), pl.col("is_freezer"))) == 1, f"Could not find freezer with id {asset_id}"
         return self._decrease_health([asset_id])
 
-    def wear_assets(self, asset_ids: list[AssetId]) -> "AssetPolarRepo":
+    def wear_assets(self, asset_ids: list[AssetId]) -> "AssetRepo":
         assert len(self.df.filter(pl.col("id").is_in(asset_ids), ~pl.col("is_freezer"))) == len(asset_ids), f"Could not find non-freezers with ids {asset_ids}"
         return self._decrease_health(asset_ids)
 
-    def batch_deactivate(self, asset_ids: list[AssetId]) -> "AssetPolarRepo":
+    def batch_deactivate(self, asset_ids: list[AssetId]) -> "AssetRepo":
         return self.update_key_values(id=asset_ids, key_values={"is_active": False})
 
-    def update_activations(self, activations: MappingProxyType[AssetId, bool]) -> "AssetPolarRepo":
+    def update_activations(self, activations: MappingProxyType[AssetId, bool]) -> "AssetRepo":
         actives = [k for k, v in activations.items() if v]
         inactives = [k for k, v in activations.items() if not v]
         return self.update_key_values(id=actives, key_values={"is_active": True}).update_key_values(id=inactives, key_values={"is_active": False})
 
     # DELETE
-    def delete_for_player(self, player_id: PlayerId) -> "AssetPolarRepo":
+    def delete_for_player(self, player_id: PlayerId) -> "AssetRepo":
         return self._drop_items(pl.col("owner_player") == int(player_id))

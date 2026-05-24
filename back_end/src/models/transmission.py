@@ -9,7 +9,7 @@ from src.models.data.light_dc import LightDc
 from src.models.data.polar_repo import PolarRepo
 from src.models.ids import BusId, PlayerId, TransmissionId
 
-__all__ = ["TransmissionInfo", "TransmissionPolarRepo"]
+__all__ = ["TransmissionInfo", "TransmissionRepo"]
 
 
 @dataclass(frozen=True)
@@ -75,7 +75,7 @@ is_active = is_closed
 is_for_sale = pl.col("is_for_sale")
 
 
-class TransmissionPolarRepo(PolarRepo[TransmissionRepoSchema, TransmissionInfo, TransmissionId]):
+class TransmissionRepo(PolarRepo[TransmissionRepoSchema, TransmissionInfo, TransmissionId]):
     @classmethod
     def get_schema(cls) -> tuple[type[TransmissionRepoSchema], type[TransmissionInfo], type[TransmissionId]]:
         return TransmissionRepoSchema, TransmissionInfo, TransmissionId

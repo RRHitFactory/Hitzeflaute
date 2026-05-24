@@ -1,9 +1,9 @@
-from src.models.assets import AssetInfo, AssetPolarRepo
-from src.models.buses import Bus, BusPolarRepo
+from src.models.assets import AssetInfo, AssetRepo
+from src.models.buses import Bus, BusRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
 from src.models.ids import GameId, PlayerId
-from src.models.transmission import TransmissionPolarRepo
+from src.models.transmission import TransmissionRepo
 from src.new_game.new_game import GameInitializer
 from src.new_game.trigram_maker import make_trigrams
 from tests.base_test import BaseTest
@@ -29,9 +29,9 @@ class TestGameInitializer(BaseTest):
         n_playing = len(game_state.players.get_currently_playing())
         self.assertEqual(n_playing, 1)  # Only one player should have the turn
 
-        self.assertIsInstance(game_state.assets, AssetPolarRepo)
-        self.assertIsInstance(game_state.buses, BusPolarRepo)
-        self.assertIsInstance(game_state.transmission, TransmissionPolarRepo)
+        self.assertIsInstance(game_state.assets, AssetRepo)
+        self.assertIsInstance(game_state.buses, BusRepo)
+        self.assertIsInstance(game_state.transmission, TransmissionRepo)
 
         # check that settings are applied correctly
         self.assertEqual(len(game_state.buses), self.settings.n_buses)

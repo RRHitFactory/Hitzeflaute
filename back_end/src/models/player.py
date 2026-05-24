@@ -48,7 +48,7 @@ is_human = pl.col("id") != int(PlayerId.get_npc())
 is_having_turn = pl.col("is_having_turn")
 
 
-class PlayerPolarRepo(PolarRepo[PlayerRepoSchema, Player, PlayerId]):
+class PlayerRepo(PolarRepo[PlayerRepoSchema, Player, PlayerId]):
     @classmethod
     def get_schema(cls) -> tuple[type[PlayerRepoSchema], type[Player], type[PlayerId]]:
         return PlayerRepoSchema, Player, PlayerId
@@ -85,9 +85,6 @@ class PlayerPolarRepo(PolarRepo[PlayerRepoSchema, Player, PlayerId]):
     @property
     def only_alive_human(self) -> Self:
         return self._filter([still_alive, is_human])
-
-    def get_player(self, player_id: PlayerId) -> Player:
-        return self[player_id]
 
     def get_currently_playing(self) -> Self:
         return self._filter(is_having_turn)

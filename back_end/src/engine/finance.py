@@ -1,17 +1,17 @@
 import polars as pl
 
-from src.models.assets import AssetId, AssetPolarRepo
+from src.models.assets import AssetId, AssetRepo
 from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.pnl import PnlCat, PnlFrame, PnlFrameSchema
-from src.models.transmission import TransmissionId, TransmissionPolarRepo
+from src.models.transmission import TransmissionId, TransmissionRepo
 
 
 class FinanceCalculator:
     @staticmethod
     def compute_assets_cashflow(
-        assets: AssetPolarRepo,
+        assets: AssetRepo,
         assets_dispatch: dict[AssetId, float],
         bus_prices: dict[BusId, float],
     ) -> PnlFrame:
@@ -31,7 +31,7 @@ class FinanceCalculator:
 
     @staticmethod
     def compute_transmission_cashflow(
-        transmission_repo: TransmissionPolarRepo,
+        transmission_repo: TransmissionRepo,
         transmission_flows: dict[TransmissionId, float],
         bus_prices: dict[BusId, float],
     ) -> PnlFrame:
@@ -72,7 +72,7 @@ class FinanceCalculator:
 
     @staticmethod
     def validate_bid_for_asset(
-        player_assets: AssetPolarRepo,
+        player_assets: AssetRepo,
         asset_id_to_validate: AssetId | None,
         bid_to_validate: float | None,
         player_money: float,

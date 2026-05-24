@@ -4,11 +4,11 @@ import warnings
 import pandas as pd
 import pypsa
 
-from src.models.assets import AssetId, AssetPolarRepo
+from src.models.assets import AssetId, AssetRepo
 from src.models.buses import BusId
 from src.models.game_state import GameState
 from src.models.market_coupling_result import MarketCouplingResult
-from src.models.transmission import TransmissionId, TransmissionPolarRepo
+from src.models.transmission import TransmissionId, TransmissionRepo
 from tests.utils.misc import get_asset_locations
 
 
@@ -129,7 +129,7 @@ class MarketCouplingCalculator:
         return cls._tidy_df(df=network.buses_t.marginal_price, column_name="Bus")
 
     @classmethod
-    def get_transmission_flows(cls, network: pypsa.Network, transmission: TransmissionPolarRepo) -> pd.DataFrame:
+    def get_transmission_flows(cls, network: pypsa.Network, transmission: TransmissionRepo) -> pd.DataFrame:
         df = cls._tidy_df(df=pd.concat([network.lines_t.p0, network.links_t.p0], axis=1), column_name="Line")
         # Add zero flows to open lines
         open_ids = transmission.only_open.transmission_ids
@@ -138,7 +138,7 @@ class MarketCouplingCalculator:
         return df
 
     @classmethod
-    def get_assets_dispatch(cls, network: pypsa.Network, assets: AssetPolarRepo) -> pd.DataFrame:
+    def get_assets_dispatch(cls, network: pypsa.Network, assets: AssetRepo) -> pd.DataFrame:
         # Note that all values are positive. For generators this means production, for loads it means consumption.
         df = cls._tidy_df(df=network.generators_t.p, column_name="Asset").abs()
         # Add zero dispatch to inactive assets

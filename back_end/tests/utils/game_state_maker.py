@@ -4,15 +4,15 @@ from typing import Self
 import numpy as np
 import pandas as pd
 
-from src.models.assets import AssetPolarRepo
-from src.models.buses import BusPolarRepo
+from src.models.assets import AssetRepo
+from src.models.buses import BusRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
 from src.models.ids import GameId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.pending_state import PendingState
-from src.models.player import PlayerPolarRepo
-from src.models.transmission import TransmissionPolarRepo
+from src.models.player import PlayerRepo
+from src.models.transmission import TransmissionRepo
 from src.tools.random_choice import random_choice, random_choice_multi
 from tests.utils.misc import get_asset_locations
 from tests.utils.repo_maker import (
@@ -27,10 +27,10 @@ class MarketResultMaker:
     @classmethod
     def make_quick(
         cls,
-        player_repo: PlayerPolarRepo | None = None,
-        bus_repo: BusPolarRepo | None = None,
-        asset_repo: AssetPolarRepo | None = None,
-        transmission_repo: TransmissionPolarRepo | None = None,
+        player_repo: PlayerRepo | None = None,
+        bus_repo: BusRepo | None = None,
+        asset_repo: AssetRepo | None = None,
+        transmission_repo: TransmissionRepo | None = None,
         n_random_congested_transmissions: int = 0,
         n_players_with_no_power_for_ice_cream: int = 0,
     ) -> MarketCouplingResult:
@@ -62,10 +62,10 @@ class MarketResultMaker:
 
     def __init__(
         self,
-        player_repo: PlayerPolarRepo,
-        bus_repo: BusPolarRepo,
-        asset_repo: AssetPolarRepo,
-        transmission_repo: TransmissionPolarRepo,
+        player_repo: PlayerRepo,
+        bus_repo: BusRepo,
+        asset_repo: AssetRepo,
+        transmission_repo: TransmissionRepo,
     ) -> None:
         self.player_repo = player_repo
         self.bus_repo = bus_repo
@@ -146,10 +146,10 @@ class GameStateMaker:
         self.game_id: GameId | None = None
         self.game_settings: GameSettings | None = None
         self.phase: Phase | None = None
-        self.player_repo: PlayerPolarRepo | None = None
-        self.bus_repo: BusPolarRepo | None = None
-        self.asset_repo: AssetPolarRepo | None = None
-        self.transmission_repo: TransmissionPolarRepo | None = None
+        self.player_repo: PlayerRepo | None = None
+        self.bus_repo: BusRepo | None = None
+        self.asset_repo: AssetRepo | None = None
+        self.transmission_repo: TransmissionRepo | None = None
         self.market_coupling_result: MarketCouplingResult | None = None
         self.pending_state: PendingState | None = None
 
@@ -165,19 +165,19 @@ class GameStateMaker:
         self.phase = phase
         return self
 
-    def add_player_repo(self, player_repo: PlayerPolarRepo) -> Self:
+    def add_player_repo(self, player_repo: PlayerRepo) -> Self:
         self.player_repo = player_repo
         return self
 
-    def add_bus_repo(self, bus_repo: BusPolarRepo) -> Self:
+    def add_bus_repo(self, bus_repo: BusRepo) -> Self:
         self.bus_repo = bus_repo
         return self
 
-    def add_asset_repo(self, asset_repo: AssetPolarRepo) -> Self:
+    def add_asset_repo(self, asset_repo: AssetRepo) -> Self:
         self.asset_repo = asset_repo
         return self
 
-    def add_transmission_repo(self, transmission_repo: TransmissionPolarRepo) -> Self:
+    def add_transmission_repo(self, transmission_repo: TransmissionRepo) -> Self:
         self.transmission_repo = transmission_repo
         return self
 
