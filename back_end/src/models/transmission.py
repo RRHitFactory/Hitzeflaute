@@ -5,9 +5,9 @@ from typing import Self
 import dataframely as dy
 import polars as pl
 
+from src.ids import BusId, PlayerId, TransmissionId
 from src.models.data.light_dc import LightDc
 from src.models.data.polar_repo import PolarRepo
-from src.models.ids import BusId, PlayerId, TransmissionId
 
 __all__ = ["TransmissionInfo", "TransmissionRepo"]
 

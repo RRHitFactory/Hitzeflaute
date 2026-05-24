@@ -5,8 +5,8 @@ from typing import Any, ClassVar, Self, overload
 import dataframely as dy
 import polars as pl
 
+from src.ids import IntId
 from src.models.data.light_dc import LightDc
-from src.models.ids import IntId
 from src.tools.serialization import FlatDict, simplify_type
 
 
@@ -19,7 +19,7 @@ class PolarRepo[T_Schema: dy.Schema, T_Obj: LightDc, T_Int: int](ABC):
     def get_schema(cls) -> tuple[type[T_Schema], type[T_Obj], type[T_Int]]: ...
 
     @classmethod
-    def _validate_schema(cls) -> None:
+    def _validate_class(cls) -> None:
         if cls._validated:
             return
         schema, obj_type, int_type = cls.get_schema()
@@ -35,23 +35,30 @@ class PolarRepo[T_Schema: dy.Schema, T_Obj: LightDc, T_Int: int](ABC):
         cls._validated = True
 
     def __init__(self, x: pl.DataFrame | list[T_Obj], quick: bool = False) -> None:
-        self._validate_schema()
+        self._validate_class()
+        self.df = self._validate_df(x=x, quick=quick)
 
-        schema, obj_type, int_type = self.get_schema()
-        self.schema = schema
-        self.obj_type = obj_type
-        self.int_type = int_type
-
+    def _validate_df(self, x: pl.DataFrame | list[T_Obj], quick: bool) -> dy.DataFrame[T_Schema]:
+        dy_schema = self.dy_schema
         if quick:
             assert isinstance(x, pl.DataFrame)
-            df = self.schema.cast(x)
+            return dy_schema.cast(x)
+        if isinstance(x, list):
+            return dy_schema.validate(pl.DataFrame([obj.to_simple_dict() for obj in x]), cast=True)
         else:
-            if isinstance(x, list):
-                df = pl.DataFrame([obj.to_simple_dict() for obj in x])
-            else:
-                df = x
-            df = schema.validate(df, cast=True)
-        self.df = df
+            return dy_schema.validate(x, cast=True)
+
+    @property
+    def dy_schema(self) -> type[T_Schema]:
+        return self.get_schema()[0]
+
+    @property
+    def obj_type(self) -> type[T_Obj]:
+        return self.get_schema()[1]
+
+    @property
+    def int_type(self) -> type[T_Int]:
+        return self.get_schema()[2]
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__} ({len(self.df)} rows)>"
@@ -63,10 +70,10 @@ class PolarRepo[T_Schema: dy.Schema, T_Obj: LightDc, T_Int: int](ABC):
         if isinstance(other, PolarRepo):
             other_df = other.df
         elif isinstance(other, pl.DataFrame):
-            other_df = self.schema.validate(other, cast=True)
+            other_df = self.dy_schema.validate(other, cast=True)
         else:
             assert isinstance(other, self.obj_type)
-            other_df = self.schema.validate(pl.DataFrame(data=other.to_simple_dict()), cast=True)
+            other_df = self.dy_schema.validate(pl.DataFrame(data=other.to_simple_dict()), cast=True)
         # Do a quick check for unique ids, then skip main validation
         my_ids = self.df["id"].to_list()
         new_ids = other_df["id"].to_list()

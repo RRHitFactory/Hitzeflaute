@@ -1,4 +1,4 @@
-from src.models.ids import AssetId, GameId, PlayerId
+from src.ids import AssetId, GameId, PlayerId
 from src.models.message import LoadsDeactivatedMessage
 from tests.base_test import BaseTest
 

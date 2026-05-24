@@ -2,7 +2,7 @@ from src.models.assets import AssetInfo, AssetRepo
 from src.models.buses import Bus, BusRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
-from src.models.ids import GameId, PlayerId
+from src.ids import GameId, PlayerId
 from src.models.transmission import TransmissionRepo
 from src.new_game.new_game import GameInitializer
 from src.new_game.trigram_maker import make_trigrams

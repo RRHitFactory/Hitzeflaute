@@ -1,6 +1,7 @@
+from src.ids import AssetId
+
 from src.models.buses import BusSocketManager
 from src.models.game_state import GameState
-from src.models.ids import AssetId
 from src.models.message import (
     AssetBuiltMessage,
 )

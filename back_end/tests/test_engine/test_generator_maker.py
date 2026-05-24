@@ -1,5 +1,5 @@
 from src.models.assets import AssetInfo
-from src.models.ids import AssetId, BusId, PlayerId, Round
+from src.ids import AssetId, BusId, PlayerId, Round
 from src.new_game.generators.generator_maker import GeneratorMaker
 from tests.base_test import BaseTest
 

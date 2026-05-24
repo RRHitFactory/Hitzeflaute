@@ -1,4 +1,4 @@
-from src.models.ids import BusId, TransmissionId
+from src.ids import BusId, TransmissionId
 from src.models.player import PlayerId
 from tests.base_test import BaseTest
 from tests.utils.repo_maker import TransmissionInfo, TransmissionRepo

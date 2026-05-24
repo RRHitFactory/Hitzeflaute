@@ -1,5 +1,5 @@
 from src.models.assets import AssetInfo, AssetRepo, AssetType
-from src.models.ids import AssetId, BusId
+from src.ids import AssetId, BusId
 from src.models.player import PlayerId
 from tests.base_test import BaseTest
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker

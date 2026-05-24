@@ -1,8 +1,8 @@
+from src.ids import GameId, PlayerId
 from fastapi import WebSocket
 
 from src.app.prepare_gs import prepare_game_state_for_front_end
 from src.app.routes.logging import console_logger, log_exception_with_traceback
-from src.models.ids import GameId, PlayerId
 from src.models.message import GameToPlayerMessage, GameUpdate
 from src.models.server_models import WebsocketMessage
 

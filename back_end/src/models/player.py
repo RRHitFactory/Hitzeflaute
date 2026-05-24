@@ -4,11 +4,11 @@ from typing import Self
 
 import dataframely as dy
 import polars as pl
-from back_end.src.models.data.polar_repo import PolarRepo
 
+from src.ids import PlayerId
 from src.models.colors import Color
 from src.models.data.light_dc import LightDc
-from src.models.ids import PlayerId
+from src.models.data.polar_repo import PolarRepo
 
 
 @dataclass(frozen=True)

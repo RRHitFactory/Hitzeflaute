@@ -1,4 +1,4 @@
-from src.models.ids import TransmissionId, BusId, PlayerId, Round
+from src.ids import TransmissionId, BusId, PlayerId, Round
 from src.models.transmission import TransmissionInfo
 from src.new_game.transmission.transmission_maker import TransmissionMaker
 from tests.base_test import BaseTest

@@ -2,7 +2,8 @@ import math
 import os
 from pathlib import Path
 
-from src.models.ids import BusId, PlayerId, Round, TransmissionId
+from src.ids import BusId, PlayerId, Round, TransmissionId
+
 from src.models.transmission import TransmissionInfo
 from src.new_game.transmission.tranmission_technology_specs import TransmissionTechnologySpecs
 from src.tools.random_choice import random_choice

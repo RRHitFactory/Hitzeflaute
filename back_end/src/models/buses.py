@@ -2,9 +2,9 @@ from dataclasses import dataclass
 
 import dataframely as dy
 
+from src.ids import BusId
 from src.models.data.light_dc import LightDc
 from src.models.data.polar_repo import PolarRepo
-from src.models.ids import BusId
 from src.tools.random_choice import random_choice, random_choice_multi
 
 

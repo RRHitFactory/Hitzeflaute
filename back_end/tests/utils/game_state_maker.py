@@ -8,7 +8,7 @@ from src.models.assets import AssetRepo
 from src.models.buses import BusRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
-from src.models.ids import GameId, PlayerId, TransmissionId
+from src.ids import GameId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.pending_state import PendingState
 from src.models.player import PlayerRepo

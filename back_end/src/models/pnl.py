@@ -3,7 +3,7 @@ from typing import Literal
 import dataframely as dy
 import polars as pl
 
-from src.models.ids import AssetId, PlayerId
+from src.ids import AssetId, PlayerId
 
 type PnlCat = Literal["operation", "market", "congestion"]
 

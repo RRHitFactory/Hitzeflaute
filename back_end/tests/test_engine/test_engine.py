@@ -4,7 +4,7 @@ from src.engine.engine import Engine
 from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
+from src.ids import AssetId, GameId, PlayerId, TransmissionId
 from src.models.message import (
     Ack,
     ActivationUpdateRequest,

@@ -10,7 +10,7 @@ from src.models.colors import Color
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
 from src.models.data.polar_repo import PolarRepo
-from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
+from src.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.random_choice import random_choice

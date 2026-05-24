@@ -13,7 +13,7 @@ from types import MappingProxyType
 
 from pydantic import BaseModel
 
-from src.models.ids import AssetId, BusId, GameId, PlayerId, TransmissionId
+from src.ids import AssetId, BusId, GameId, PlayerId, TransmissionId
 from src.models.message import (
     ActivationUpdateRequest,
     BuyRequest,
