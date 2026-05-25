@@ -135,13 +135,6 @@ class TransmissionRepo(PolarRepo[TransmissionRepoSchema, TransmissionInfo, Trans
     def close_line(self, transmission_id: TransmissionId) -> Self:
         return self.update_key_value(id=transmission_id, key="is_active", value=True)
 
-    def eliminate_players(self, players: list[PlayerId]) -> Self:
-        # Return all lines assets to the npc
-        df = self.df
-        int_players = [int(p) for p in players]
-        df.loc[df["owner_player"].apply(lambda x: x in int_players), "owner_player"] = int(PlayerId.get_npc())
-        return self.update_frame(df)
-
     def update_activations(self, activations: MappingProxyType[TransmissionId, bool]) -> Self:
         return self.update_with_mapping(key="is_active", mapping=activations)
 

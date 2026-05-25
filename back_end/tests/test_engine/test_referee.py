@@ -1,10 +1,10 @@
 import polars as pl
 
 from src.engine.referee import Referee
+from src.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.assets import AssetInfo, AssetRepo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
-from src.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import IceCreamMeltedMessage
 from src.models.player import Player, PlayerRepo
@@ -61,7 +61,7 @@ class TestReferee(BaseTest):
         loser = Referee.get_last_place_player_id(gs=game_state)
         self.assertEqual(loser, PlayerId(3))
 
-        game_state = game_state.update(player_repo.eliminate_players(player_repo.alive_human_ids))
+        game_state = game_state.update(player_repo.eliminate_players(player_repo.alive_human_player_ids))
         with self.assertRaises(AssertionError):
             Referee.get_last_place_player_id(gs=game_state)
 
