@@ -214,11 +214,9 @@ class Referee:
         return new_gs, eliminated_player_ids
 
     @staticmethod
-    def get_losing_player(gs: GameState) -> PlayerId:
-        """The losing player has the least remaining ice creams. Player money is used as a tie-breaker."""
-
+    def get_last_place_player_id(gs: GameState) -> PlayerId:
         alive_human_ids = gs.players.alive_human_ids
-        assert len(alive_human_ids) > 0, "Everyone is dead"
+        assert len(alive_human_ids) > 0, "Could not determine last place player"
 
         money = gs.players.get_money_for_players(alive_human_ids)
         ice_cream = gs.assets.get_remaining_ice_creams_multi(alive_human_ids)

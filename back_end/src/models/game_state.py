@@ -35,7 +35,7 @@ class Phase(IntEnum):
         return self in [Phase.CONSTRUCTION, Phase.MIGRATION]
 
     @property
-    def nice_name(self) -> str:
+    def display_name(self) -> str:
         return self.name.replace("_", " ").lower()
 
 

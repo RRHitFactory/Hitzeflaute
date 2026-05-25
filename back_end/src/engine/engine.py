@@ -100,7 +100,7 @@ class Engine:
 
         melted_ice_cream_players = [m.player_id for m in new_msgs if isinstance(m, IceCreamMeltedMessage)]
 
-        loser = Referee.get_losing_player(gs=gs)
+        loser = Referee.get_last_place_player_id(gs=gs)
         if loser in melted_ice_cream_players:
             # Someone is having a really bad day. Let's help them out.
             next_phase = Phase.MIGRATION
@@ -132,7 +132,7 @@ class Engine:
             return gs, [ca_message]
 
         if new_phase == Phase.MIGRATION:
-            loser = Referee.get_losing_player(gs=game_state)
+            loser = Referee.get_last_place_player_id(gs=game_state)
             players = gs.players.end_all_turns().start_turn(loser)
         else:
             players = gs.get_players_with_updated_turns_for_new_phase(new_phase=new_phase)
@@ -160,7 +160,7 @@ class Engine:
         if game_state.phase != Phase.CONSTRUCTION:
             response = msg.make_response(
                 success=False,
-                message=f"You can only buy assets during the {Phase.CONSTRUCTION.nice_name} phase",
+                message=f"You can only buy assets during the {Phase.CONSTRUCTION.display_name} phase",
             )
             return game_state, [response]
 
@@ -188,7 +188,7 @@ class Engine:
         if game_state.phase != Phase.CONSTRUCTION:
             response = msg.make_response(
                 success=False,
-                message=f"You can only buy transmission during the {Phase.CONSTRUCTION.nice_name} phase",
+                message=f"You can only buy transmission during the {Phase.CONSTRUCTION.display_name} phase",
             )
             return game_state, [response]
 
@@ -234,7 +234,7 @@ class Engine:
             response = msg.make_response(success=False, message=reason, asset_id=asset_id)
             return game_state, [response, cp_message]
 
-        is_losing_player = Referee.get_losing_player(gs=game_state) == msg.player_id
+        is_losing_player = Referee.get_last_place_player_id(gs=game_state) == msg.player_id
         if not is_losing_player:
             return fail("Only the losing player can migrate their ice cream to the freezer.")
 

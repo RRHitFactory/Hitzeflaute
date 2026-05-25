@@ -59,14 +59,11 @@ class GameWebSocketConnectionManager:
             console_logger.info(f"No active connections for game {game_id}")
             return
 
-        gu_dict = prepare_game_update_for_front_end(message)
-
-        print("Brodacasting")
+        data = prepare_game_update_for_front_end(message)
 
         for player_id, websocket in list(self.active_connections[game_id].items()):
-            print(f"Sending message to  {player_id}")
             try:
-                ws_message = WebsocketMessage(game_id=game_id, player_id=player_id, message_type=message.__class__.__name__, data=gu_dict)
+                ws_message = WebsocketMessage(game_id=game_id, player_id=player_id, message_type=message.__class__.__name__, data=data)
                 await websocket.send_text(ws_message.to_string())
                 console_logger.info(f"Broadcast to player {player_id} in lobby {game_id}")
             except Exception as e:

@@ -26,7 +26,7 @@ def prepare_game_state_for_front_end(game_state: GameState) -> SimpleDict:
     gs_dict["market_coupling_result"] = None
     gs_dict["pending_state"] = None
     if not game_state.game_over:
-        loser = Referee.get_losing_player(gs=game_state)
+        loser = Referee.get_last_place_player_id(gs=game_state)
         gs_dict["losing_player"] = int(loser)
 
     if game_state.market_coupling_result is not None:

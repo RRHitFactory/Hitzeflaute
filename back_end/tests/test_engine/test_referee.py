@@ -56,8 +56,12 @@ class TestReferee(BaseTest):
         asset_repo = AssetRepo(dcs=[make_freezer(p=1, health=5), make_freezer(p=2, health=4), make_freezer(p=3, health=4)])
         game_state = GameStateMaker().add_player_repo(player_repo).add_asset_repo(asset_repo).make()
 
-        loser = Referee.get_losing_player(gs=game_state)
+        loser = Referee.get_last_place_player_id(gs=game_state)
         self.assertEqual(loser, PlayerId(3))
+
+        game_state = game_state.update(player_repo.eliminate_players(player_repo.alive_human_ids))
+        with self.assertRaises(AssertionError):
+            Referee.get_last_place_player_id(gs=game_state)
 
     def test_melt_ice_creams(self) -> None:
         n_melted = 2
