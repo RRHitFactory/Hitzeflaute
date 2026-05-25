@@ -7,12 +7,13 @@ from src.models.transmission import TransmissionRepo
 from src.new_game.new_game import GameInitializer
 from src.new_game.trigram_maker import make_trigrams
 from tests.base_test import BaseTest
+import itertools
 
 
 def get_cartesian_product_of_topologies():
     bus_topologies = ["line", "grid", "random", "regular_polygon", "layered_polygon"]
     transmission_topologies = ["sequential", "random", "grid", "spiderweb"]
-    return [(bt, tt) for bt in bus_topologies for tt in transmission_topologies]
+    return itertools.product(bus_topologies, transmission_topologies)
 
 
 class TestGameInitializer(BaseTest):

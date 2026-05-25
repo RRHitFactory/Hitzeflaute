@@ -23,7 +23,7 @@ class GameSettings:
     max_bid_price: float = 1000
     initial_funds: int = 10000
     enable_fixed_costs: bool = False
-    loads: TechnologySettingsRepo = field(default_factory=lambda: MakeTechSettings.create_default_load_tech_settings())
+    loads: TechnologySettingsRepo = field(default_factory=MakeTechSettings.create_default_load_tech_settings)
     generators: TechnologySettingsRepo = field(default_factory=lambda: MakeTechSettings.create_default_generator_settings())
     transmission: TechnologySettingsRepo = field(default_factory=lambda: MakeTechSettings.create_default_transmission_settings())
     probability_of_new_asset: float = 0.2
