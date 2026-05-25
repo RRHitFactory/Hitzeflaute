@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from types import MappingProxyType
 
-from src.models.ids import AssetId, TransmissionId
+from src.ids import AssetId, TransmissionId
 
 
 @dataclass(frozen=True)

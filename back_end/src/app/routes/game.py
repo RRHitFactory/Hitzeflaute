@@ -5,9 +5,9 @@ from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect, st
 from src.app.game_manager import GameManager
 from src.app.game_repo.base import BaseGameStateRepo
 from src.app.game_ws_manager import GameWebSocketConnectionManager
-from src.app.prepare_gs import prepare_game_state_for_front_end
+from src.app.prepare_gs import prepare_game_update_for_front_end
 from src.app.routes.logging import log_exception_with_traceback
-from src.models.ids import GameId, PlayerId
+from src.ids import GameId, PlayerId
 from src.models.message import GameUpdate
 from src.models.server_models import (
     CreateGameRequest,
@@ -32,9 +32,10 @@ def get_game_ws_router(ws_connection_manager: GameWebSocketConnectionManager, ga
         # Send initial game state
         try:
             game_state = game_repo.read(GameId(int(game_id)))
-            msg_dict = prepare_game_state_for_front_end(game_state)
+            game_update = GameUpdate(game_id=game_state.game_id, game_state=game_state)
+            data = prepare_game_update_for_front_end(game_update)
 
-            message = WebsocketMessage(game_id=game_id_true, player_id=player_id_true, message_type=GameUpdate.__name__, data=msg_dict)
+            message = WebsocketMessage(game_id=game_id_true, player_id=player_id_true, message_type=GameUpdate.__name__, data=data)
             await websocket.send_text(message.to_string())
         except Exception as e:
             log_exception_with_traceback(f"Error sending initial game state: {e}", e)
@@ -131,7 +132,7 @@ def get_game_rest_router(game_repo: BaseGameStateRepo) -> APIRouter:
             for game_id in game_ids:
                 try:
                     game_state = game_repo.read(GameId(int(game_id)))
-                    player_names = [p.name for p in game_state.players.human_players]
+                    player_names = game_state.players.human_player_names
                     games_info.append({"game_id": str(game_id), "players": player_names})
                 except Exception:
                     # If can't load game state, just include id

@@ -4,7 +4,7 @@ from src.engine.engine import Engine
 from src.models.assets import AssetInfo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, GameId, PlayerId, TransmissionId
+from src.ids import AssetId, GameId, PlayerId, TransmissionId
 from src.models.message import (
     Ack,
     ActivationUpdateRequest,
@@ -58,7 +58,7 @@ class TestEngine(BaseTest):
         game_state = game_state.update(new_player_repo, construction_phase)
 
         player_msg = BuyRequest(game_state.game_id, player_not_in_turn, game_state.assets.asset_ids[-1])
-        result_game_state, failed_message = Engine.handle_message(game_state=game_state, msg=player_msg)
+        _, failed_message = Engine.handle_message(game_state=game_state, msg=player_msg)
         self.assertIsInstance(failed_message[0], PlayerNotInTurn)
 
     def test_buy_asset_message(self) -> None:
@@ -74,8 +74,8 @@ class TestEngine(BaseTest):
         player_repo += rich_player
         game_state = GameStateMaker().add_player_repo(player_repo).add_phase(Phase.CONSTRUCTION).make()
 
-        is_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": True}).asset_ids
-        not_for_sale_ids = game_state.assets._filter(condition={"is_for_sale": False}).asset_ids
+        is_for_sale_ids = game_state.assets.only_for_sale.asset_ids
+        not_for_sale_ids = game_state.assets.not_for_sale.asset_ids
 
         msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=AssetId(-5))
         self.assert_fails_with(game_state=game_state, request=msg, x="asset")
@@ -108,8 +108,8 @@ class TestEngine(BaseTest):
         player_repo += rich_player
         game_state = GameStateMaker().add_player_repo(player_repo).add_phase(Phase.CONSTRUCTION).make()
 
-        is_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": True}).transmission_ids
-        not_for_sale_ids = game_state.transmission._filter(condition={"is_for_sale": False}).transmission_ids
+        is_for_sale_ids = game_state.transmission.only_for_sale.transmission_ids
+        not_for_sale_ids = game_state.transmission.not_for_sale.transmission_ids
 
         msg = BuyRequest(game_id=game_state.game_id, player_id=rich_player.id, purchase_id=TransmissionId(-5))
         self.assert_fails_with(game_state=game_state, request=msg, x="transmission")
@@ -134,7 +134,7 @@ class TestEngine(BaseTest):
         bus_repo = BusRepoMaker.make_quick(n_buses=5)
         transmission_repo = TransmissionRepoMaker().make_quick(n=3, players=player_repo, buses=bus_repo)
 
-        player = player_repo.human_players[0]
+        player = player_repo.only_human[0]
         my_line = TransmissionInfo(
             id=TransmissionId(100),
             owner_player=player.id,
@@ -173,9 +173,9 @@ class TestEngine(BaseTest):
         bus_repo = BusRepoMaker.make_quick(n_buses=5, players=player_repo)
         asset_repo = AssetRepoMaker.make_quick(players=player_repo, bus_repo=bus_repo)
 
-        player = player_repo.human_players[0]
+        player = player_repo.only_human[0]
         my_generator = AssetInfo(id=AssetId(100), owner_player=player.id, asset_type=AssetType.GENERATOR, bus=bus_repo.bus_ids[0], power_expected=10, power_std=0.0, health=5, is_active=True)
-        asset_repo = asset_repo.add(my_generator)
+        asset_repo = asset_repo + my_generator
 
         game_state = GameStateMaker().add_player_repo(player_repo).add_bus_repo(bus_repo).add_asset_repo(asset_repo).add_phase(Phase.SNEAKY_TRICKS).make()
         game_state = game_state.start_all_turns()
@@ -206,10 +206,10 @@ class TestEngine(BaseTest):
         player_repo = PlayerRepoMaker.make_quick(3)
         buses = BusRepoMaker.make_quick(n_buses=0, players=player_repo)
         # fill all buses' sockets
-        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=20 * 3 - 3 - 1)
+        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_non_freezer_assets=20 * 3 - 3 - 1)
         # one player should be losing
-        losing_player = player_repo.human_players[0]
-        freezer_losing_player = assets.get_freezer_for_player(losing_player.id)
+        losing_player = player_repo.only_human[0]
+        freezer_losing_player = assets.get_freezer_for_player(losing_player.id).as_obj()
         assets = assets.melt_ice_cream(freezer_losing_player.id)
         # remake bus repo with a bus with free sockets
         buses = BusRepoMaker.make_quick(n_buses=4, players=player_repo)
@@ -218,8 +218,8 @@ class TestEngine(BaseTest):
 
         freezer_current_bus = freezer_losing_player.bus
         other_asset = assets.get_all_for_player(losing_player.id).not_freezers.as_objs()[0]
-        other_player = player_repo.human_players[1]
-        freezer_other_player = assets.get_freezer_for_player(other_player.id)
+        other_player = player_repo.only_human[1]
+        freezer_other_player = assets.get_freezer_for_player(other_player.id).as_obj()
         bus_with_free_sockets = buses.bus_ids[-1]
         full_bus = buses.bus_ids[0] if buses.bus_ids[0] != freezer_current_bus else buses.bus_ids[1]
 
@@ -268,7 +268,7 @@ class TestEngine(BaseTest):
 
         player_repo = PlayerRepoMaker.make_quick(3)
         buses = BusRepoMaker.make_quick(n_buses=3, players=player_repo)
-        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=5)
+        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_non_freezer_assets=5)
         transmission = TransmissionRepoMaker.make_quick(buses=buses, players=player_repo, n=5)
 
         game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).add_transmission_repo(transmission).make()

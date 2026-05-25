@@ -3,10 +3,10 @@ from enum import IntEnum
 from functools import cached_property, lru_cache
 from typing import Self
 
+from src.ids import BusId, GameId, PlayerId, Round
 from src.models.assets import AssetInfo, AssetRepo
 from src.models.buses import BusFullException, BusRepo
 from src.models.game_settings import GameSettings
-from src.models.ids import BusId, GameId, PlayerId, Round
 from src.models.market_coupling_result import MarketCouplingResult, MarketCouplingSummary
 from src.models.pending_state import PendingState
 from src.models.player import PlayerRepo
@@ -22,6 +22,7 @@ class Phase(IntEnum):
     BIDDING = 2
     DA_AUCTION = 3
     MIGRATION = 4
+    GAME_OVER = 5
 
     def __str__(self) -> str:
         return f"<{self.__class__.__name__}.{self.name}>"
@@ -31,18 +32,14 @@ class Phase(IntEnum):
 
     @property
     def is_one_by_one(self) -> bool:
-        return self is Phase.CONSTRUCTION
+        return self in [Phase.CONSTRUCTION, Phase.MIGRATION]
 
     @property
-    def nice_name(self) -> str:
+    def display_name(self) -> str:
         return self.name.replace("_", " ").lower()
 
-    def get_next(self) -> "Phase":
-        next_index = (self.value + 1) % len(Phase)
-        return Phase(next_index)
 
-
-type GameStateAttributes = Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
+type GameStateAttributes = bool | Phase | PlayerRepo | BusRepo | AssetRepo | TransmissionRepo | MarketCouplingResult | MarketCouplingSummary | Round | PendingState | GameSettings
 
 
 @dataclass(frozen=True)
@@ -57,6 +54,7 @@ class GameState:
     market_coupling_result: MarketCouplingResult | None
     game_round: Round = Round(1)
     pending_state: PendingState = PendingState()  # A record of actions that cannot be made public yet
+    game_over: bool = False
 
     def __post_init__(self) -> None:
         assert isinstance(self.game_round, Round), f"game_round must be of type Round. Got {type(self.game_round)}"
@@ -91,32 +89,35 @@ class GameState:
 
     def add_asset(self, asset: AssetInfo) -> Self:
         bus_id = asset.bus
-        bus = self.buses[bus_id]
         n_assets_at_bus = len(self.assets.get_all_assets_at_bus(bus_id=bus_id))
 
-        if (n_assets_at_bus + 1) > bus.max_assets:
+        max_assets = self.game_settings.max_assets_per_bus
+        if (n_assets_at_bus + 1) > max_assets:
             raise BusFullException(f"Cannot add new asset {asset.id} to bus {bus_id}")
 
         return self.update(self.assets + asset)
 
     def add_transmission_line(self, transmission_info: TransmissionInfo) -> Self:
+        max_lines = self.game_settings.max_lines_per_bus
+
         for bus_id in [transmission_info.bus1, transmission_info.bus2]:
-            bus = self.buses[bus_id]
             n_lines_at_bus = len(self.transmission.get_all_at_bus(bus_id=bus_id))
-            if (n_lines_at_bus + 1) > bus.max_lines:
+            if (n_lines_at_bus + 1) > max_lines:
                 raise BusFullException(f"Cannot add new line {transmission_info.id} to bus {bus_id}")
 
         return self.update(self.transmission + transmission_info)
 
     def get_remaining_space_for_assets_at_bus(self, bus_id: BusId) -> int:
-        bus = self.buses[bus_id]
         n_assets_at_bus = len(self.assets.get_all_assets_at_bus(bus_id=bus_id))
-        return bus.max_assets - n_assets_at_bus
+
+        max_assets = self.game_settings.max_assets_per_bus
+        return max_assets - n_assets_at_bus
 
     def get_remaining_space_for_lines_at_bus(self, bus_id: BusId) -> int:
-        bus = self.buses[bus_id]
+        max_lines = self.game_settings.max_lines_per_bus
+
         n_lines_at_bus = len(self.transmission.get_all_at_bus(bus_id=bus_id))
-        return bus.max_lines - n_lines_at_bus
+        return max_lines - n_lines_at_bus
 
     def start_all_turns(self) -> Self:
         return self.update(self.players.start_all_turns())
@@ -152,6 +153,7 @@ class GameState:
             "market_coupling_result": (self.market_coupling_result.to_simple_dict() if self.market_coupling_result else None),
             "game_round": self.game_round,
             "pending_state": self.pending_state.to_simple_dict(),
+            "game_over": self.game_over,
         }
 
     @classmethod
@@ -175,4 +177,5 @@ class GameState:
             market_coupling_result=(MarketCouplingResult.from_simple_dict(simple_dict["market_coupling_result"]) if simple_dict.get("market_coupling_result") else None),
             game_round=Round(simple_dict["game_round"]),
             pending_state=PendingState.from_simple_dict(simple_dict["pending_state"]),
+            game_over=simple_dict["game_over"],
         )

@@ -6,14 +6,15 @@ from src.engine.finance import FinanceCalculator
 from src.engine.grid_expansion import GridExpansion
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.engine.referee import Referee
+from src.ids import AssetId, Round, TransmissionId
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, Round, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
     Ack,
     ActivationUpdateRequest,
     AssetBuiltMessage,
     AuctionClearedMessage,
+    BigEvent,
     BuyRequest,
     BuyResponse,
     ClearAuction,
@@ -94,15 +95,19 @@ class Engine:
         market_result = MarketCouplingCalculator.run(game_state=gs)
 
         gs, new_msgs = cls._run_post_clearing_book_keeping(game_state=gs, market_result=market_result)
+        if gs.game_over:
+            return gs, new_msgs
+
         melted_ice_cream_players = [m.player_id for m in new_msgs if isinstance(m, IceCreamMeltedMessage)]
-        loser = Referee.get_losing_player(gs=gs)
+
+        loser = Referee.get_last_place_player_id(gs=gs)
         if loser in melted_ice_cream_players:
             # Someone is having a really bad day. Let's help them out.
             next_phase = Phase.MIGRATION
         else:
             next_phase = Phase(0)
 
-        conclude_phase = ConcludePhase(game_id=gs.game_id, phase=gs.phase, force_new_phase=next_phase)
+        conclude_phase = ConcludePhase(game_id=gs.game_id, phase=gs.phase, new_phase=next_phase)
         return gs, [*msgs_load_deactivation, *new_msgs, conclude_phase]
 
     @classmethod
@@ -127,7 +132,7 @@ class Engine:
             return gs, [ca_message]
 
         if new_phase == Phase.MIGRATION:
-            loser = Referee.get_losing_player(gs=game_state)
+            loser = Referee.get_last_place_player_id(gs=game_state)
             players = gs.players.end_all_turns().start_turn(loser)
         else:
             players = gs.get_players_with_updated_turns_for_new_phase(new_phase=new_phase)
@@ -155,7 +160,7 @@ class Engine:
         if game_state.phase != Phase.CONSTRUCTION:
             response = msg.make_response(
                 success=False,
-                message=f"You can only buy assets during the {Phase.CONSTRUCTION.nice_name} phase",
+                message=f"You can only buy assets during the {Phase.CONSTRUCTION.display_name} phase",
             )
             return game_state, [response]
 
@@ -183,7 +188,7 @@ class Engine:
         if game_state.phase != Phase.CONSTRUCTION:
             response = msg.make_response(
                 success=False,
-                message=f"You can only buy transmission during the {Phase.CONSTRUCTION.nice_name} phase",
+                message=f"You can only buy transmission during the {Phase.CONSTRUCTION.display_name} phase",
             )
             return game_state, [response]
 
@@ -220,16 +225,16 @@ class Engine:
         game_state: GameState,
         msg: FreezerMigrationRequest,
     ) -> tuple[GameState, Sequence[FreezerMigrationResponse | ConcludePhase]]:
-        cp_message = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)
+        cp_message = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase, new_phase=Phase.CONSTRUCTION)
         asset_id = msg.asset_id
         if asset_id is None:
-            asset_id = game_state.assets.get_freezer_for_player(msg.player_id).id
+            asset_id = game_state.assets.get_freezer_for_player(msg.player_id).as_obj().id
 
         def fail(reason: str) -> tuple[GameState, Sequence[FreezerMigrationResponse | ConcludePhase]]:
             response = msg.make_response(success=False, message=reason, asset_id=asset_id)
             return game_state, [response, cp_message]
 
-        is_losing_player = Referee.get_losing_player(gs=game_state) == msg.player_id
+        is_losing_player = Referee.get_last_place_player_id(gs=game_state) == msg.player_id
         if not is_losing_player:
             return fail("Only the losing player can migrate their ice cream to the freezer.")
 
@@ -242,7 +247,8 @@ class Engine:
         if freezer_is_already_there:
             return fail("The freezer is already at the bus you are trying to move to.")
 
-        bus_has_sockets = game_state.buses[msg.bus].max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
+        max_assets = game_state.game_settings.max_assets_per_bus
+        bus_has_sockets = max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
         if not bus_has_sockets:
             return fail("The bus you are trying to move to does not have free sockets.")
 
@@ -263,7 +269,12 @@ class Engine:
         msg: EndTurn,
     ) -> tuple[GameState, list[ConcludePhase]]:
         players = game_state.players
-        if game_state.is_hotseat or game_state.phase.is_one_by_one:
+
+        cycle_turn = game_state.is_hotseat or game_state.phase.is_one_by_one
+        if game_state.phase is Phase.MIGRATION:
+            cycle_turn = False
+
+        if cycle_turn:
             players = players.cycle_turn()
         else:
             players = players.end_turn(player_id=msg.player_id)
@@ -271,7 +282,8 @@ class Engine:
         game_state = game_state.update(players)
         if game_state.players.are_all_players_finished():
             game_state = game_state.commit_pending_state()
-            return game_state, [ConcludePhase(game_id=game_state.game_id, phase=game_state.phase)]
+            new_phase = {Phase.CONSTRUCTION: Phase.SNEAKY_TRICKS, Phase.SNEAKY_TRICKS: Phase.BIDDING, Phase.BIDDING: Phase.DA_AUCTION, Phase.MIGRATION: Phase.CONSTRUCTION}[game_state.phase]
+            return game_state, [ConcludePhase(game_id=game_state.game_id, phase=game_state.phase, new_phase=new_phase)]
         else:
             return game_state, []
 
@@ -281,10 +293,17 @@ class Engine:
         game_state, ice_cream_msgs = Referee.melt_ice_creams(game_state)
         game_state, transmission_msgs = Referee.wear_congested_transmission(game_state)
         game_state, asset_msgs = Referee.wear_non_freezer_assets(game_state)
-        game_state, eliminated_player_msgs = Referee.eliminate_players(gs=game_state)
-        game_state, game_over_msg = Referee.check_game_over(gs=game_state)
+        game_state, eliminated_players = Referee.eliminate_players(gs=game_state)
+        game_over, winners = Referee.is_game_over_and_winners(gs=game_state)
 
-        msgs = msgs_auction_cashflows + ice_cream_msgs + transmission_msgs + asset_msgs + eliminated_player_msgs + game_over_msg
+        msgs = msgs_auction_cashflows + ice_cream_msgs + transmission_msgs + asset_msgs
+
+        if len(eliminated_players) or len(winners) or game_over:
+            big_event = BigEvent(game_id=game_state.game_id, game_over=game_over, dead_players=eliminated_players, winners=winners)
+            msgs += [big_event]  # type: ignore
+
+        if game_over:
+            game_state = game_state.update(game_over, Phase.GAME_OVER)
 
         return game_state, msgs
 

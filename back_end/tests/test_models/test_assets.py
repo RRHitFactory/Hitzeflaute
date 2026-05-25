@@ -1,5 +1,5 @@
 from src.models.assets import AssetInfo, AssetRepo, AssetType
-from src.models.ids import AssetId, BusId
+from src.ids import AssetId, BusId
 from src.models.player import PlayerId
 from tests.base_test import BaseTest
 from tests.utils.repo_maker import AssetRepoMaker, BusRepoMaker
@@ -33,7 +33,7 @@ class TestAssets(BaseTest):
 
     def test_delete_assets(self) -> None:
         player_ids = [PlayerId(1), PlayerId(2)]
-        repo = AssetRepoMaker.make_quick(n_normal_assets=20, players=player_ids)
+        repo = AssetRepoMaker.make_quick(n_non_freezer_assets=20, players=player_ids)
 
         original_assets_for_p1 = len(repo.get_all_for_player(PlayerId(1)))
         self.assertGreater(original_assets_for_p1, 0)
@@ -47,7 +47,7 @@ class TestAssets(BaseTest):
 
     def test_add_asset(self) -> None:
         # Cannot have duplicate ids
-        repo = AssetRepoMaker.make_quick(n_normal_assets=20)
+        repo = AssetRepoMaker.make_quick(n_non_freezer_assets=20)
 
         with self.assertRaises(AssertionError):
             repo + repo
@@ -62,3 +62,10 @@ class TestAssets(BaseTest):
             power_std=0.0,
         )
         self.assertEqual(len(new_repo), len(repo) + 1)
+
+    def test_asset_is_freezer(self) -> None:
+        player_ids = [PlayerId(1), PlayerId(2)]
+        repo = AssetRepoMaker.make_quick(n_non_freezer_assets=0, players=player_ids)
+        asset_ids = repo.asset_ids
+        for aid in asset_ids:
+            self.assertTrue(repo.asset_is_freezer(aid))

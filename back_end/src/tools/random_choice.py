@@ -1,9 +1,5 @@
-from typing import TypeVar
-
 import numpy as np
 from numpy.random import Generator
-
-T = TypeVar("T")
 
 
 def random_choice_multi[T](x: list[T], size: int, generator: Generator | None = None, **kwargs) -> list[T]:

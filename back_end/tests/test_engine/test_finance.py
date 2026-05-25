@@ -2,7 +2,7 @@ import polars as pl
 
 from src.engine.finance import FinanceCalculator
 from src.models.game_state import GameState
-from src.models.ids import AssetId, BusId, TransmissionId
+from src.ids import AssetId, BusId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from tests.base_test import BaseTest
 from tests.utils.game_state_maker import GameStateMaker, MarketResultMaker

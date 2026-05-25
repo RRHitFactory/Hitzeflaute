@@ -4,7 +4,7 @@ from typing import Self
 
 import pandas as pd
 
-from src.models.ids import AssetId, BusId, TransmissionId
+from src.ids import AssetId, BusId, TransmissionId
 from src.models.pnl import PnlFrame
 from src.tools.serialization import SerializedDf, SimpleDict, dataframe_to_dict, dict_to_dataframe, polars_dataframe_to_dict
 

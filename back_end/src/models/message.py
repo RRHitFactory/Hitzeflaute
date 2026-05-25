@@ -1,11 +1,10 @@
 from abc import ABC
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import TypeVar
 
+from src.ids import BusId, GameId, PlayerId
 from src.models.assets import AssetId
 from src.models.game_state import GameState, Phase
-from src.models.ids import BusId, GameId, PlayerId
 from src.models.transmission import TransmissionId
 from src.tools.serialization import SerializableDcSimple
 
@@ -53,6 +52,20 @@ class PlayerToGameMessage(Message, ABC):
 @dataclass(frozen=True, repr=False)
 class GameUpdate(Message):
     game_state: GameState
+    game_over: bool = False
+    dead_players: list[PlayerId] = field(default_factory=list)
+    winners: list[PlayerId] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        if len(self.winners):
+            assert self.game_over
+
+
+@dataclass(frozen=True, repr=False)
+class BigEvent(Message):
+    game_over: bool
+    dead_players: list[PlayerId]
+    winners: list[PlayerId]
 
 
 @dataclass(frozen=True, repr=False)
@@ -69,19 +82,12 @@ class GameToPlayerMessage(Message, ABC):
 
 type ToGameMessage = PlayerToGameMessage | InternalMessage
 type FromGameMessage = InternalMessage | GameToPlayerMessage
-T_Id = TypeVar("T_Id", bound=AssetId | TransmissionId)
 
 
 @dataclass(frozen=True, repr=False)
 class ConcludePhase(InternalMessage):
     phase: Phase
-    force_new_phase: Phase | None = None
-
-    @property
-    def new_phase(self) -> Phase:
-        if self.force_new_phase is not None:
-            return self.force_new_phase
-        return self.phase.get_next()
+    new_phase: Phase
 
 
 @dataclass(frozen=True, repr=False)
@@ -134,13 +140,13 @@ class UpdateBatchBidsRequest(PlayerToGameMessage):
 
 
 @dataclass(frozen=True, repr=False)
-class BuyResponse[T_Id](GameToPlayerMessage):
+class BuyResponse[T_Id: AssetId | TransmissionId](GameToPlayerMessage):
     success: bool
     purchase_id: T_Id
 
 
 @dataclass(frozen=True, repr=False)
-class BuyRequest[T_Id](PlayerToGameMessage):
+class BuyRequest[T_Id: AssetId | TransmissionId](PlayerToGameMessage):
     purchase_id: T_Id
 
     def make_response(self, success: bool, message: str) -> BuyResponse[T_Id]:
@@ -227,13 +233,3 @@ class TransmissionWornMessage(GameToPlayerMessage):
 @dataclass(frozen=True, repr=False)
 class LoadsDeactivatedMessage(GameToPlayerMessage):
     asset_ids: list[AssetId]
-
-
-@dataclass(frozen=True, repr=False)
-class PlayerEliminatedMessage(GameToPlayerMessage):
-    pass
-
-
-@dataclass(frozen=True, repr=False)
-class GameOverMessage(GameToPlayerMessage):
-    winner_id: PlayerId | None

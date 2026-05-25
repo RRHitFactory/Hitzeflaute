@@ -24,12 +24,14 @@ class GameSettings:
     initial_funds: int = 10000
     enable_fixed_costs: bool = False
     loads: TechnologySettingsRepo = field(default_factory=MakeTechSettings.create_default_load_tech_settings)
-    generators: TechnologySettingsRepo = field(default_factory=lambda: MakeTechSettings.create_default_generator_settings())
-    transmission: TechnologySettingsRepo = field(default_factory=lambda: MakeTechSettings.create_default_transmission_settings())
+    generators: TechnologySettingsRepo = field(default_factory=MakeTechSettings.create_default_generator_settings)
+    transmission: TechnologySettingsRepo = field(default_factory=MakeTechSettings.create_default_transmission_settings)
     probability_of_new_asset: float = 0.2
     probability_of_new_transmission: float = 0.0
     probability_of_new_bus: float = 0.0
     map_area: Shape = field(default_factory=lambda: Shape.make_rectangle(bottom_left=Point(-30, -15), top_right=Point(30, 15)))
+    max_assets_per_bus: int = 5
+    max_lines_per_bus: int = 5
 
     def __post_init__(self) -> None:
         assert self.map_area.shape_type is ShapeType.Rectangle
@@ -56,6 +58,8 @@ class GameSettings:
             "probability_of_new_transmission": self.probability_of_new_transmission,
             "probability_of_new_bus": self.probability_of_new_bus,
             "map_area": self.map_area.to_simple_dict(),
+            "max_assets_per_bus": self.max_assets_per_bus,
+            "max_lines_per_bus": self.max_lines_per_bus,
         }
 
     @classmethod
@@ -80,4 +84,6 @@ class GameSettings:
             probability_of_new_transmission=simple_dict["probability_of_new_transmission"],
             probability_of_new_bus=simple_dict["probability_of_new_bus"],
             map_area=Shape.from_simple_dict(simple_dict["map_area"]),
+            max_assets_per_bus=simple_dict["max_assets_per_bus"],
+            max_lines_per_bus=simple_dict["max_lines_per_bus"],
         )

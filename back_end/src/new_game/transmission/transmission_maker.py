@@ -2,8 +2,8 @@ import math
 import os
 from pathlib import Path
 
+from src.ids import BusId, PlayerId, Round, TransmissionId
 from src.models.game_settings import GameSettings
-from src.models.ids import BusId, PlayerId, Round, TransmissionId
 from src.models.transmission import TransmissionInfo
 from src.new_game.transmission.tranmission_technology_specs import TransmissionTechnologySpecs
 from src.new_game.util.available_technologies import get_available_technologies
