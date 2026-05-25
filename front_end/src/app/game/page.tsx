@@ -5,21 +5,12 @@ import GridVisualization from "@/components/Game/GridVisualization";
 import Header from "@/components/Game/Header";
 import GameControls from "@/components/UI/GameControls";
 import PlayerTable from "@/components/UI/PlayerTable";
+import WinLossAnimation from "@/components/UI/WinLossAnimation";
 import { usePlayerTurn } from "@/hooks/usePlayerTurn";
-import GameWebSocketClient, {
-  useGameWebSocket,
-  type WebSocketMessage,
-} from "@/lib/gameWebSocket";
-import { GamePhase, Player } from "@/types/game";
+import GameWebSocketClient, { useGameWebSocket } from "@/lib/gameWebSocket";
+import { GamePhase, GameState, Player } from "@/types/game";
 import { useSearchParams } from "next/navigation";
-import {
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 function GameContent() {
   const searchParams = useSearchParams();
@@ -39,21 +30,6 @@ function GameContent() {
   // State for effective player ID - starts with NPC, switches to cookiePlayerId for online mode
   const [websocketPlayerId, setWebSocketPlayerId] = useState<number>(-1);
 
-  // Memoize callback functions to prevent infinite re-renders
-  const handleMessage = useCallback((msg: WebSocketMessage) => {
-    console.log("=== WebSocket Message Received ===");
-
-    if (msg.message_type === "error") {
-      console.error("=== SERVER ERROR ===");
-      console.error(msg.data);
-      setError(msg.data || "Unknown server error");
-    } else if (msg.message_type === "GameUpdate") {
-      // Controls are now managed by the usePlayerTurn hook based on currentPlayer.is_having_turn
-    }
-
-    console.log("=== End WebSocket Message Processing ===");
-  }, []);
-
   const handleError = useCallback((error: any) => {
     console.error("WebSocket error:", error);
     // Only show error if we've successfully connected before (not initial connection error)
@@ -67,22 +43,17 @@ function GameContent() {
     hasConnectedRef.current = false;
   }, []);
 
-  const callbacks = useMemo(
-    () => ({
-      onMessage: handleMessage,
-      onError: handleError,
-      onClose: handleClose,
-    }),
-    [handleMessage, handleError, handleClose],
-  );
-
   // Initialize WebSocket with effective player ID
   const {
     client: wsClient,
     connectionState,
     gameState,
+    gameUpdateInfo,
     isConnected,
-  } = useGameWebSocket(gameId || -1, websocketPlayerId, callbacks);
+  } = useGameWebSocket(gameId || -1, websocketPlayerId, {
+    onError: handleError,
+    onClose: handleClose,
+  });
 
   // Use the new player turn hook to handle all player-related logic
   const {
@@ -93,6 +64,123 @@ function GameContent() {
     controlsEnabled,
     setControlsEnabled,
   } = usePlayerTurn(gameState, gameId);
+
+  // Single modal message state
+  const [modalMessage, setModalMessage] = useState<{
+    isOpen: boolean;
+    type: "win" | "loss";
+    redMessage: string | undefined;
+    greenMessage: string | undefined;
+  } | null>(null);
+
+  // Helper function to get player name with "you" substitution for current player
+  const getDisplayName = useCallback(
+    (gameState: GameState, playerId: number): string | undefined => {
+      if (!isHotseatMode && currentPlayer?.id === playerId) {
+        return "You";
+      }
+      const player: Player | undefined = gameState.players.data.find(
+        (p) => p.id === playerId,
+      );
+      return player?.name;
+    },
+    [isHotseatMode, currentPlayer?.id],
+  );
+
+  // Process game update info when it changes
+  useEffect(() => {
+    if (!gameUpdateInfo || !gameState) return;
+
+    const allPlayerIds = gameState.players.data
+      .map((p: Player) => p.id)
+      .filter((id) => id != -1);
+    // Check if game is over
+    if (gameUpdateInfo.game_over) {
+      console.log("=== GAME OVER DETECTED ===");
+
+      if (gameUpdateInfo.winners && gameUpdateInfo.winners.length > 0) {
+        // Someone won
+        const winners = gameUpdateInfo.winners;
+        const losers = allPlayerIds.filter((id) => !winners.includes(id));
+        const winnerNames = winners.map((id: number) =>
+          getDisplayName(gameState, id),
+        );
+        const loserNames = losers.map((id: number) =>
+          getDisplayName(gameState, id),
+        );
+
+        let greenMessage = undefined;
+        if (winnerNames.length === 1) {
+          let winnerName = winnerNames[0];
+          if (winnerName == "You") {
+            greenMessage = "You are the winner!";
+          } else {
+            greenMessage = `${winnerName} is the winner!`;
+          }
+        } else {
+          greenMessage = `${winnerNames.join(", ")} are the winners!`;
+        }
+        let redMessage = undefined;
+        if (loserNames.length > 0) {
+          if (loserNames.length === 1) {
+            let loserName = loserNames[0];
+            if (loserName == "You") {
+              redMessage = "You are the loser";
+            } else {
+              redMessage = ` ${loserName} is the loser`;
+            }
+          } else {
+            redMessage = ` ${loserNames.join(", ")} are the losers`;
+          }
+        }
+
+        setModalMessage({
+          isOpen: true,
+          type: "win",
+          greenMessage: greenMessage,
+          redMessage: redMessage,
+        });
+      } else {
+        // No winners means everyone lost
+        setModalMessage({
+          isOpen: true,
+          type: "loss",
+          greenMessage: undefined,
+          redMessage: "Everyone lost!",
+        });
+      }
+    }
+
+    // Check for eliminated players (these are always newly eliminated in this update)
+    if (
+      gameUpdateInfo.dead_players &&
+      gameUpdateInfo.dead_players.length > 0 &&
+      !gameUpdateInfo.game_over
+    ) {
+      console.log("=== PLAYERS ELIMINATED ===");
+
+      const deadPlayers = gameUpdateInfo.dead_players;
+      const deadPlayerNames = deadPlayers.map((id: number) =>
+        getDisplayName(gameState, id),
+      );
+
+      let message;
+      if (deadPlayerNames.length === 1) {
+        message = `${deadPlayerNames[0]} died`;
+      } else {
+        message = `${deadPlayerNames.join(", ")} died`;
+      }
+
+      setModalMessage({
+        isOpen: true,
+        type: "loss",
+        greenMessage: undefined,
+        redMessage: message,
+      });
+    }
+  }, [gameUpdateInfo, gameState, getDisplayName]);
+
+  // State for win/loss animations
 
   // After getting the first gameState, check if it's online mode and switch to cookiePlayerId
   useEffect(() => {
@@ -294,6 +382,17 @@ function GameContent() {
         gameState={gameState}
         error={error}
         setError={setError}
+      />
+
+      {/* Win/Loss Animation Modal */}
+      <WinLossAnimation
+        isOpen={modalMessage?.isOpen || false}
+        type={modalMessage?.type || "loss"}
+        redMessage={modalMessage?.redMessage}
+        greenMessage={modalMessage?.greenMessage}
+        onClose={() => {
+          setModalMessage(null);
+        }}
       />
 
       <main className="max-w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">

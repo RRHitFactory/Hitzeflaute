@@ -1,5 +1,4 @@
 import numpy as np
-import polars as pl
 
 from src.ids import AssetId, PlayerId, TransmissionId
 from src.models.assets import AssetRepo
@@ -7,11 +6,8 @@ from src.models.game_state import GameState
 from src.models.message import (
     AssetWornMessage,
     BuyResponse,
-    GameOverMessage,
     IceCreamMeltedMessage,
     LoadsDeactivatedMessage,
-    PlayerEliminatedMessage,
-    T_Id,
     TransmissionWornMessage,
 )
 from src.models.transmission import TransmissionInfo, TransmissionRepo
@@ -26,7 +22,7 @@ class Referee:
 
     # BEFORE MARKET COUPLING
     @classmethod
-    def validate_purchase(cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
+    def validate_purchase[T_Id: AssetId | TransmissionId](cls, gs: GameState, player_id: PlayerId, purchase_id: T_Id) -> list[BuyResponse[T_Id]]:
         purchase_repo: AssetRepo | TransmissionRepo
         purchase_repo_ids: list[AssetId] | list[TransmissionId]
 
@@ -196,64 +192,40 @@ class Referee:
     @staticmethod
     def eliminate_players(
         gs: GameState,
-    ) -> tuple[GameState, list[PlayerEliminatedMessage]]:
-        new_gs = gs
-        eliminated_player_ids = []
+    ) -> tuple[GameState, list[PlayerId]]:
+        alive_human_ids = gs.players.alive_human_player_ids
+        remaining_ice_creams = gs.assets.get_remaining_ice_creams_multi(alive_human_ids)
+        eliminated_player_ids = [p for p, i in zip(alive_human_ids, remaining_ice_creams) if i == 0]
 
-        for player in gs.players.alive_human_player_ids:
-            remaining_ice_creams = gs.assets.get_remaining_ice_creams(player)
-            if remaining_ice_creams > 0:
-                continue
-            else:
-                new_gs = new_gs.update(new_gs.players.eliminate_player(player))
-                eliminated_player_ids.append(player)
-
-        return new_gs, [
-            PlayerEliminatedMessage(
-                game_id=new_gs.game_id,
-                player_id=player_id,
-                message=f"Player {player_id} has been eliminated from the game as they have no remaining ice creams.",
-            )
-            for player_id in eliminated_player_ids
-        ]
-
-    @staticmethod
-    def get_losing_player(gs: GameState) -> PlayerId:
-        """The losing player has the least remaining ice creams. Player money is used as a tie-breaker."""
-        players = gs.players.only_alive_human
-        ids = players.player_ids
-        remaining_ice_creams = [gs.assets.get_remaining_ice_creams(id) for id in ids]
-        ice_cream_df = pl.DataFrame({"id": ids, "ice_cream": remaining_ice_creams})
-        players_df = players.df.join(ice_cream_df, on="id")
-        players_df = players_df.sort(["ice_cream", "money"], descending=False)
-        losing_player_id = PlayerId(players_df["id"].limit(1).item())
-        return losing_player_id
-
-    @staticmethod
-    def check_game_over(gs: GameState) -> tuple[GameState, list[GameOverMessage]]:
-        alive_players_ids = gs.players.alive_human_player_ids
-        n_players_alive = len(alive_players_ids)
-        if n_players_alive == 1:
-            winner_id = alive_players_ids[0]
-            winner_name = gs.players[winner_id].name
-            return gs, [
-                GameOverMessage(
-                    game_id=gs.game_id,
-                    player_id=player_id,
-                    winner_id=winner_id,
-                    message=f"Player {winner_id} <{winner_name}> has won the game!",
-                )
-                for player_id in gs.players.human_player_ids
-            ]
-        elif n_players_alive == 0:
-            return gs, [
-                GameOverMessage(
-                    game_id=gs.game_id,
-                    player_id=player_id,
-                    winner_id=None,
-                    message="All players have been eliminated. The game is over.",
-                )
-                for player_id in gs.players.human_player_ids
-            ]
-        else:
+        if not len(eliminated_player_ids):
             return gs, []
+
+        assets = gs.assets.eliminate_players(eliminated_player_ids)
+        tranmission = gs.transmission.eliminate_players(eliminated_player_ids)
+        players = gs.players.eliminate_players(eliminated_player_ids)
+        new_gs = gs.update(assets, tranmission, players)
+
+        return new_gs, eliminated_player_ids
+
+    @staticmethod
+    def get_last_place_player_id(gs: GameState) -> PlayerId:
+        alive_human_ids = gs.players.alive_human_player_ids
+        assert len(alive_human_ids) > 0, "Could not determine last place player"
+
+        money = gs.players.get_money_for_players(alive_human_ids)
+        ice_cream = gs.assets.get_remaining_ice_creams_multi(alive_human_ids)
+
+        tuples = [(i, m, p) for i, m, p in zip(ice_cream, money, alive_human_ids)]
+
+        loser = sorted(tuples)[0]
+        return loser[2]
+
+    @staticmethod
+    def is_game_over_and_winners(gs: GameState) -> tuple[bool, list[PlayerId]]:
+        alive_humans = gs.players.alive_human_player_ids
+        n_players_alive = len(alive_humans)
+        if n_players_alive > 1:
+            return False, []
+        if n_players_alive == 1:
+            return True, alive_humans
+        return True, []

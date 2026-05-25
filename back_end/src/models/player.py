@@ -12,6 +12,7 @@ from src.models.data.polar_repo import PolarRepo
 
 __all__ = ["Player", "PlayerRepoSchema", "PlayerRepo"]
 
+
 @dataclass(frozen=True)
 class Player(LightDc):
     id: PlayerId
@@ -115,17 +116,21 @@ class PlayerRepo(PolarRepo[PlayerRepoSchema, Player, PlayerId]):
     def end_turn(self, player_id: PlayerId | list[PlayerId]) -> Self:
         return self._set_turn(player_id, False)
 
-    def start_turn(self, player_id: PlayerId | list[PlayerId]) -> Self:
+    def start_turn(self, player_id: PlayerId) -> Self:
+        assert player_id in self.alive_human_player_ids
         return self._set_turn(player_id, True)
 
     def start_all_turns(self) -> Self:
-        return self._set_turn(self.human_player_ids, True)
+        return self._set_turn(self.alive_human_player_ids, True)
 
     def end_all_turns(self) -> Self:
         return self._set_turn(self.human_player_ids, False)
 
     def start_first_player_turn(self) -> Self:
-        return self.end_all_turns().start_turn(self.alive_human_player_ids[0])
+        players = self.alive_human_player_ids
+        mapping = {p: False for p in players}
+        mapping[players[0]] = True
+        return self.update_with_mapping(key="is_having_turn", mapping=mapping)
 
     def cycle_turn(self) -> Self:
         current_players = self.get_currently_playing().player_ids

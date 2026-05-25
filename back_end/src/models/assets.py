@@ -15,6 +15,7 @@ from src.tools.polar import reorder
 
 __all__ = ["AssetType", "AssetInfo", "AssetRepoSchema", "AssetRepo"]
 
+
 class AssetType(IntEnum):
     GENERATOR = 0
     LOAD = 1

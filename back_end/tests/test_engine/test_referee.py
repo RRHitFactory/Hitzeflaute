@@ -1,10 +1,10 @@
 import polars as pl
 
 from src.engine.referee import Referee
+from src.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.assets import AssetInfo, AssetRepo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
-from src.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import IceCreamMeltedMessage
 from src.models.player import Player, PlayerRepo
@@ -58,8 +58,12 @@ class TestReferee(BaseTest):
         asset_repo = AssetRepo([make_freezer(p=1, health=5), make_freezer(p=2, health=4), make_freezer(p=3, health=4)])
         game_state = GameStateMaker().add_player_repo(player_repo).add_asset_repo(asset_repo).make()
 
-        loser = Referee.get_losing_player(gs=game_state)
+        loser = Referee.get_last_place_player_id(gs=game_state)
         self.assertEqual(loser, PlayerId(3))
+
+        game_state = game_state.update(player_repo.eliminate_players(player_repo.alive_human_player_ids))
+        with self.assertRaises(AssertionError):
+            Referee.get_last_place_player_id(gs=game_state)
 
     def test_melt_ice_creams(self) -> None:
         n_melted = 2
