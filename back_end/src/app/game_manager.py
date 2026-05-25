@@ -3,9 +3,9 @@ from typing import Protocol, runtime_checkable
 
 from src.app.game_repo.base import BaseGameStateRepo
 from src.engine.engine import Engine
+from src.ids import GameId
 from src.models.game_settings import GameSettings, TurnType
 from src.models.game_state import GameState, Phase
-from src.models.ids import GameId
 from src.models.message import (
     BigEvent,
     ConcludePhase,

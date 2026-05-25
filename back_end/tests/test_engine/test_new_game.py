@@ -2,7 +2,7 @@ from src.models.assets import AssetInfo, AssetRepo
 from src.models.buses import Bus, BusRepo
 from src.models.game_settings import GameSettings
 from src.models.game_state import GameState
-from src.models.ids import GameId, PlayerId
+from src.ids import GameId, PlayerId
 from src.models.transmission import TransmissionRepo
 from src.new_game.new_game import GameInitializer
 from src.new_game.trigram_maker import make_trigrams
@@ -26,7 +26,7 @@ class TestGameInitializer(BaseTest):
             player = game_state.players[PlayerId(i + 1)]
             self.assertEqual(player.name, player_name)
             self.assertEqual(player.money, 10000)  # Default money
-        n_playing = sum([1 for p in game_state.players.human_players if p.is_having_turn])
+        n_playing = len(game_state.players.get_currently_playing())
         self.assertEqual(n_playing, 1)  # Only one player should have the turn
 
         self.assertIsInstance(game_state.assets, AssetRepo)
@@ -38,7 +38,7 @@ class TestGameInitializer(BaseTest):
 
         # check that every player owns a freezer
         for player_id in game_state.players.human_player_ids:
-            freezer = game_state.assets.get_freezer_for_player(player_id=player_id)
+            freezer = game_state.assets.get_freezer_for_player(player_id=player_id).as_obj()
             self.assertIsInstance(freezer, AssetInfo)
             self.assertTrue(freezer.is_freezer)
 

@@ -6,8 +6,8 @@ from src.engine.finance import FinanceCalculator
 from src.engine.grid_expansion import GridExpansion
 from src.engine.market_coupling import MarketCouplingCalculator
 from src.engine.referee import Referee
+from src.ids import AssetId, Round, TransmissionId
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, Round, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import (
     Ack,
@@ -228,7 +228,7 @@ class Engine:
         cp_message = ConcludePhase(game_id=game_state.game_id, phase=game_state.phase, new_phase=Phase.CONSTRUCTION)
         asset_id = msg.asset_id
         if asset_id is None:
-            asset_id = game_state.assets.get_freezer_for_player(msg.player_id).id
+            asset_id = game_state.assets.get_freezer_for_player(msg.player_id).as_obj().id
 
         def fail(reason: str) -> tuple[GameState, Sequence[FreezerMigrationResponse | ConcludePhase]]:
             response = msg.make_response(success=False, message=reason, asset_id=asset_id)
@@ -247,7 +247,8 @@ class Engine:
         if freezer_is_already_there:
             return fail("The freezer is already at the bus you are trying to move to.")
 
-        bus_has_sockets = game_state.buses[msg.bus].max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
+        max_assets = game_state.game_settings.max_assets_per_bus
+        bus_has_sockets = max_assets > len(game_state.assets.get_all_assets_at_bus(msg.bus))
         if not bus_has_sockets:
             return fail("The bus you are trying to move to does not have free sockets.")
 
@@ -293,7 +294,7 @@ class Engine:
         game_state, transmission_msgs = Referee.wear_congested_transmission(game_state)
         game_state, asset_msgs = Referee.wear_non_freezer_assets(game_state)
         game_state, eliminated_players = Referee.eliminate_players(gs=game_state)
-        game_over, winners = Referee.check_game_over(gs=game_state)
+        game_over, winners = Referee.is_game_over_and_winners(gs=game_state)
 
         msgs = msgs_auction_cashflows + ice_cream_msgs + transmission_msgs + asset_msgs
 

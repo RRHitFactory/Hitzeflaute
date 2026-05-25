@@ -1,8 +1,10 @@
+import polars as pl
+
 from src.engine.referee import Referee
 from src.models.assets import AssetInfo, AssetRepo, AssetType
 from src.models.colors import Color
 from src.models.game_state import GameState, Phase
-from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
+from src.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.market_coupling_result import MarketCouplingResult
 from src.models.message import IceCreamMeltedMessage
 from src.models.player import Player, PlayerRepo
@@ -42,18 +44,18 @@ class TestReferee(BaseTest):
 
     def test_get_loser(self) -> None:
         player_repo = PlayerRepo(
-            dcs=[
+            x=[
                 Player(id=PlayerId.get_npc(), name="npc", trigram="NPC", money=0, color=Color("black"), is_having_turn=False),
-                Player(id=PlayerId(1), name="winner", trigram="trigram", money=0, color=Color("black"), is_having_turn=False),
-                Player(id=PlayerId(2), name="middle", trigram="trigram", money=2000, color=Color("black"), is_having_turn=False),
-                Player(id=PlayerId(3), name="loser", trigram="trigram", money=1000, color=Color("black"), is_having_turn=False),
+                Player(id=PlayerId(1), name="winner", trigram="WIN", money=0, color=Color("black"), is_having_turn=False),
+                Player(id=PlayerId(2), name="middle", trigram="MID", money=2000, color=Color("black"), is_having_turn=False),
+                Player(id=PlayerId(3), name="loser", trigram="LOS", money=1000, color=Color("black"), is_having_turn=False),
             ]
         )
 
         def make_freezer(p: int, health: int) -> AssetInfo:
             return AssetInfo(id=AssetId(p), owner_player=PlayerId(p), asset_type=AssetType.LOAD, bus=BusId(p), power_expected=0.0, power_std=0.0, is_freezer=True, health=health)
 
-        asset_repo = AssetRepo(dcs=[make_freezer(p=1, health=5), make_freezer(p=2, health=4), make_freezer(p=3, health=4)])
+        asset_repo = AssetRepo([make_freezer(p=1, health=5), make_freezer(p=2, health=4), make_freezer(p=3, health=4)])
         game_state = GameStateMaker().add_player_repo(player_repo).add_asset_repo(asset_repo).make()
 
         loser = Referee.get_last_place_player_id(gs=game_state)
@@ -93,7 +95,7 @@ class TestReferee(BaseTest):
 
     def test_wear_non_freezer_assets(self):
         game_state, market_result = self.create_game_state_and_market_coupling_result()
-        wearable_assets = game_state.assets._filter({"is_freezer": False})
+        wearable_assets = game_state.assets.not_freezers
 
         new_game_state, update_msgs = Referee.wear_non_freezer_assets(game_state)
         self.assertEqual(len(update_msgs), len(wearable_assets))
@@ -160,9 +162,9 @@ class TestReferee(BaseTest):
         game_state = game_state.update(players)
 
         # get the first asset for sale
-        asset = game_state.assets._filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
+        asset = game_state.assets._filter([pl.col("is_for_sale"), pl.col("owner_player") == int(PlayerId.get_npc())]).as_objs()[0]
         # get the first transmission for sale
-        transmission = game_state.transmission._filter({"is_for_sale": True, "owner_player": PlayerId.get_npc()}).as_objs()[0]
+        transmission = game_state.transmission._filter([pl.col("is_for_sale"), pl.col("owner_player") == int(PlayerId.get_npc())]).as_objs()[0]
 
         self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, asset.id)) == 1)
         self.assertTrue(len(Referee.validate_purchase(game_state, poor_player.id, transmission.id)) == 1)

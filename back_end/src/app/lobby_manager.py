@@ -1,5 +1,5 @@
 from src.app.game_manager import GameManager
-from src.models.ids import GameId, PlayerId
+from src.ids import GameId, PlayerId
 from src.models.server_models import Lobby, LobbyPlayer
 
 

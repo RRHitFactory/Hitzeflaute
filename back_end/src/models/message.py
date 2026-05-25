@@ -1,11 +1,10 @@
 from abc import ABC
 from dataclasses import dataclass, field
 from types import MappingProxyType
-from typing import TypeVar
 
+from src.ids import BusId, GameId, PlayerId
 from src.models.assets import AssetId
 from src.models.game_state import GameState, Phase
-from src.models.ids import BusId, GameId, PlayerId
 from src.models.transmission import TransmissionId
 from src.tools.serialization import SerializableDcSimple
 
@@ -83,7 +82,6 @@ class GameToPlayerMessage(Message, ABC):
 
 type ToGameMessage = PlayerToGameMessage | InternalMessage
 type FromGameMessage = InternalMessage | GameToPlayerMessage
-T_Id = TypeVar("T_Id", bound=AssetId | TransmissionId)
 
 
 @dataclass(frozen=True, repr=False)
@@ -142,13 +140,13 @@ class UpdateBatchBidsRequest(PlayerToGameMessage):
 
 
 @dataclass(frozen=True, repr=False)
-class BuyResponse[T_Id](GameToPlayerMessage):
+class BuyResponse[T_Id: AssetId | TransmissionId](GameToPlayerMessage):
     success: bool
     purchase_id: T_Id
 
 
 @dataclass(frozen=True, repr=False)
-class BuyRequest[T_Id](PlayerToGameMessage):
+class BuyRequest[T_Id: AssetId | TransmissionId](PlayerToGameMessage):
     purchase_id: T_Id
 
     def make_response(self, success: bool, message: str) -> BuyResponse[T_Id]:

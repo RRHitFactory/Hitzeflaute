@@ -3,8 +3,8 @@ from pathlib import Path
 
 from src.app.game_repo.base import BaseGameStateRepo
 from src.directories import game_cache_dir
+from src.ids import GameId
 from src.models.game_state import GameState
-from src.models.ids import GameId
 from src.tools.serialization import deserialize, serialize
 
 

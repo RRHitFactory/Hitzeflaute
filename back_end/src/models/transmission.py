@@ -1,12 +1,15 @@
 from dataclasses import dataclass
-from functools import cached_property
 from types import MappingProxyType
 from typing import Self
 
-from src.models.data.ldc_repo import LdcRepo
+import dataframely as dy
+import polars as pl
+
+from src.ids import BusId, PlayerId, TransmissionId
 from src.models.data.light_dc import LightDc
-from src.models.ids import BusId, PlayerId, TransmissionId
-from src.tools.serialization import simplify_type
+from src.models.data.polar_repo import PolarRepo
+
+__all__ = ["TransmissionInfo", "TransmissionRepoSchema", "TransmissionRepo"]
 
 
 @dataclass(frozen=True)
@@ -47,57 +50,90 @@ class TransmissionInfo(LightDc):
         assert self.line_or_link in ["Line", "Link"], f"line_or_link must be either 'Line' or 'Link'. Got {self.line_or_link}"
 
 
-class TransmissionRepo(LdcRepo[TransmissionInfo]):
+class TransmissionRepoSchema(dy.Schema):
+    id = TransmissionId._get_dy_column(primary_key=True)
+    owner_player = PlayerId._get_dy_column()
+    bus1 = BusId._get_dy_column()
+    bus2 = BusId._get_dy_column()
+    reactance = dy.Float64(min=0.0)
+    capacity = dy.Float64(min=0.0)
+    health = dy.UInt8()
+    fixed_operating_cost = dy.Float64(min=0.0)
+    is_for_sale = dy.Bool()
+    minimum_acquisition_price = dy.Float64()
+    is_active = dy.Bool()
+    birthday = dy.UInt16()
+    line_or_link = dy.String(min_length=4, max_length=4)
+
+    @dy.rule()
+    def valid_lol(self) -> pl.Expr:
+        return pl.col("line_or_link").is_in(["Line", "Link"])
+
+
+is_closed = pl.col("is_active")
+is_active = is_closed
+is_for_sale = pl.col("is_for_sale")
+
+
+class TransmissionRepo(PolarRepo[TransmissionRepoSchema, TransmissionInfo, TransmissionId]):
     @classmethod
-    def _get_dc_type(cls) -> type[TransmissionInfo]:
-        return TransmissionInfo
+    def get_schema(cls) -> tuple[type[TransmissionRepoSchema], type[TransmissionInfo], type[TransmissionId]]:
+        return TransmissionRepoSchema, TransmissionInfo, TransmissionId
 
     # GET
     @property
     def transmission_ids(self) -> list[TransmissionId]:
-        return [TransmissionId(x) for x in self.df.index.tolist()]
+        return [TransmissionId(x) for x in self.df["id"].to_list()]
 
-    @cached_property
+    @property
     def only_closed(self) -> Self:
-        return self._filter({"is_active": True})
+        return self._filter(is_closed)
 
-    @cached_property
+    @property
     def only_open(self) -> Self:
-        return self._filter({"is_active": False})
+        return self._filter(~is_closed)
+
+    @property
+    def only_for_sale(self) -> Self:
+        return self._filter(is_for_sale)
+
+    @property
+    def not_for_sale(self) -> Self:
+        return self._filter(~is_for_sale)
 
     def get_all_for_player(self, player_id: PlayerId, only_active: bool = False) -> Self:
-        oa_filter = {"is_active": True} if only_active else {}
-        return self._filter({"owner_player": player_id, **oa_filter})
+        filters = [pl.col("owner_player") == int(player_id)]
+        if only_active:
+            filters.append(is_active)
+        return self._filter(filters)
 
     def get_all_at_bus(self, bus_id: BusId, only_active: bool = False) -> Self:
-        repo = self.only_closed if only_active else self
-        return repo._filter({"bus1": bus_id}, "or", {"bus2": bus_id})
+        filters = [(pl.col("bus1") == int(bus_id)) | (pl.col("bus2") == int(bus_id))]
+        if only_active:
+            filters.append(is_active)
+        return self._filter(filters)
 
     def get_all_between_buses(self, bus1: BusId, bus2: BusId, only_active: bool = False) -> Self:
-        oa_filter = {"is_active": True} if only_active else {}
-
         assert bus1 != bus2, f"bus1 and bus2 must be different. Got {bus1} and {bus2}"
         min_bus = min(bus1, bus2)
         max_bus = max(bus1, bus2)
 
-        return self._filter({"bus1": min_bus, "bus2": max_bus, **oa_filter})
+        filters = [pl.col("bus1") == int(min_bus), pl.col("bus2") == int(max_bus)]
+        if only_active:
+            filters.append(is_active)
+        return self._filter(filters)
 
     def get_all_bus_pairs(self) -> list[tuple[BusId, BusId]]:
-        df = self._df
-        from_buses = df["bus1"].to_list()
-        to_buses = df["bus2"].to_list()
+        from_buses = self.df["bus1"].to_list()
+        to_buses = self.df["bus2"].to_list()
         return [(BusId(f), BusId(t)) for f, t in zip(from_buses, to_buses)]
 
     # UPDATE
     def open_line(self, transmission_id: TransmissionId) -> Self:
-        df = self.df
-        df.loc[transmission_id, "is_active"] = False
-        return self.update_frame(df)
+        return self.update_key_value(id=transmission_id, key="is_active", value=False)
 
     def close_line(self, transmission_id: TransmissionId) -> Self:
-        df = self.df
-        df.loc[transmission_id, "is_active"] = True
-        return self.update_frame(df)
+        return self.update_key_value(id=transmission_id, key="is_active", value=True)
 
     def eliminate_players(self, players: list[PlayerId]) -> Self:
         # Return all lines assets to the npc
@@ -107,31 +143,24 @@ class TransmissionRepo(LdcRepo[TransmissionInfo]):
         return self.update_frame(df)
 
     def update_activations(self, activations: MappingProxyType[TransmissionId, bool]) -> Self:
-        df = self.df
-        actives = [k.as_int() for k, v in activations.items() if v]
-        inactives = [k.as_int() for k, v in activations.items() if not v]
-        df.loc[actives, "is_active"] = True
-        df.loc[inactives, "is_active"] = False
-        return self.update_frame(df)
+        return self.update_with_mapping(key="is_active", mapping=activations)
 
     def change_owner(self, transmission_id: TransmissionId, new_owner: PlayerId) -> Self:
-        df = self.df
-        df.loc[transmission_id, "owner_player"] = simplify_type(new_owner)
-        df.loc[transmission_id, "is_for_sale"] = False
-        return self.update_frame(df)
+        return self.update_key_values(id=transmission_id, key_values={"owner_player": int(new_owner), "is_for_sale": False})
 
     def wear_transmission(self, transmission_id: TransmissionId) -> Self:
-        health: float = self.df.loc[transmission_id, "health"]  # type: ignore
+        health: float = self.df.filter(pl.col("id") == int(transmission_id))["health"].item()
         if health > 1:
-            df = self.df
-            df.loc[transmission_id, "health"] -= 1  # type: ignore
-            return self.update_frame(df)
+            return self.update_key_value(id=transmission_id, key="health", value=health - 1)
         else:
-            df = self.df
-            df.loc[transmission_id, "health"] = 0
-            df.loc[transmission_id, "is_active"] = False
-            return self.update_frame(df)
+            return self.update_key_values(id=transmission_id, key_values={"health": 0, "is_active": False})
+
+    def eliminate_players(self, players: list[PlayerId]) -> Self:
+        int_ids = [int(p) for p in players]
+        npc_id = int(PlayerId.get_npc())
+        df = self.df.with_columns(pl.when(pl.col("owner_player").is_in(int_ids)).then(pl.lit(npc_id)).otherwise(pl.col("owner_player")))
+        return self._make_quick(x=df)
 
     # DELETE
     def delete_for_player(self, player_id: PlayerId) -> Self:
-        return self.drop_items({"owner_player": player_id})
+        return self._drop_items(pl.col("owner_player") == int(player_id))

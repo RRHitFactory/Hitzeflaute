@@ -1,12 +1,16 @@
-from collections.abc import Callable
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Self
 
+import dataframely as dy
+import polars as pl
+
+from src.ids import PlayerId
 from src.models.colors import Color
-from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
-from src.models.ids import PlayerId
+from src.models.data.polar_repo import PolarRepo
+
+__all__ = ["Player", "PlayerRepoSchema", "PlayerRepo"]
 
 
 @dataclass(frozen=True)
@@ -31,122 +35,122 @@ class Player(LightDc):
         )
 
 
-class PlayerRepo(LdcRepo[Player]):
+class PlayerRepoSchema(dy.Schema):
+    id = PlayerId._get_dy_column(primary_key=True)
+    name = dy.String(max_length=30)
+    trigram = dy.String(min_length=3, max_length=3)
+    color = dy.String(min_length=7, max_length=8)
+    money = dy.Float64()
+    is_having_turn = dy.Bool()
+    still_alive = dy.Bool()
+
+
+still_alive = pl.col("still_alive")
+is_human = pl.col("id") != int(PlayerId.get_npc())
+is_having_turn = pl.col("is_having_turn")
+
+
+class PlayerRepo(PolarRepo[PlayerRepoSchema, Player, PlayerId]):
     @classmethod
-    def _get_dc_type(cls) -> type[Player]:
-        return Player
+    def get_schema(cls) -> tuple[type[PlayerRepoSchema], type[Player], type[PlayerId]]:
+        return PlayerRepoSchema, Player, PlayerId
 
     # GET
-
-    @property
-    def player_ids(self) -> list[PlayerId]:
-        return [PlayerId(x) for x in self.df.index.tolist()]
-
     @cached_property
-    def human_players(self) -> list[Player]:
-        return [self[p] for p in self.human_player_ids]
+    def player_ids(self) -> list[PlayerId]:
+        return [PlayerId(x) for x in self.df["id"].to_list()]
 
     @cached_property
     def human_player_ids(self) -> list[PlayerId]:
-        return [p for p in self.player_ids if p != PlayerId.get_npc()]
-
-    @property
-    def alive_human_ids(self) -> list[PlayerId]:
-        df = self.df.loc[self.human_player_ids, :]
-        index = df.loc[df["still_alive"]].index
-        return [PlayerId(x) for x in index.tolist()]
+        return self.only_human.player_ids
 
     @cached_property
+    def alive_human_player_ids(self) -> list[PlayerId]:
+        return self.only_alive_human.player_ids
+
+    @property
     def n_human_players(self) -> int:
-        return len(self.human_players)
+        return len(self.only_human)
 
     @property
     def only_alive(self) -> Self:
-        return self._filter({"still_alive": True})
+        return self._filter(still_alive)
 
     @property
     def only_human(self) -> Self:
-        return self._filter(condition=lambda players: players.id != PlayerId.get_npc())
+        return self._filter(is_human)
 
-    def get_player(self, player_id: PlayerId) -> Player:
-        return self[player_id]
+    @property
+    def human_player_names(self) -> list[str]:
+        return self.only_human["name"]
+
+    @property
+    def only_alive_human(self) -> Self:
+        return self._filter([still_alive, is_human])
 
     def get_currently_playing(self) -> Self:
-        return self._filter(condition={"is_having_turn": True})
+        return self._filter(is_having_turn)
 
     def are_all_players_finished(self) -> bool:
         return len(self.get_currently_playing()) == 0
 
     def get_money_for_players(self, ids: list[PlayerId]) -> list[float]:
         simple_players = [int(p) for p in ids]
-        return self.df.loc[simple_players, "money"].to_list()
+        df = self.df.filter(pl.col("id").is_in(simple_players)).select("id", "money")
+        id_moneys: dict[int, float] = {s: m for s, m in zip(df["id"], df["money"])}
+        return [id_moneys[s] for s in simple_players]
 
     # UPDATE
-    def _adjust_money(self, player_id: PlayerId, func: Callable[[float], float]) -> Self:
-        df = self.df
-        money: float = df.loc[player_id, "money"]  # type: ignore
-        df.loc[player_id, "money"] = func(money)
-        return self.update_frame(df)
-
     def add_money(self, player_id: PlayerId, amount: float) -> Self:
-        return self._adjust_money(player_id, lambda x: x + amount)
+        return self.update_key_expressions(id=player_id, key_exprs={"money": pl.col("money") + amount})
 
     def subtract_money(self, player_id: PlayerId, amount: float) -> Self:
-        return self._adjust_money(player_id, lambda x: x - amount)
+        return self.update_key_expressions(id=player_id, key_exprs={"money": pl.col("money") - amount})
 
     def transfer_money(self, from_player: PlayerId, to_player: PlayerId, amount: float) -> Self:
         return self.add_money(to_player, amount).subtract_money(from_player, amount)
 
     def _set_turn(self, player_id: PlayerId | list[PlayerId], is_having_turn: bool) -> Self:
-        df = self.df
-        df.loc[player_id, "is_having_turn"] = is_having_turn
-        return self.update_frame(df)
+        return self.update_key_values(id=player_id, key_values={"is_having_turn": is_having_turn})
 
     def end_turn(self, player_id: PlayerId | list[PlayerId]) -> Self:
         return self._set_turn(player_id, False)
 
-    def start_turn(self, player_id: PlayerId | list[PlayerId]) -> Self:
-        assert player_id in self.alive_human_ids
+    def start_turn(self, player_id: PlayerId) -> Self:
+        assert player_id in self.alive_human_player_ids
         return self._set_turn(player_id, True)
 
     def start_all_turns(self) -> Self:
-        return self._set_turn(self.alive_human_ids, True)
+        return self._set_turn(self.alive_human_player_ids, True)
 
     def end_all_turns(self) -> Self:
         return self._set_turn(self.human_player_ids, False)
 
     def start_first_player_turn(self) -> Self:
-        df = self.df
-        df.loc[:, "is_having_turn"] = False
-        df.loc[self.alive_human_ids[0], "is_having_turn"] = True
-        return self.update_frame(df)
+        players = self.alive_human_player_ids
+        mapping = {p: False for p in players}
+        mapping[players[0]] = True
+        return self.update_with_mapping(key="is_having_turn", mapping=mapping)
 
     def cycle_turn(self) -> Self:
         current_players = self.get_currently_playing().player_ids
         assert len(current_players) == 1, f"Expected exactly one current player, got {current_players}"
         current_player = current_players[0]
 
-        df = self.df
-        df.loc[current_player, "is_having_turn"] = False
-        human_ids = self.alive_human_ids
-        next_index = human_ids.index(current_player) + 1
+        repo = self.end_turn(current_player)
+        human_ids = self.alive_human_player_ids
+        next_index = human_ids.index(current_players[0]) + 1
         if next_index >= len(human_ids):
-            return self.update_frame(df)
+            return repo
 
         next_player = human_ids[next_index]
-        df.loc[next_player, "is_having_turn"] = True
-        return self.update_frame(df)
+        return repo.start_turn(next_player)
 
     def eliminate_player(self, player_id: PlayerId) -> Self:
-        df = self.df
-        df.loc[player_id, "still_alive"] = False
-        return self.update_frame(df)
+        return self.update_key_value(id=player_id, key="still_alive", value=False)
 
     def eliminate_players(self, player_ids: list[PlayerId]) -> Self:
-        df = self.df
-        int_ids = [int(p) for p in player_ids]
-        df.loc[int_ids, "still_alive"] = False
-        return self.update_frame(df)
+        return self.update_key_values(id=player_ids, key_values={"still_alive": False})
 
     # DELETE
     def delete_player(self, player_id: PlayerId) -> Self:
