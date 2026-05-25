@@ -5,6 +5,7 @@ from pathlib import Path
 from src.models.assets import AssetInfo, AssetType
 from src.models.game_settings import GameSettings
 from src.models.ids import AssetId, BusId, PlayerId, Round
+from src.new_game.util.available_technologies import get_available_technologies
 from src.new_game.util.technology_specs import TechnologySpecs
 from src.tools.random_choice import random_choice
 
@@ -16,7 +17,10 @@ class GeneratorMaker:
     def make_one(cls, asset_id: AssetId, bus_id: BusId, current_round: Round, settings: GameSettings, technology_name: str | None = None, player_id: PlayerId = PlayerId.get_npc()) -> AssetInfo:
         """Create a generator with properties based on the current round."""
         if technology_name is None:
-            technology_name = random_choice(cls.get_available_technologies())
+            available_techs = settings.generators.get_all_enabled()
+            tech_names, tech_probabilities = available_techs.get_names_and_probabilities()
+            technology_name = random_choice(tech_names, p=tech_probabilities)
+
         tech_specs = cls._get_technology_spec(technology_name)
 
         capacity = tech_specs.capacity.value_at_round(current_round)
@@ -50,9 +54,7 @@ class GeneratorMaker:
 
     @classmethod
     def get_available_technologies(cls) -> list[str]:
-        tech_specs_dir = GeneratorMaker.path / "tech_specs"
-        yaml_files = tech_specs_dir.rglob("*.yaml")
-        return [f.stem for f in yaml_files]
+        return get_available_technologies(category="generators")
 
     @classmethod
     def _get_technology_spec(cls, technology_name: str) -> TechnologySpecs:

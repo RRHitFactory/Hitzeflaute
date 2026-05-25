@@ -13,10 +13,10 @@ def random_choice_multi[T](x: list[T], size: int, generator: Generator | None = 
     return [x[ix] for ix in ixs]
 
 
-def random_choice[T](x: list[T], generator: Generator | None = None) -> T:
+def random_choice[T](x: list[T], generator: Generator | None = None, **kwargs) -> T:
     if generator is None:
         generator = np.random.default_rng()
-    return random_choice_multi(x=x, size=1, generator=generator)[0]
+    return random_choice_multi(x=x, size=1, generator=generator, **kwargs)[0]
 
 
 def shuffle[T](x: list[T], generator: Generator | None = None) -> list[T]:

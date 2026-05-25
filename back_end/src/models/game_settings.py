@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from typing import Literal, Self
 
 from src.models.geometry import Point, Shape, ShapeType
+from src.models.technology_settings import MakeTechSettings, TechnologySettingsRepo
 
 type TurnType = Literal["hotseat", "online"]
 type BusTopology = Literal["line", "grid", "random", "regular_polygon", "layered_polygon"]
@@ -22,6 +23,9 @@ class GameSettings:
     max_bid_price: float = 1000
     initial_funds: int = 10000
     enable_fixed_costs: bool = False
+    loads: TechnologySettingsRepo = field(default_factory=lambda: MakeTechSettings.create_default_load_tech_settings())
+    generators: TechnologySettingsRepo = field(default_factory=lambda: MakeTechSettings.create_default_generator_settings())
+    transmission: TechnologySettingsRepo = field(default_factory=lambda: MakeTechSettings.create_default_transmission_settings())
     probability_of_new_asset: float = 0.2
     probability_of_new_transmission: float = 0.0
     probability_of_new_bus: float = 0.0
@@ -45,6 +49,9 @@ class GameSettings:
             "max_bid_price": self.max_bid_price,
             "initial_funds": self.initial_funds,
             "enable_fixed_costs": self.enable_fixed_costs,
+            "load_tech_settings": self.loads.to_simple_dict(),
+            "generator_tech_settings": self.generators.to_simple_dict(),
+            "transmission_tech_settings": self.transmission.to_simple_dict(),
             "probability_of_new_asset": self.probability_of_new_asset,
             "probability_of_new_transmission": self.probability_of_new_transmission,
             "probability_of_new_bus": self.probability_of_new_bus,
@@ -66,6 +73,9 @@ class GameSettings:
             max_bid_price=simple_dict["max_bid_price"],
             initial_funds=simple_dict["initial_funds"],
             enable_fixed_costs=simple_dict["enable_fixed_costs"],
+            loads=TechnologySettingsRepo.from_simple_dict(simple_dict["load_tech_settings"]),
+            generators=TechnologySettingsRepo.from_simple_dict(simple_dict["generator_tech_settings"]),
+            transmission=TechnologySettingsRepo.from_simple_dict(simple_dict["transmission_tech_settings"]),
             probability_of_new_asset=simple_dict["probability_of_new_asset"],
             probability_of_new_transmission=simple_dict["probability_of_new_transmission"],
             probability_of_new_bus=simple_dict["probability_of_new_bus"],
