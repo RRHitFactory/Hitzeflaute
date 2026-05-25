@@ -77,3 +77,9 @@ class Round(IntId):
     @classmethod
     def _get_dy_column_type(cls) -> type[Column]:
         return dy.UInt8
+
+
+class TechnologySettingsId(IntId):
+    @classmethod
+    def _get_dy_column_type(cls) -> type[Column]:
+        return dy.UInt8

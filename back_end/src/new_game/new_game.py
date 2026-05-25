@@ -17,14 +17,14 @@ from src.new_game.generators.generator_maker import GeneratorMaker
 from src.new_game.loads.load_maker import LoadMaker
 from src.new_game.transmission.transmission_maker import TransmissionMaker
 from src.new_game.trigram_maker import make_trigrams
-from src.tools.random_choice import random_choice, random_choice_multi
+from src.tools.random_choice import random_choice_multi, shuffle
 
 __all__ = ["GameInitializer"]
 
 
 class BusTopologyMaker:
     @staticmethod
-    def make_line(n_buses: int, length: int) -> list[Point]:
+    def make_line(n_buses: int, length: float) -> list[Point]:
         line_layout = Shape.make_line(start=Point(x=0.0, y=0.0), end=Point(x=length, y=0.0), n_points=n_buses)
         return line_layout.points
 
@@ -94,15 +94,26 @@ class TransmissionTopologyMaker:
         """
         Create a linear transmission topology with the specified number of buses
         """
-        return {(bus_repo.bus_ids[i], bus_repo.bus_ids[i + 1]) for i in range(len(bus_repo))}
+        return {(bus_repo.bus_ids[i], bus_repo.bus_ids[i + 1]) for i in range(len(bus_repo) - 1)}
 
     @staticmethod
-    def make_random(bus_repo: BusRepo, n_connections: int) -> Topology:
+    def make_random(bus_repo: BusRepo, n_connections: int, max_lines_per_bus: int) -> Topology:
         """
         Create a random transmission topology with the specified number of buses and connections
         """
-        possible_connections = TransmissionTopologyMaker._get_bus_combinations(bus_repo)
-        return {random_choice(possible_connections) for _ in range(n_connections)}
+        randomly_sorted_possible_connections = shuffle(TransmissionTopologyMaker._get_bus_combinations(bus_repo))
+        count_bus_sockets = {bus_id: 0 for bus_id in bus_repo.bus_ids}
+        selected_connections: Topology = set()
+        for bus1, bus2 in randomly_sorted_possible_connections:
+            if (bus1, bus2) in selected_connections or count_bus_sockets[bus1] >= max_lines_per_bus or count_bus_sockets[bus2] >= max_lines_per_bus:
+                continue
+            elif len(selected_connections) == n_connections:
+                break
+            else:
+                selected_connections.add((bus1, bus2))
+                count_bus_sockets[bus1] += 1
+                count_bus_sockets[bus2] += 1
+        return selected_connections
 
     @staticmethod
     def make_grid(bus_repo: BusRepo, n_buses_per_row: int) -> Topology:
@@ -113,7 +124,7 @@ class TransmissionTopologyMaker:
         """
         connections: list[tuple[BusId, BusId]] = []
         n_buses = len(bus_repo)
-        for i in range(n_buses):
+        for i in range(n_buses - 1):
             if (i + 1) % n_buses_per_row != 0:  # Connect to the right bus
                 connections.append((bus_repo.bus_ids[i], bus_repo.bus_ids[i + 1]))
             if i + n_buses_per_row < n_buses:  # Connect to the bus below
@@ -205,18 +216,12 @@ class GameInitializer:
         return PlayerRepo(players)
 
     def _create_bus_repo(self, player_repo: PlayerRepo) -> BusRepo:
-        topology = BusTopologyMaker.make_layered_polygon(
-            n_buses=self.settings.n_buses,
-            n_buses_per_layer=self.settings.n_buses,
-            radius=self.settings.map_area.height * 0.9 / 2,
-        )
+        topology = self._select_bus_topology(n_human_players=player_repo.n_human_players)
 
         bus_ids = iter([BusId(i + 1) for i in range(self.settings.n_buses)])
         topos = iter(topology)
 
         buses: list[Bus] = []
-        for top in topos:
-            buses.append(Bus(id=next(bus_ids), x=top.x, y=top.y))
 
         for bus_id, top in zip(bus_ids, topos):
             buses.append(Bus(id=bus_id, x=top.x, y=top.y))
@@ -271,19 +276,19 @@ class GameInitializer:
         gen_maker = GeneratorMaker()
         for _ in range(self.settings.n_init_assets):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-            asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0))
+            asset = gen_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, settings=self.settings, current_round=Round(0))
             assets.append(asset)
 
         load_maker = LoadMaker()
         for _ in range(self.settings.n_init_non_freezer_loads):
             bus_id = socket_manager.get_bus_with_free_socket(use=True)
-            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, current_round=Round(0), except_freezer=True)
+            asset = load_maker.make_one(asset_id=next(asset_ids), bus_id=bus_id, settings=self.settings, current_round=Round(0), except_freezer=True)
             assets.append(asset)
 
         return AssetRepo(assets)
 
     def _create_transmission_repo(self, player_repo: PlayerRepo, bus_repo: BusRepo) -> TransmissionRepo:
-        topology = TransmissionTopologyMaker.make_spiderweb(bus_repo=bus_repo, n_buses_per_layer=player_repo.n_human_players)
+        topology = self._select_transmission_topology(n_human_players=player_repo.n_human_players, bus_repo=bus_repo)
         self._assert_topology_has_no_islands(buses=bus_repo.bus_ids, topology=topology)
 
         def transmission_id_iterator(
@@ -305,7 +310,7 @@ class GameInitializer:
             socket_manager.use_socket(bus1)
             socket_manager.use_socket(bus2)
 
-            line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round=Round(0))
+            line = transmission_maker.make_one(transmission_id=next(t_id_iter), bus1=bus1, bus2=bus2, current_round=Round(0), settings=self.settings)
             lines.append(line)
 
         return TransmissionRepo(lines)
@@ -329,3 +334,36 @@ class GameInitializer:
 
         island_detected = any(v is False for v in bus_on_the_chain.values())
         assert not island_detected, "Island detected in topology"
+
+    def _select_bus_topology(self, n_human_players: int) -> list[Point]:
+        match self.settings.bus_topology:
+            case "line":
+                return BusTopologyMaker.make_line(n_buses=self.settings.n_buses, length=self.settings.map_area.width * 0.9)
+            case "grid":
+                n_buses_per_row = math.ceil(math.sqrt(self.settings.n_buses))
+                n_buses_per_col = math.ceil(self.settings.n_buses / n_buses_per_row)
+                return BusTopologyMaker.make_grid(n_buses_per_row=n_buses_per_row, n_buses_per_col=n_buses_per_col, x_range=self.settings.map_area.width * 0.9, y_range=self.settings.map_area.height * 0.9)
+            case "random":
+                return BusTopologyMaker.make_random(n_buses=self.settings.n_buses, x_range=self.settings.map_area.width * 0.9, y_range=self.settings.map_area.height * 0.9)
+            case "regular_polygon":
+                return BusTopologyMaker.make_regular_polygon(n_buses=self.settings.n_buses, radius=self.settings.map_area.height * 0.9 / 2)
+            case "layered_polygon":
+                n_buses_per_layer = n_human_players
+                return BusTopologyMaker.make_layered_polygon(n_buses=self.settings.n_buses, n_buses_per_layer=n_buses_per_layer, radius=self.settings.map_area.height * 0.9 / 2)
+            case _:
+                raise ValueError(f"Invalid bus topology: {self.settings.bus_topology}")
+
+    def _select_transmission_topology(self, n_human_players: int, bus_repo: BusRepo) -> set[tuple[BusId, BusId]]:
+        match self.settings.transmission_topology:
+            case "sequential":
+                return TransmissionTopologyMaker.make_sequential(bus_repo)
+            case "random":
+                return TransmissionTopologyMaker.make_random(bus_repo, n_connections=self.settings.n_buses * 2, max_lines_per_bus=self.settings.max_lines_per_bus)
+            case "grid":
+                n_buses_per_row = math.floor(math.sqrt(self.settings.n_buses))
+                return TransmissionTopologyMaker.make_grid(bus_repo, n_buses_per_row=n_buses_per_row)
+            case "spiderweb":
+                n_buses_per_layer = n_human_players
+                return TransmissionTopologyMaker.make_spiderweb(bus_repo, n_buses_per_layer=n_buses_per_layer)
+            case _:
+                raise ValueError(f"Invalid transmission topology: {self.settings.transmission_topology}")
