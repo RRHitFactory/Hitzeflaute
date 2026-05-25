@@ -9,7 +9,7 @@ from src.ids import BusId, PlayerId, TransmissionId
 from src.models.data.light_dc import LightDc
 from src.models.data.polar_repo import PolarRepo
 
-__all__ = ["TransmissionInfo", "TransmissionRepo"]
+__all__ = ["TransmissionInfo", "TransmissionRepoSchema", "TransmissionRepo"]
 
 
 @dataclass(frozen=True)
@@ -136,9 +136,7 @@ class TransmissionRepo(PolarRepo[TransmissionRepoSchema, TransmissionInfo, Trans
         return self.update_key_value(id=transmission_id, key="is_active", value=True)
 
     def update_activations(self, activations: MappingProxyType[TransmissionId, bool]) -> Self:
-        actives = [k for k, v in activations.items() if v]
-        inactives = [k for k, v in activations.items() if not v]
-        return self.update_key_values(id=actives, key_values={"is_active": True}).update_key_values(id=inactives, key_values={"is_active": False})
+        return self.update_with_mapping(key="is_active", mapping=activations)
 
     def change_owner(self, transmission_id: TransmissionId, new_owner: PlayerId) -> Self:
         return self.update_key_values(id=transmission_id, key_values={"owner_player": int(new_owner), "is_for_sale": False})

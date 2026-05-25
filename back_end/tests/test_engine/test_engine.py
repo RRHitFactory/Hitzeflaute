@@ -206,7 +206,7 @@ class TestEngine(BaseTest):
         player_repo = PlayerRepoMaker.make_quick(3)
         buses = BusRepoMaker.make_quick(n_buses=0, players=player_repo)
         # fill all buses' sockets
-        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=20 * 3 - 3 - 1)
+        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_non_freezer_assets=20 * 3 - 3 - 1)
         # one player should be losing
         losing_player = player_repo.only_human[0]
         freezer_losing_player = assets.get_freezer_for_player(losing_player.id).as_obj()
@@ -268,7 +268,7 @@ class TestEngine(BaseTest):
 
         player_repo = PlayerRepoMaker.make_quick(3)
         buses = BusRepoMaker.make_quick(n_buses=3, players=player_repo)
-        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_normal_assets=5)
+        assets = AssetRepoMaker.make_quick(bus_repo=buses, players=player_repo, n_non_freezer_assets=5)
         transmission = TransmissionRepoMaker.make_quick(buses=buses, players=player_repo, n=5)
 
         game_state = game_maker.add_bus_repo(buses).add_asset_repo(assets).add_transmission_repo(transmission).make()

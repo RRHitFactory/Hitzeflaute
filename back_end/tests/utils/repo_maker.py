@@ -140,11 +140,16 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
     @classmethod
     def make_quick(
         cls,
-        n_normal_assets: int = 3,
+        n_non_freezer_assets: int = 3,
         players: list[PlayerId] | PlayerRepo | None = None,
         bus_repo: BusRepo | None = None,
     ) -> AssetRepo:
-        return cls(players=players, bus_repo=bus_repo).add_n_random(n_normal_assets).add_asset(owner=PlayerId.get_npc(), is_for_sale=True).make()
+        maker = cls(players=players, bus_repo=bus_repo)
+        if n_non_freezer_assets >= 1:
+            maker = maker.add_asset(owner=PlayerId.get_npc(), is_for_sale=True)
+        if n_non_freezer_assets > 1:
+            maker = maker.add_n_random(n_non_freezer_assets - 1)
+        return maker.make()
 
     def __init__(
         self,

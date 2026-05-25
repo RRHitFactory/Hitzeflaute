@@ -10,6 +10,7 @@ from src.models.colors import Color
 from src.models.data.light_dc import LightDc
 from src.models.data.polar_repo import PolarRepo
 
+__all__ = ["Player", "PlayerRepoSchema", "PlayerRepo"]
 
 @dataclass(frozen=True)
 class Player(LightDc):

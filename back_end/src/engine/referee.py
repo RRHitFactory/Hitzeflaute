@@ -231,16 +231,17 @@ class Referee:
 
     @staticmethod
     def check_game_over(gs: GameState) -> tuple[GameState, list[GameOverMessage]]:
-        alive_players = gs.players.only_alive.only_human
-        n_players_alive = len(alive_players)
+        alive_players_ids = gs.players.alive_human_player_ids
+        n_players_alive = len(alive_players_ids)
         if n_players_alive == 1:
-            winner = alive_players[0]
+            winner_id = alive_players_ids[0]
+            winner_name = gs.players[winner_id].name
             return gs, [
                 GameOverMessage(
                     game_id=gs.game_id,
                     player_id=player_id,
-                    winner_id=winner.id,
-                    message=f"Player {winner.id} <{winner.name}> has won the game!",
+                    winner_id=winner_id,
+                    message=f"Player {winner_id} <{winner_name}> has won the game!",
                 )
                 for player_id in gs.players.human_player_ids
             ]

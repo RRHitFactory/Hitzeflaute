@@ -13,6 +13,7 @@ from src.models.data.light_dc import LightDc
 from src.models.data.polar_repo import PolarRepo
 from src.tools.polar import reorder
 
+__all__ = ["AssetType", "AssetInfo", "AssetRepoSchema", "AssetRepo"]
 
 class AssetType(IntEnum):
     GENERATOR = 0
@@ -168,26 +169,22 @@ class AssetRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
         return self.df.filter(is_load, is_active)["power_expected"].sum()
 
     def asset_is_freezer(self, asset_id: AssetId) -> bool:
-        return self.df.filter(pl.col("id") == int(asset_id)).limit(1)["freezer"].item()
+        return self.df.filter(pl.col("id") == int(asset_id)).limit(1)["is_freezer"].item()
 
     # UPDATE
     def change_owner(self, asset_id: AssetId, new_owner: PlayerId) -> "AssetRepo":
         return self.update_key_values(id=asset_id, key_values={"owner_player": int(new_owner), "is_for_sale": False})
 
     def update_bids(self, bids: MappingProxyType[AssetId, float]) -> "AssetRepo":
-        df = self.df
-        bid_df = pl.DataFrame({"id": list(bids.keys()), "new_bid": list(bids.values())})
-        updated_df = df.join(bid_df, on="id", how="left").with_columns(pl.coalesce("new_bid", "bid_price").alias("bid_price")).drop("new_bid")
-        return self.update_frame(updated_df)
+        return self.update_with_mapping(key="bid_price", mapping=bids)
 
     def migrate_asset(self, asset_id: AssetId, new_bus_id: BusId, round: Round) -> "AssetRepo":
         return self.update_key_values(id=asset_id, key_values={"bus": int(new_bus_id), "birthday": int(round)})
 
     def _decrease_health(self, asset_ids: list[AssetId]) -> "AssetRepo":
-        df = self.df.with_columns(pl.when(pl.col("id").is_in(asset_ids)).then((pl.col("health") - 1).clip(lower_bound=0).alias("health")).otherwise(pl.col("health"))).with_columns(
-            (pl.col("health") > 0).alias("is_alive")
-        )
-        return self._make_quick(df)
+        repo = self.update_key_expressions(id=asset_ids, key_exprs={"health": (pl.col("health") - 1).clip(lower_bound=0)})
+        repo = repo.update_key_expressions(id=asset_ids, key_exprs={"is_active": pl.col("is_active") & (pl.col("health") > 0)})
+        return repo
 
     def melt_ice_cream(self, asset_id: AssetId) -> "AssetRepo":
         assert len(self.df.filter(pl.col("id") == int(asset_id), pl.col("is_freezer"))) == 1, f"Could not find freezer with id {asset_id}"
@@ -201,9 +198,7 @@ class AssetRepo(PolarRepo[AssetRepoSchema, AssetInfo, AssetId]):
         return self.update_key_values(id=asset_ids, key_values={"is_active": False})
 
     def update_activations(self, activations: MappingProxyType[AssetId, bool]) -> "AssetRepo":
-        actives = [k for k, v in activations.items() if v]
-        inactives = [k for k, v in activations.items() if not v]
-        return self.update_key_values(id=actives, key_values={"is_active": True}).update_key_values(id=inactives, key_values={"is_active": False})
+        return self.update_with_mapping(key="is_active", mapping=activations)
 
     def eliminate_players(self, players: list[PlayerId]) -> "AssetRepo":
         int_ids = [int(p) for p in players]

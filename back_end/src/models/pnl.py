@@ -3,7 +3,7 @@ from typing import Literal
 import dataframely as dy
 import polars as pl
 
-from src.ids import AssetId, PlayerId
+from src.ids import AssetId, PlayerId, TransmissionId
 
 type PnlCat = Literal["operation", "market", "congestion"]
 
@@ -12,7 +12,7 @@ class PnlFrameSchema(dy.Schema):
     cat = dy.String(max_length=10)  # operation, market, congestion
     player_id = PlayerId._get_dy_column()
     asset_id = AssetId._get_dy_column(nullable=True)
-    transmission_id = dy.UInt16(nullable=True)
+    transmission_id = TransmissionId._get_dy_column(nullable=True)
     cashflow = dy.Float32()  # Positive = Profit
 
     @dy.rule()

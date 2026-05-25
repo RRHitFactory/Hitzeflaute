@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Generator, Iterable
+from collections.abc import Generator, Iterable, Mapping
 from typing import Any, ClassVar, Self, overload
 
 import dataframely as dy
@@ -142,6 +142,25 @@ class PolarRepo[T_Schema: dy.Schema, T_Obj: LightDc, T_Int: int](ABC):
         exprs = [pl.when(condition).then(e).otherwise(pl.col(k)).alias(k) for k, e in key_exprs.items()]
         df = self.df.with_columns(*exprs)
         return self._make_quick(df)
+
+    def update_with_mapping[T_PolarRepo: "PolarRepo"](
+            self: T_PolarRepo,
+            key: str,
+            mapping: Mapping[T_Int, IntId | int | float | bool  | str]
+        ) -> T_PolarRepo:
+
+        def sanitize(x: IntId | int | float | bool | str) -> int | float | bool  | str:
+            if isinstance(x, IntId):
+                x = int(x)
+            return x
+
+        update_df = pl.DataFrame({
+            "id": [int(i) for i in mapping.keys()],
+            "new_value": [sanitize(v) for v in mapping.values()]
+        })
+        df = self.df.join(update_df, on="id", how="left").with_columns(pl.coalesce("new_value", key).alias(key)).drop("new_value")
+        return self._make_quick(df)
+
 
     # DELETE
     def drop_by_ids[T_PolarRepo: "PolarRepo"](self: T_PolarRepo, ids: Iterable[T_Int]) -> T_PolarRepo:
