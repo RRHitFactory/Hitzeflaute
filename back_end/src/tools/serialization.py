@@ -6,7 +6,7 @@ from typing import Any, Protocol, Self, get_args, get_origin, runtime_checkable
 import pandas as pd
 import polars as pl
 
-from src.tools.typing import IntId
+from src.ids import IntId
 
 type Primitive = int | float | str | bool
 type FlatDict = dict[str, Primitive]
@@ -91,11 +91,11 @@ def simplify_optional_type(
 def un_simplify_type[T: SimpleValue](x: Primitive, t: type[T]) -> T:  # type: ignore[return-value]
     if issubclass(t, Stringable):
         return t.from_string(str(x))
-    if t in primitives:
-        return t(x)  # type: ignore[return-value]
-    if issubclass(t, Enum):
-        return t(x)  # type: ignore[return-value]
     if issubclass(t, IntId):
+        return t(x)  # type: ignore[return-value, abstract]
+    if t in primitives:
+        return t(x)  # type: ignore[return-value, abstract]
+    if issubclass(t, Enum):
         return t(x)  # type: ignore[return-value]
     raise TypeError(f"Unsupported type {t}")
 
@@ -121,7 +121,7 @@ class SerializableDcFlat:
 
     @classmethod
     def get_serializable_fields(cls) -> dict[str, Field]:
-        return {k: v for k, v in cls.__dataclass_fields__.items() if k != "allow_recursion"}
+        return {k: v for k, v in cls.__dataclass_fields__.items()}
 
 
 @dataclass(frozen=True)

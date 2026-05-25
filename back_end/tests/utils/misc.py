@@ -1,5 +1,5 @@
 from src.models.assets import AssetRepo
-from src.models.ids import AssetId, BusId
+from src.ids import AssetId, BusId
 
 
 def get_asset_locations(assets: AssetRepo, bus_ids: list[BusId]) -> dict[BusId, list[AssetId]]:

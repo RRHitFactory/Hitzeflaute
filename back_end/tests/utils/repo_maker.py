@@ -9,7 +9,8 @@ from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color
 from src.models.data.ldc_repo import LdcRepo
 from src.models.data.light_dc import LightDc
-from src.models.ids import AssetId, BusId, PlayerId, TransmissionId
+from src.models.data.polar_repo import PolarRepo
+from src.ids import AssetId, BusId, PlayerId, TransmissionId
 from src.models.player import Player, PlayerRepo
 from src.models.transmission import TransmissionInfo, TransmissionRepo
 from src.tools.random_choice import random_choice
@@ -17,13 +18,13 @@ from src.tools.random_choice import random_choice
 T_RepoMaker = TypeVar("T_RepoMaker", bound="RepoMaker")
 
 
-class RepoMaker[T_LdcRepo: LdcRepo, T_LightDc: LightDc]:
+class RepoMaker[T_Repo: LdcRepo | PolarRepo, T_LightDc: LightDc]:
     def __init__(self, *args, **kwargs) -> None:
         self.dcs: list[T_LightDc] = []
         self.id_counter = count(start=0)
 
     @abstractmethod
-    def _get_repo_type(self) -> type[T_LdcRepo]:
+    def _get_repo_type(self) -> type[T_Repo]:
         pass
 
     @abstractmethod
@@ -44,9 +45,10 @@ class RepoMaker[T_LdcRepo: LdcRepo, T_LightDc: LightDc]:
         new_dcs = [self._make_dc() for _ in range(n)]
         return self + new_dcs
 
-    def make(self) -> T_LdcRepo:
+    def make(self) -> T_Repo:
         self._pre_make_hook()
-        return self._get_repo_type()(dcs=self.dcs)
+        RT = self._get_repo_type()
+        return RT(self.dcs)
 
 
 class BusRepoMaker(RepoMaker[BusRepo, Bus]):
@@ -79,7 +81,7 @@ class BusRepoMaker(RepoMaker[BusRepo, Bus]):
         y = -centre_y + abs(half_width - centre_y) * centre_rand()
 
         bus_id = next(self.id_counter)
-        return Bus(id=BusId(bus_id), x=x, y=y, max_assets=20, max_lines=10)
+        return Bus(id=BusId(bus_id), x=x, y=y)
 
     def _get_current_centre(self) -> tuple[float, float]:
         """Get the current centre of the buses."""
@@ -138,11 +140,16 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
     @classmethod
     def make_quick(
         cls,
-        n_normal_assets: int = 3,
+        n_non_freezer_assets: int = 3,
         players: list[PlayerId] | PlayerRepo | None = None,
         bus_repo: BusRepo | None = None,
     ) -> AssetRepo:
-        return cls(players=players, bus_repo=bus_repo).add_n_random(n_normal_assets).add_asset(owner=PlayerId.get_npc(), is_for_sale=True).make()
+        maker = cls(players=players, bus_repo=bus_repo)
+        if n_non_freezer_assets >= 1:
+            maker = maker.add_asset(owner=PlayerId.get_npc(), is_for_sale=True)
+        if n_non_freezer_assets > 1:
+            maker = maker.add_n_random(n_non_freezer_assets - 1)
+        return maker.make()
 
     def __init__(
         self,
@@ -159,7 +166,7 @@ class AssetRepoMaker(RepoMaker[AssetRepo, AssetInfo]):
             bus_repo = BusRepoMaker.make_quick(players=players)
         self.player_ids = players
         self.buses = bus_repo
-        self._socket_manager = BusSocketManager({b.id: b.max_assets for b in bus_repo})
+        self._socket_manager = BusSocketManager({b: 20 for b in bus_repo.bus_ids})
 
         bus_id_iter = iter(self.buses.bus_ids)
         for player in players:
@@ -308,7 +315,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
     ) -> TransmissionRepo:
         if n is None:
             assert buses is not None, "Either n or buses must be provided"
-            n = min(10, round(sum([b.max_lines for b in buses]) * 0.4))
+            n = min(10, round(5 * len(buses) * 0.4))
         maker = cls(players=players, buses=buses)
         return maker.add_n_random(n).make()
 
@@ -328,7 +335,7 @@ class TransmissionRepoMaker(RepoMaker[TransmissionRepo, TransmissionInfo]):
 
         self.player_ids = players
         self.buses = buses
-        self._socket_manager = BusSocketManager({b.id: b.max_lines for b in buses})
+        self._socket_manager = BusSocketManager({b: 10 for b in buses.bus_ids})
 
     def __add__(self, dc: TransmissionInfo | list[TransmissionInfo]) -> Self:
         if isinstance(dc, list):

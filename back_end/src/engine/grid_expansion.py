@@ -1,6 +1,6 @@
+from src.ids import AssetId
 from src.models.buses import BusSocketManager
 from src.models.game_state import GameState
-from src.models.ids import AssetId
 from src.models.message import (
     AssetBuiltMessage,
 )
@@ -41,11 +41,11 @@ class GridExpansion:
         msgs = [
             AssetBuiltMessage(
                 game_id=game_state.game_id,
-                player_id=player.id,
+                player_id=player,
                 message=f"New {new_asset.technology} {new_asset.asset_type} built at bus {new_asset.bus}.",
                 asset_id=new_asset.id,
             )
-            for player in game_state.players.human_players
+            for player in game_state.players.human_player_ids
         ]
         return new_game_state, msgs, [new_asset.id]
 
@@ -56,10 +56,12 @@ class GridExpansion:
 
     @classmethod
     def _create_asset_socket_manager(cls, game_state: GameState) -> BusSocketManager:
-        available_bus_sockets = {bus.id: bus.max_assets - len(game_state.assets.get_all_assets_at_bus(bus.id)) for bus in game_state.buses}
+        max_assets = game_state.game_settings.max_assets_per_bus
+        available_bus_sockets = {bus.id: max_assets - len(game_state.assets.get_all_assets_at_bus(bus.id)) for bus in game_state.buses}
         return BusSocketManager(starting_sockets=available_bus_sockets)
 
     @classmethod
     def _create_transmission_socket_manager(cls, game_state: GameState) -> BusSocketManager:
-        available_bus_sockets = {bus.id: bus.max_lines - len(game_state.transmission.get_all_at_bus(bus.id)) for bus in game_state.buses}
+        max_lines = game_state.game_settings.max_lines_per_bus
+        available_bus_sockets = {bus.id: max_lines - len(game_state.transmission.get_all_at_bus(bus.id)) for bus in game_state.buses}
         return BusSocketManager(starting_sockets=available_bus_sockets)

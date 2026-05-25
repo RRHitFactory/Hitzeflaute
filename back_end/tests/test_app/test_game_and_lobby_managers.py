@@ -5,7 +5,7 @@ from src.app.game_repo.file_game_repo import FileGameStateRepo
 from src.app.lobby_manager import LobbyManager
 from src.directories import test_dir
 from src.engine.engine import Engine
-from src.models.ids import GameId
+from src.ids import GameId
 from src.models.message import GameToPlayerMessage, GameUpdate
 from tests.base_test import BaseTest
 

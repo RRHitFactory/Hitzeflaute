@@ -1,4 +1,4 @@
-from src.models.ids import BusId, TransmissionId
+from src.ids import BusId, TransmissionId
 from src.models.player import PlayerId
 from tests.base_test import BaseTest
 from tests.utils.repo_maker import TransmissionInfo, TransmissionRepo
@@ -7,7 +7,7 @@ from tests.utils.repo_maker import TransmissionInfo, TransmissionRepo
 class TestTransmission(BaseTest):
     def test_get_bus_pairs(self) -> None:
         repo = TransmissionRepo(
-            dcs=[
+            x=[
                 TransmissionInfo(id=TransmissionId(0), owner_player=PlayerId(1), bus1=BusId(0), bus2=BusId(1), reactance=0.1),
                 TransmissionInfo(id=TransmissionId(1), owner_player=PlayerId(1), bus1=BusId(0), bus2=BusId(1), reactance=0.1),
                 TransmissionInfo(id=TransmissionId(2), owner_player=PlayerId(1), bus1=BusId(1), bus2=BusId(2), reactance=0.1),

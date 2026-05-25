@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
+from src.ids import GameId
 from src.models.game_state import GameState
-from src.models.ids import GameId
 
 
 class BaseGameStateRepo(ABC):

@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TypeVar
 
+from src.ids import BusId, GameId, PlayerId
 from src.models.assets import AssetId
 from src.models.game_state import GameState, Phase
-from src.models.ids import BusId, GameId, PlayerId
 from src.models.transmission import TransmissionId
 from src.tools.serialization import SerializableDcSimple
 
