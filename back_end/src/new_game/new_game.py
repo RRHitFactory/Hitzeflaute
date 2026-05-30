@@ -348,7 +348,7 @@ class GameInitializer:
             case "regular_polygon":
                 return BusTopologyMaker.make_regular_polygon(n_buses=self.settings.n_buses, radius=self.settings.map_area.height * 0.9 / 2)
             case "layered_polygon":
-                n_buses_per_layer = n_human_players
+                n_buses_per_layer = n_human_players if n_human_players >=3 else 3
                 return BusTopologyMaker.make_layered_polygon(n_buses=self.settings.n_buses, n_buses_per_layer=n_buses_per_layer, radius=self.settings.map_area.height * 0.9 / 2)
             case _:
                 raise ValueError(f"Invalid bus topology: {self.settings.bus_topology}")
@@ -363,7 +363,7 @@ class GameInitializer:
                 n_buses_per_row = math.floor(math.sqrt(self.settings.n_buses))
                 return TransmissionTopologyMaker.make_grid(bus_repo, n_buses_per_row=n_buses_per_row)
             case "spiderweb":
-                n_buses_per_layer = n_human_players
+                n_buses_per_layer = n_human_players if n_human_players >=3 else 3
                 return TransmissionTopologyMaker.make_spiderweb(bus_repo, n_buses_per_layer=n_buses_per_layer)
             case _:
                 raise ValueError(f"Invalid transmission topology: {self.settings.transmission_topology}")
