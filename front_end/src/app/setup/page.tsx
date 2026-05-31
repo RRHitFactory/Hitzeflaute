@@ -2,6 +2,11 @@
 
 import { useCreateGame, useGamesList } from "@/lib/gameAPI";
 import { useRouter } from "next/navigation";
+import {
+  SettingsTable,
+  getDefaultGameSettings,
+} from "@/components/UI/SettingsTable";
+import { GameSettings } from "@/types/game";
 import React, { useState } from "react";
 
 export default function SetupPage() {
@@ -17,6 +22,9 @@ export default function SetupPage() {
     "Player 1",
     "Player 2",
   ]);
+  const [gameSettings, setGameSettings] = React.useState<GameSettings>(
+    getDefaultGameSettings(),
+  );
 
   const { createGame, loading: creatingGame } = useCreateGame();
   const { games, loading: gamesLoading, error: gamesError } = useGamesList();
@@ -28,7 +36,7 @@ export default function SetupPage() {
 
       let idToUse = -1;
       if (action === "create") {
-        const result = await createGame(playerNames);
+        const result = await createGame(playerNames, gameSettings);
         idToUse = parseInt(result.game_id);
       } else if (action === "load" && selectedGameId !== -1) {
         idToUse = selectedGameId;
@@ -40,6 +48,8 @@ export default function SetupPage() {
     } catch (err) {
       console.error("Failed to start game:", err);
       setError(err instanceof Error ? err.message : "Failed to start game");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -196,6 +206,11 @@ export default function SetupPage() {
           Start Game
         </button>
       </div>
+      <SettingsTable
+        settings={gameSettings}
+        editable={true}
+        onChange={(next) => setGameSettings(next)}
+      />
     </div>
   );
 }

@@ -14,6 +14,7 @@ from types import MappingProxyType
 from pydantic import BaseModel
 
 from src.ids import AssetId, BusId, GameId, PlayerId, TransmissionId
+from src.models.game_settings import GameSettings
 from src.models.message import (
     ActivationUpdateRequest,
     BuyRequest,
@@ -32,6 +33,7 @@ logger = logging.getLogger(__name__)
 # Pydantic models for API requests/responses
 class CreateGameRequest(BaseModel):
     player_names: list[str]
+    game_settings: dict
 
 
 class CreateGameResponse(BaseModel):
@@ -145,6 +147,10 @@ class JoinLobbyRequest(BaseModel):
     player_name: str
 
 
+class LobbyUpdateSettingsRequest(BaseModel):
+    game_settings: dict
+
+
 class JoinLobbyResponse(BaseModel):
     game_id: int
     player_id: str
@@ -158,6 +164,13 @@ class LobbyInfoResponse(BaseModel):
     max_players: int
     is_started: bool
     player_count: int
+    host_player_id: int
+    game_settings: dict
+
+
+class LobbyUpdateSettingsResponse(BaseModel):
+    game_id: int
+    game_settings: dict
 
 
 class LobbyListResponse(BaseModel):
@@ -198,6 +211,7 @@ class Lobby:
     max_players: int = 5
     is_started: bool = False
     next_player_int_id: int = 1
+    game_settings: dict = field(default_factory=lambda: GameSettings.to_simple_dict(GameSettings()))
 
     @property
     def host_player_id(self) -> PlayerId:
@@ -232,4 +246,6 @@ class Lobby:
             "max_players": self.max_players,
             "is_started": self.is_started,
             "player_count": len(self.players),
+            "host_player_id": int(self.host_player_id),
+            "game_settings": self.game_settings,
         }

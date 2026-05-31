@@ -4,7 +4,7 @@ from typing import Protocol, runtime_checkable
 from src.app.game_repo.base import BaseGameStateRepo
 from src.engine.engine import Engine
 from src.ids import GameId
-from src.models.game_settings import GameSettings, TurnType
+from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
 from src.models.message import (
     BigEvent,
@@ -90,11 +90,10 @@ class GameManager:
         await self.front_end.broadcast_to_players(game_id=game_id, message=game_update)
 
     @classmethod
-    def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str], turn_type: TurnType, game_id: GameId | None = None) -> GameId:
+    def new_game(cls, game_repo: BaseGameStateRepo, player_names: list[str], game_settings: GameSettings, game_id: GameId | None = None) -> GameId:
         if game_id is None:
             game_id = game_repo.reserve_game_id()
-        settings = GameSettings(turn_type=turn_type)
-        game_initializer = GameInitializer(settings=settings)
+        game_initializer = GameInitializer(settings=game_settings)
         new_game_state = game_initializer.create_new_game(game_id=game_id, player_names=player_names)
         game_repo.create(game=new_game_state)
         return game_id

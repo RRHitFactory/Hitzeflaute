@@ -8,7 +8,7 @@ from src.ids import BusId, GameId, PlayerId, Round
 from src.models.assets import AssetId, AssetInfo, AssetRepo, AssetType
 from src.models.buses import Bus, BusRepo, BusSocketManager
 from src.models.colors import Color, get_random_player_colors
-from src.models.game_settings import GameSettings, TurnType
+from src.models.game_settings import GameSettings
 from src.models.game_state import GameState, Phase
 from src.models.geometry import Point, Shape
 from src.models.player import Player, PlayerRepo
@@ -169,7 +169,7 @@ class GameInitializer:
         """
         self.settings = settings
 
-    def create_new_game(self, game_id: GameId, player_names: list[str], player_colors: list[Color] | None = None, turn_type: TurnType = "hotseat") -> GameState:
+    def create_new_game(self, game_id: GameId, player_names: list[str], player_colors: list[Color] | None = None) -> GameState:
         """
         Create a new game state with the given game ID and settings.
         :param game_id: Unique identifier for the game.

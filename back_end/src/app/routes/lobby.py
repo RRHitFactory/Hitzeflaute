@@ -7,12 +7,15 @@ from src.app.lobby_manager import LobbyManager
 from src.app.lobby_ws_manager import LobbyWebSocketConnectionManager
 from src.app.routes.logging import log_exception_with_traceback
 from src.ids import GameId, PlayerId
+from src.models.game_settings import GameSettings
 from src.models.server_models import (
     CreateLobbyResponse,
     JoinLobbyRequest,
     JoinLobbyResponse,
     LobbyInfoResponse,
     LobbyListResponse,
+    LobbyUpdateSettingsRequest,
+    LobbyUpdateSettingsResponse,
 )
 
 
@@ -152,6 +155,31 @@ def get_lobby_rest_router(
                 detail=f"Failed to get lobby info: {str(e)}",
             )
 
+    @router.put("/info/{game_id}/settings", response_model=LobbyUpdateSettingsResponse)
+    async def update_lobby_settings(game_id: int, request: LobbyUpdateSettingsRequest):
+        """Update lobby game settings"""
+        print(request)
+        try:
+            lobby = lobby_manager.get_lobby(GameId(game_id))
+            if not lobby:
+                print("ERROR: NOT LOBBY")
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Lobby {game_id} not found",
+                )
+
+            lobby.game_settings = request.game_settings
+
+            return LobbyInfoResponse(**lobby.to_dict())
+        except Exception as e:
+            if isinstance(e, HTTPException):
+                print(f"ERROR: {e}")
+                raise e
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to update lobby settings: {str(e)}",
+            )
+
     @router.get("", response_model=LobbyListResponse)
     async def list_lobbies():
         """List all active lobbies"""
@@ -191,8 +219,12 @@ def get_lobby_rest_router(
 
             # Create the actual game from lobby
             player_names = lobby.get_player_names()
+            settings_dict = lobby.game_settings
+            settings_dict["turn_type"] = "online"
+
+            game_settings = GameSettings.from_simple_dict(settings_dict)
             game_id_obj = game_manager.new_game(
-                game_repo=game_manager.game_repo, player_names=player_names, turn_type="online", game_id=game_id_obj
+                game_repo=game_manager.game_repo, player_names=player_names, game_settings=game_settings, game_id=game_id_obj
             )
 
             # Broadcast to all lobby members that game has started
