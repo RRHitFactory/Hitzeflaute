@@ -288,8 +288,16 @@ export interface Shape {
   shape_type: string;
 }
 
+export interface TechnologySettings {
+  id: number;
+  tech_name: string;
+  enabled: boolean;
+  probability_of_appearing: number;
+}
+
 export interface GameSettings {
-  turn_type: string;
+  bus_topology: string;
+  transmission_topology: string;
   n_buses: number;
   max_rounds: number;
   n_init_ice_cream: number;
@@ -298,7 +306,13 @@ export interface GameSettings {
   min_bid_price: number;
   max_bid_price: number;
   initial_funds: number;
-  map_area: Shape;
+  enable_fixed_costs: boolean;
+  loads: { class: string; data: TechnologySettings[] };
+  generators: { class: string; data: TechnologySettings[] };
+  transmission: { class: string; data: TechnologySettings[] };
+  probability_of_new_asset: number;
+  probability_of_new_transmission: number;
+  probability_of_new_bus: number;
   [key: string]: any; // Allow for additional settings
 }
 

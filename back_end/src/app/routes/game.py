@@ -8,6 +8,7 @@ from src.app.game_ws_manager import GameWebSocketConnectionManager
 from src.app.prepare_gs import prepare_game_update_for_front_end
 from src.app.routes.logging import log_exception_with_traceback
 from src.ids import GameId, PlayerId
+from src.models.game_settings import GameSettings
 from src.models.message import GameUpdate
 from src.models.server_models import (
     CreateGameRequest,
@@ -110,7 +111,11 @@ def get_game_rest_router(game_repo: BaseGameStateRepo) -> APIRouter:
                     detail="At least one player name is required",
                 )
 
-            game_id = GameManager.new_game(game_repo, request.player_names, turn_type="hotseat")
+            settings_dict = request.game_settings
+            settings_dict["turn_type"] = "hotseat"
+
+            game_settings = GameSettings.from_simple_dict(request.game_settings)
+            game_id = GameManager.new_game(game_repo, request.player_names, game_settings=game_settings)
 
             return CreateGameResponse(
                 game_id=str(game_id),

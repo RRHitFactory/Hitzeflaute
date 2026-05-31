@@ -1,11 +1,20 @@
 "use client";
 
 import { BACKEND_HOST } from "@/config/apiConfig";
-import { useJoinLobby, useLobbyInfo, useStartLobby } from "@/lib/gameAPI";
+import {
+  useJoinLobby,
+  useLobbyInfo,
+  useStartLobby,
+  useUpdateGameSettings,
+} from "@/lib/gameAPI";
 import { useLobbyWebSocket } from "@/lib/lobbyWebSocket";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
+import {
+  getDefaultGameSettings,
+  SettingsTable,
+} from "@/components/UI/SettingsTable";
 
 function LobbyContent() {
   const searchParams = useSearchParams();
@@ -163,7 +172,10 @@ function LobbyContent() {
 
   const handleStartGame = async () => {
     try {
-      await startLobby(gameId);
+      await startLobby(
+        gameId,
+        lobbyInfo?.game_settings ?? getDefaultGameSettings(),
+      );
       console.log(
         "Game started, waiting for WebSocket broadcast to all players...",
       );
@@ -316,6 +328,20 @@ function LobbyContent() {
                 </div>
               )}
             </div>
+
+            {/* Settings table - host can edit it and guests can only read it */}
+            <SettingsTable
+              settings={lobbyInfo?.game_settings}
+              editable={isHost}
+              onChange={async (nextSettings) => {
+                try {
+                  useUpdateGameSettings(gameId, nextSettings);
+                  refreshLobbyInfo();
+                } catch (err) {
+                  console.error("Error saving settings:", err);
+                }
+              }}
+            />
 
             {/* Start Game Button - only shown to host with 2+ players */}
             {isHost && (

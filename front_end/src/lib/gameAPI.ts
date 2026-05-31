@@ -7,6 +7,7 @@ import React from "react";
 
 // Import centralized API configuration
 import { API_BASE_URL } from "@/config/apiConfig";
+import { GameSettings } from "@/types/game";
 
 // Error types
 export class GameAPIError extends Error {
@@ -38,6 +39,11 @@ export interface JoinLobbyResponse {
   message: string;
 }
 
+export interface LobbyUpdateSettingsResponse {
+  game_id: string;
+  message: string;
+}
+
 export interface LobbyInfoResponse {
   game_id: string;
   host_player_id: string;
@@ -47,6 +53,7 @@ export interface LobbyInfoResponse {
     is_host: boolean;
     joined_at: string;
   }>;
+  game_settings: GameSettings;
   created_at: string;
   max_players: number;
   is_started: boolean;
@@ -160,11 +167,30 @@ export class GameAPIClient {
     );
   }
 
+  async updateGameSettings(
+    gameId: string | number,
+    gameSettings: GameSettings,
+  ): Promise<LobbyUpdateSettingsResponse> {
+    return this.request<LobbyUpdateSettingsResponse>(
+      `/info/${gameId}/settings`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ game_settings: gameSettings }),
+      },
+    );
+  }
+
   // Game management endpoints
-  async createGame(playerNames: string[]): Promise<CreateGameResponse> {
+  async createGame(
+    playerNames: string[],
+    gameSettings: GameSettings,
+  ): Promise<CreateGameResponse> {
     return this.request<CreateGameResponse>("/games", {
       method: "POST",
-      body: JSON.stringify({ player_names: playerNames }),
+      body: JSON.stringify({
+        player_names: playerNames,
+        game_settings: gameSettings,
+      }),
     });
   }
 
@@ -208,7 +234,10 @@ export interface UseGameAPIResult {
 }
 
 export interface UseCreateGameResult {
-  createGame: (playerNames: string[]) => Promise<CreateGameResponse>;
+  createGame: (
+    playerNames: string[],
+    game_settings: GameSettings,
+  ) => Promise<CreateGameResponse>;
   loading: boolean;
   error: Error | null;
 }
@@ -252,7 +281,17 @@ export interface UseLobbyInfoResult {
 export interface UseStartLobbyResult {
   startLobby: (
     gameId: string | number,
+    gameSettings: GameSettings,
   ) => Promise<{ message: string; game_id?: string }>;
+  loading: boolean;
+  error: Error | null;
+}
+
+export interface UseUpdateGameSettings {
+  updateGameSettings: (
+    gameId: string | number,
+    gameSettings: GameSettings,
+  ) => Promise<LobbyUpdateSettingsResponse>;
   loading: boolean;
   error: Error | null;
 }
@@ -289,8 +328,11 @@ export function useCreateGame(): UseCreateGameResult {
   const { execute, loading, error } = useGameAPI();
 
   const createGame = React.useCallback(
-    async (playerNames: string[]): Promise<CreateGameResponse> => {
-      return execute((client) => client.createGame(playerNames));
+    async (
+      playerNames: string[],
+      gameSettings: GameSettings,
+    ): Promise<CreateGameResponse> => {
+      return execute((client) => client.createGame(playerNames, gameSettings));
     },
     [execute],
   );
@@ -429,6 +471,27 @@ export function useStartLobby(): UseStartLobbyResult {
   );
 
   return { startLobby, loading, error };
+}
+
+export function useUpdateGameSettings(
+  gameId: string | number,
+  gameSettings: GameSettings,
+): UseUpdateGameSettings {
+  const { execute, loading, error } = useGameAPI();
+
+  const updateGameSettings = React.useCallback(
+    async (
+      gameId: string | number,
+      gameSettings: GameSettings,
+    ): Promise<LobbyUpdateSettingsResponse> => {
+      return execute((client: GameAPIClient) =>
+        client.updateGameSettings(gameId, gameSettings),
+      );
+    },
+    [execute],
+  );
+
+  return { updateGameSettings, loading, error };
 }
 
 export default GameAPIClient;
